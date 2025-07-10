@@ -165,7 +165,7 @@ async function generateDocument(formType, userData, specificType = null) {
 
   // Combine processed prompt with user data
   const fullPrompt = `${processedPrompt}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information and template.`;
-
+  console.log (` key :${process.env.OPENROUTER_API_KEY}}`) 
   try {
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
       model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
