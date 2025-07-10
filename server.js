@@ -549,20 +549,23 @@ function cleanDocumentContent(content, format) {
   let cleanedContent = content;
   
   if (format === 'pdf' || format === 'docx') {
-    // Remove markdown-style formatting for professional documents
+    // Remove markdown-style formatting for professional documents while preserving line breaks
     
-    // Convert **text** to bold (for HTML) or remove ** for plain formatting
+    // Convert **text** to plain text but preserve the content structure
     cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
     
-    // Remove ### headers and convert to proper headers
-    cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1');
-    cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1');
-    cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1');
+    // Remove ### headers but keep the text and add line break after
+    cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
+    cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
+    cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
     
-    // Remove horizontal rules (---)
-    cleanedContent = cleanedContent.replace(/^---+$/gm, '');
+    // Convert horizontal rules (---) to line breaks
+    cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
     
-    // Clean up extra whitespace
+    // Preserve important line breaks - add extra line break after colons and important sections
+    cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
+    
+    // Clean up excessive whitespace but preserve intentional spacing
     cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
     cleanedContent = cleanedContent.trim();
   }
@@ -577,7 +580,7 @@ function convertToHTML(content) {
   // Convert **text** to <strong>text</strong>
   htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
-  // Convert ### to h3, ## to h2, # to h1
+  // Convert ### to h3, ## to h2, # to h1 with proper spacing
   htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
   htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
   htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
@@ -585,13 +588,25 @@ function convertToHTML(content) {
   // Convert --- to horizontal rules
   htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
   
-  // Convert line breaks to <br> tags and paragraphs
+  // Handle special formatting for labels and values (like "Organizer: Name")
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.*)$/gm, '<div class="field-label">$1</div><div class="field-value">$2</div>');
+  
+  // Convert double line breaks to paragraph breaks
   htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+  
+  // Convert single line breaks to <br> tags for better formatting
+  htmlContent = htmlContent.replace(/\n/g, '<br>');
+  
+  // Wrap in paragraphs
   htmlContent = '<p>' + htmlContent + '</p>';
   
-  // Clean up empty paragraphs
+  // Clean up empty paragraphs and fix nested tags
   htmlContent = htmlContent.replace(/<p><\/p>/g, '');
   htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+  htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<div class="field-label">.*?<\/div>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<div class="field-value">.*?<\/div>)<\/p>/g, '$1');
   
   return htmlContent;
 }
@@ -610,34 +625,37 @@ async function generatePDF(content, filename) {
       <style>
         body { 
           font-family: 'Times New Roman', serif; 
-          line-height: 1.6; 
+          line-height: 1.8; 
           margin: 40px; 
           color: #000;
+          font-size: 12px;
         }
         h1 { 
           color: #000; 
           margin-top: 30px; 
           margin-bottom: 20px;
-          font-size: 18px;
+          font-size: 16px;
           font-weight: bold;
           text-align: center;
+          text-transform: uppercase;
         }
         h2 { 
           color: #000; 
           margin-top: 25px; 
           margin-bottom: 15px;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
+          text-transform: uppercase;
         }
         h3 { 
           color: #000; 
           margin-top: 20px; 
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: bold;
         }
         p { 
-          margin-bottom: 12px; 
+          margin-bottom: 15px; 
           text-align: justify;
         }
         strong { 
@@ -646,23 +664,36 @@ async function generatePDF(content, filename) {
         hr { 
           border: none; 
           border-top: 1px solid #000; 
-          margin: 20px 0; 
+          margin: 25px 0; 
         }
         .header { 
           text-align: center; 
-          margin-bottom: 30px; 
+          margin-bottom: 40px; 
+        }
+        .field-label {
+          font-weight: bold;
+          margin-top: 15px;
+          margin-bottom: 5px;
+        }
+        .field-value {
+          margin-bottom: 10px;
+          padding-left: 20px;
         }
         .signature-section { 
-          margin-top: 50px; 
+          margin-top: 60px; 
           page-break-inside: avoid;
         }
         .signature-line { 
           border-bottom: 1px solid #000; 
           width: 300px; 
-          margin: 20px 0 10px 0;
+          margin: 30px 0 10px 0;
+          display: inline-block;
         }
         .date-line { 
           margin-top: 30px; 
+        }
+        br {
+          line-height: 1.8;
         }
       </style>
     </head>
@@ -726,14 +757,33 @@ async function generateWord(content, filename) {
         const heading = docx.createP();
         heading.addText(trimmedLine.substring(2), { bold: true, font_size: 16 });
         heading.options.align = 'center';
+        // Add spacing after heading
+        docx.createP();
       } else if (trimmedLine.startsWith('## ')) {
         // Sub heading
         const heading = docx.createP();
         heading.addText(trimmedLine.substring(3), { bold: true, font_size: 14 });
+        // Add spacing after heading
+        docx.createP();
       } else if (trimmedLine.startsWith('### ')) {
         // Sub-sub heading
         const heading = docx.createP();
         heading.addText(trimmedLine.substring(4), { bold: true, font_size: 12 });
+        // Add spacing after heading
+        docx.createP();
+      } else if (trimmedLine.includes(':') && !trimmedLine.includes('**')) {
+        // Handle field labels (like "Organizer: Name")
+        const colonIndex = trimmedLine.indexOf(':');
+        const label = trimmedLine.substring(0, colonIndex + 1);
+        const value = trimmedLine.substring(colonIndex + 1).trim();
+        
+        const paragraph = docx.createP();
+        paragraph.addText(label, { bold: true });
+        if (value) {
+          paragraph.addText(' ' + value);
+        }
+        // Add line break after field
+        docx.createP();
       } else {
         // Regular paragraph
         const paragraph = docx.createP();
