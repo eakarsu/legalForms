@@ -154,9 +154,6 @@ async function generateDocument(formType, userData, specificType = null) {
     throw new Error('AI service configuration error. Please contact support.');
   }
 
-  console.log('API Key length:', apiKey.length);
-  console.log('API Key starts with:', apiKey.substring(0, 10) + '...');
-
   let prompt;
   
   // Use specific prompt if available, otherwise fall back to general prompt
