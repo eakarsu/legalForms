@@ -1,4 +1,4 @@
-# Legal Forms Generator
+#  Legal Forms Generator
 
 A comprehensive web application for generating professional legal documents using AI-powered templates. This application covers all major areas of legal practice including business formation, real estate, family law, estate planning, civil litigation, employment contracts, and general contracts.
 
