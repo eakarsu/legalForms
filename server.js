@@ -595,6 +595,26 @@ app.get('/features', (req, res) => {
   });
 });
 
+app.get('/about', (req, res) => {
+  res.render('about', { 
+    title: 'About LegalFormsAI - Professional Legal Document Generation',
+    description: 'Learn about LegalFormsAI\'s mission to democratize legal document creation through AI technology. Trusted by attorneys, businesses, and individuals nationwide.',
+    keywords: 'about legal forms AI, legal document automation, AI legal technology, professional legal services',
+    canonical: process.env.SITE_URL + '/about' || 'https://legalaiforms.com/about',
+    req: req
+  });
+});
+
+app.get('/faq', (req, res) => {
+  res.render('faq', { 
+    title: 'FAQ - Legal Forms Generator | LegalFormsAI',
+    description: 'Frequently asked questions about LegalFormsAI\'s legal document generation service. Get answers about pricing, legal compliance, document formats, and more.',
+    keywords: 'legal forms FAQ, legal document questions, AI legal help, legal template questions',
+    canonical: process.env.SITE_URL + '/faq' || 'https://legalaiforms.com/faq',
+    req: req
+  });
+});
+
 app.get('/contact', (req, res) => {
   const meta = generatePageMeta('contact');
   res.render('contact', { 
@@ -613,6 +633,8 @@ app.get('/sitemap.xml', async (req, res) => {
     
     // Add static pages
     sitemap.write({ url: '/', changefreq: 'weekly', priority: 1.0 });
+    sitemap.write({ url: '/about', changefreq: 'monthly', priority: 0.8 });
+    sitemap.write({ url: '/faq', changefreq: 'monthly', priority: 0.8 });
     sitemap.write({ url: '/contact', changefreq: 'monthly', priority: 0.8 });
     
     // Add form pages

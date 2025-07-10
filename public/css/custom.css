@@ -600,3 +600,68 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
+
+/* Trust signals */
+.trust-signals {
+    margin-top: 2rem;
+}
+
+.trust-badge {
+    padding: 0.5rem;
+}
+
+.trust-badge i {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Image optimization */
+img {
+    max-width: 100%;
+    height: auto;
+    loading: lazy;
+}
+
+/* SEO-friendly image classes */
+.hero-image img {
+    alt: "AI-powered legal document generation platform";
+}
+
+.feature-image img {
+    alt: "Professional legal document templates";
+}
+
+/* Testimonials section */
+.testimonial-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.testimonial-rating {
+    color: #ffc107;
+    margin-bottom: 1rem;
+}
+
+.testimonial-author {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.testimonial-title {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* FAQ accordion improvements */
+.accordion-button:not(.collapsed) {
+    background-color: #f8f9fa;
+    color: #667eea;
+}
+
+.accordion-button:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+}
