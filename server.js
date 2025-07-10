@@ -155,7 +155,9 @@ const getSpecificFormTypes = (formType) => {
       { value: 'commercial_lease', label: 'Commercial Lease Agreement' },
       { value: 'deed_transfer', label: 'Property Deed Transfer' },
       { value: 'disclosure_form', label: 'Property Disclosure Form' },
-      { value: 'listing_agreement', label: 'Real Estate Listing Agreement' }
+      { value: 'listing_agreement', label: 'Real Estate Listing Agreement' },
+      { value: 'rental_application', label: 'Rental Application' },
+      { value: 'lease_termination', label: 'Lease Termination Notice' }
     ],
     family_law: [
       { value: 'divorce_petition', label: 'Divorce Petition' },
@@ -231,6 +233,24 @@ const getFormFields = (formType, specificType) => {
       { name: 'par_value', label: 'Par Value per Share', type: 'number', required: true },
       { name: 'initial_directors', label: 'Initial Directors (Names)', type: 'textarea', required: true }
     ],
+    llc_operating_agreement: [
+      ...baseFields,
+      { name: 'llc_name', label: 'LLC Name', type: 'text', required: true },
+      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
+      { name: 'members_info', label: 'Members Information', type: 'textarea', required: true },
+      { name: 'management_structure', label: 'Management Structure', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true },
+      { name: 'capital_contributions', label: 'Capital Contributions', type: 'textarea', required: true },
+      { name: 'profit_distribution', label: 'Profit Distribution Method', type: 'textarea', required: true }
+    ],
+    corp_bylaws: [
+      ...baseFields,
+      { name: 'corp_name', label: 'Corporation Name', type: 'text', required: true },
+      { name: 'state_incorporation', label: 'State of Incorporation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
+      { name: 'board_size', label: 'Number of Directors', type: 'number', required: true },
+      { name: 'meeting_frequency', label: 'Board Meeting Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually', 'As Needed'], required: true },
+      { name: 'fiscal_year_end', label: 'Fiscal Year End', type: 'date', required: true },
+      { name: 'stock_classes', label: 'Stock Classes', type: 'textarea', required: true }
+    ],
     
     // Real Estate Fields
     purchase_agreement: [
@@ -242,6 +262,26 @@ const getFormFields = (formType, specificType) => {
       { name: 'earnest_money', label: 'Earnest Money Amount ($)', type: 'number', required: true },
       { name: 'closing_date', label: 'Proposed Closing Date', type: 'date', required: true },
       { name: 'financing_contingency', label: 'Financing Contingency Period (days)', type: 'number', required: true }
+    ],
+    lease_agreement: [
+      ...baseFields,
+      { name: 'landlord_name', label: 'Landlord Name', type: 'text', required: true },
+      { name: 'tenant_name', label: 'Tenant Name', type: 'text', required: true },
+      { name: 'property_address', label: 'Rental Property Address', type: 'textarea', required: true },
+      { name: 'monthly_rent', label: 'Monthly Rent ($)', type: 'number', required: true },
+      { name: 'security_deposit', label: 'Security Deposit ($)', type: 'number', required: true },
+      { name: 'lease_start', label: 'Lease Start Date', type: 'date', required: true },
+      { name: 'lease_end', label: 'Lease End Date', type: 'date', required: true }
+    ],
+    commercial_lease: [
+      ...baseFields,
+      { name: 'landlord_name', label: 'Landlord/Company Name', type: 'text', required: true },
+      { name: 'tenant_name', label: 'Tenant/Business Name', type: 'text', required: true },
+      { name: 'property_address', label: 'Commercial Property Address', type: 'textarea', required: true },
+      { name: 'monthly_rent', label: 'Monthly Base Rent ($)', type: 'number', required: true },
+      { name: 'square_footage', label: 'Square Footage', type: 'number', required: true },
+      { name: 'lease_term', label: 'Lease Term (years)', type: 'number', required: true },
+      { name: 'permitted_use', label: 'Permitted Use', type: 'textarea', required: true }
     ],
     
     // Family Law Fields
@@ -276,6 +316,23 @@ const getFormFields = (formType, specificType) => {
       { name: 'court_jurisdiction', label: 'Court Jurisdiction', type: 'text', required: true },
       { name: 'incident_date', label: 'Date of Incident', type: 'date', required: true }
     ],
+    motion_dismiss: [
+      ...baseFields,
+      { name: 'case_number', label: 'Case Number', type: 'text', required: true },
+      { name: 'court_name', label: 'Court Name', type: 'text', required: true },
+      { name: 'moving_party', label: 'Moving Party', type: 'text', required: true },
+      { name: 'grounds_dismissal', label: 'Grounds for Dismissal', type: 'textarea', required: true },
+      { name: 'legal_authority', label: 'Legal Authority/Citations', type: 'textarea', required: true }
+    ],
+    settlement_agreement: [
+      ...baseFields,
+      { name: 'party1_name', label: 'First Party Name', type: 'text', required: true },
+      { name: 'party2_name', label: 'Second Party Name', type: 'text', required: true },
+      { name: 'dispute_description', label: 'Dispute Description', type: 'textarea', required: true },
+      { name: 'settlement_amount', label: 'Settlement Amount ($)', type: 'number', required: true },
+      { name: 'payment_terms', label: 'Payment Terms', type: 'textarea', required: true },
+      { name: 'release_scope', label: 'Scope of Release', type: 'textarea', required: true }
+    ],
     
     // Employment Contract Fields
     employment_agreement: [
@@ -286,6 +343,23 @@ const getFormFields = (formType, specificType) => {
       { name: 'salary', label: 'Annual Salary ($)', type: 'number', required: true },
       { name: 'start_date', label: 'Start Date', type: 'date', required: true },
       { name: 'job_duties', label: 'Job Duties and Responsibilities', type: 'textarea', required: true }
+    ],
+    nda_agreement: [
+      ...baseFields,
+      { name: 'disclosing_party', label: 'Disclosing Party Name', type: 'text', required: true },
+      { name: 'receiving_party', label: 'Receiving Party Name', type: 'text', required: true },
+      { name: 'confidential_info', label: 'Description of Confidential Information', type: 'textarea', required: true },
+      { name: 'agreement_term', label: 'Agreement Term (years)', type: 'number', required: true },
+      { name: 'permitted_use', label: 'Permitted Use of Information', type: 'textarea', required: true }
+    ],
+    noncompete_agreement: [
+      ...baseFields,
+      { name: 'employer_name', label: 'Employer Name', type: 'text', required: true },
+      { name: 'employee_name', label: 'Employee Name', type: 'text', required: true },
+      { name: 'restricted_activities', label: 'Restricted Activities', type: 'textarea', required: true },
+      { name: 'geographic_scope', label: 'Geographic Scope', type: 'text', required: true },
+      { name: 'time_period', label: 'Time Period (months)', type: 'number', required: true },
+      { name: 'consideration', label: 'Consideration Provided', type: 'textarea', required: true }
     ],
     
     // General Contract Fields
@@ -491,12 +565,15 @@ app.get('/download/:filename', async (req, res) => {
 
 app.get('/api/form-types/:formType', (req, res) => {
   const formType = req.params.formType;
+  console.log('API request for form types:', formType);
   
   if (!FORM_TYPES[formType]) {
+    console.log('Invalid form type:', formType);
     return res.status(400).json({ error: 'Invalid form type' });
   }
 
   const specificTypes = getSpecificFormTypes(formType);
+  console.log('Returning specific types:', specificTypes);
   res.json(specificTypes);
 });
 

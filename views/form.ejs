@@ -171,17 +171,21 @@ let currentFilename = null;
 
 // Load form types when page loads
 $(document).ready(function() {
+    console.log('Page loaded, loading form types...');
     loadSpecificFormTypes();
 });
 
 function loadSpecificFormTypes() {
     const formType = '<%= formType %>';
+    console.log('Loading form types for:', formType);
     
     $.get(`/api/form-types/${formType}`)
         .done(function(types) {
+            console.log('Received form types:', types);
             renderSpecificFormTypes(types);
         })
-        .fail(function() {
+        .fail(function(xhr, status, error) {
+            console.error('Error loading form types:', error);
             $('#specificFormType').html('<option value="">Error loading form types</option>');
         });
 }
@@ -189,10 +193,15 @@ function loadSpecificFormTypes() {
 function renderSpecificFormTypes(types) {
     let html = '<option value="">Choose a specific document type...</option>';
     
-    types.forEach(function(type) {
-        html += `<option value="${type.value}">${type.label}</option>`;
-    });
+    if (types && types.length > 0) {
+        types.forEach(function(type) {
+            html += `<option value="${type.value}">${type.label}</option>`;
+        });
+    } else {
+        html += '<option value="">No document types available</option>';
+    }
     
+    console.log('Setting dropdown HTML:', html);
     $('#specificFormType').html(html);
 }
 
