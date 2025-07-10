@@ -588,17 +588,23 @@ function convertToHTML(content) {
   // Convert --- to horizontal rules
   htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
   
-  // Handle special formatting for labels and values (like "Address: 123 Main St")
-  // Keep label and value on the same line
+  // Handle multi-line field values (like addresses) - process before single line fields
+  // Look for pattern: Label:\nValue1\nValue2\n etc.
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
+    const cleanValue = value.trim().replace(/\n/g, '<br>');
+    return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
+  });
+  
+  // Handle single-line field values (like "Phone: (804) 360-1129")
   htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
   
-  // Handle labels without values (like "Address:" on its own line)
+  // Handle labels without values (like "Address:" on its own line) - only if not already processed
   htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
   
   // Convert double line breaks to paragraph breaks
   htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
   
-  // Convert single line breaks to <br> tags for better formatting
+  // Convert remaining single line breaks to <br> tags
   htmlContent = htmlContent.replace(/\n/g, '<br>');
   
   // Wrap remaining content in paragraphs
