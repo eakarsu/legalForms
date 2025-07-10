@@ -92,14 +92,24 @@ async function loadPrompt(formType) {
 }
 
 // Generate legal document using OpenRouter AI
-async function generateDocument(formType, userData) {
+async function generateDocument(formType, userData, specificType = null) {
   const prompt = await loadPrompt(formType);
   if (!prompt) {
     throw new Error('Failed to load prompt template');
   }
 
+  // Add specific document type information to the prompt
+  let documentTypeInfo = '';
+  if (specificType) {
+    const specificTypes = getSpecificFormTypes(formType);
+    const typeInfo = specificTypes.find(t => t.value === specificType);
+    if (typeInfo) {
+      documentTypeInfo = `\n\nSPECIFIC DOCUMENT TYPE: ${typeInfo.label}\nGenerate specifically a ${typeInfo.label} document.`;
+    }
+  }
+
   // Combine prompt with user data
-  const fullPrompt = `${prompt}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information.`;
+  const fullPrompt = `${prompt}${documentTypeInfo}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information.`;
 
   try {
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
@@ -128,8 +138,174 @@ async function generateDocument(formType, userData) {
   }
 }
 
+// Specific form types within each category
+const getSpecificFormTypes = (formType) => {
+  const specificTypes = {
+    business_formation: [
+      { value: 'llc_articles', label: 'LLC Articles of Organization' },
+      { value: 'corp_articles', label: 'Corporation Articles of Incorporation' },
+      { value: 'llc_operating_agreement', label: 'LLC Operating Agreement' },
+      { value: 'corp_bylaws', label: 'Corporate Bylaws' },
+      { value: 'partnership_agreement', label: 'Partnership Agreement' },
+      { value: 'dba_filing', label: 'DBA (Doing Business As) Filing' }
+    ],
+    real_estate: [
+      { value: 'purchase_agreement', label: 'Real Estate Purchase Agreement' },
+      { value: 'lease_agreement', label: 'Residential Lease Agreement' },
+      { value: 'commercial_lease', label: 'Commercial Lease Agreement' },
+      { value: 'deed_transfer', label: 'Property Deed Transfer' },
+      { value: 'disclosure_form', label: 'Property Disclosure Form' },
+      { value: 'listing_agreement', label: 'Real Estate Listing Agreement' }
+    ],
+    family_law: [
+      { value: 'divorce_petition', label: 'Divorce Petition' },
+      { value: 'custody_agreement', label: 'Child Custody Agreement' },
+      { value: 'support_order', label: 'Child Support Order' },
+      { value: 'prenuptial_agreement', label: 'Prenuptial Agreement' },
+      { value: 'adoption_petition', label: 'Adoption Petition' },
+      { value: 'separation_agreement', label: 'Legal Separation Agreement' }
+    ],
+    estate_planning: [
+      { value: 'last_will', label: 'Last Will and Testament' },
+      { value: 'living_trust', label: 'Living Trust' },
+      { value: 'power_of_attorney', label: 'Power of Attorney' },
+      { value: 'healthcare_directive', label: 'Healthcare Directive' },
+      { value: 'guardianship_nomination', label: 'Guardianship Nomination' },
+      { value: 'beneficiary_designation', label: 'Beneficiary Designation' }
+    ],
+    civil_litigation: [
+      { value: 'civil_complaint', label: 'Civil Complaint' },
+      { value: 'motion_dismiss', label: 'Motion to Dismiss' },
+      { value: 'discovery_request', label: 'Discovery Request' },
+      { value: 'settlement_agreement', label: 'Settlement Agreement' },
+      { value: 'subpoena', label: 'Subpoena' },
+      { value: 'judgment_collection', label: 'Judgment Collection Documents' }
+    ],
+    employment_contracts: [
+      { value: 'employment_agreement', label: 'Employment Agreement' },
+      { value: 'nda_agreement', label: 'Non-Disclosure Agreement' },
+      { value: 'noncompete_agreement', label: 'Non-Compete Agreement' },
+      { value: 'severance_agreement', label: 'Severance Agreement' },
+      { value: 'contractor_agreement', label: 'Independent Contractor Agreement' },
+      { value: 'employee_handbook', label: 'Employee Handbook' }
+    ],
+    general_contracts: [
+      { value: 'service_agreement', label: 'Service Agreement' },
+      { value: 'purchase_contract', label: 'Purchase Contract' },
+      { value: 'licensing_agreement', label: 'Licensing Agreement' },
+      { value: 'vendor_contract', label: 'Vendor Contract' },
+      { value: 'consulting_agreement', label: 'Consulting Agreement' },
+      { value: 'partnership_contract', label: 'Partnership Contract' }
+    ]
+  };
+  
+  return specificTypes[formType] || [];
+};
+
 // Form field configurations
-const getFormFields = (formType) => {
+const getFormFields = (formType, specificType) => {
+  const baseFields = [
+    { name: 'client_name', label: 'Full Legal Name', type: 'text', required: true },
+    { name: 'client_address', label: 'Address', type: 'textarea', required: true },
+    { name: 'client_phone', label: 'Phone Number', type: 'tel', required: true },
+    { name: 'client_email', label: 'Email Address', type: 'email', required: true }
+  ];
+
+  const specificFields = {
+    // Business Formation Fields
+    llc_articles: [
+      ...baseFields,
+      { name: 'llc_name', label: 'LLC Name', type: 'text', required: true },
+      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
+      { name: 'business_purpose', label: 'Business Purpose', type: 'textarea', required: true },
+      { name: 'registered_agent', label: 'Registered Agent Name', type: 'text', required: true },
+      { name: 'agent_address', label: 'Registered Agent Address', type: 'textarea', required: true },
+      { name: 'management_type', label: 'Management Type', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true }
+    ],
+    corp_articles: [
+      ...baseFields,
+      { name: 'corp_name', label: 'Corporation Name', type: 'text', required: true },
+      { name: 'corp_type', label: 'Corporation Type', type: 'select', options: ['C-Corporation', 'S-Corporation', 'Professional Corporation'], required: true },
+      { name: 'state_incorporation', label: 'State of Incorporation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
+      { name: 'authorized_shares', label: 'Number of Authorized Shares', type: 'number', required: true },
+      { name: 'par_value', label: 'Par Value per Share', type: 'number', required: true },
+      { name: 'initial_directors', label: 'Initial Directors (Names)', type: 'textarea', required: true }
+    ],
+    
+    // Real Estate Fields
+    purchase_agreement: [
+      ...baseFields,
+      { name: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true },
+      { name: 'seller_name', label: 'Seller Full Name', type: 'text', required: true },
+      { name: 'property_address', label: 'Property Address', type: 'textarea', required: true },
+      { name: 'purchase_price', label: 'Purchase Price ($)', type: 'number', required: true },
+      { name: 'earnest_money', label: 'Earnest Money Amount ($)', type: 'number', required: true },
+      { name: 'closing_date', label: 'Proposed Closing Date', type: 'date', required: true },
+      { name: 'financing_contingency', label: 'Financing Contingency Period (days)', type: 'number', required: true }
+    ],
+    
+    // Family Law Fields
+    divorce_petition: [
+      ...baseFields,
+      { name: 'petitioner_name', label: 'Petitioner Full Name', type: 'text', required: true },
+      { name: 'respondent_name', label: 'Respondent Full Name', type: 'text', required: true },
+      { name: 'marriage_date', label: 'Date of Marriage', type: 'date', required: true },
+      { name: 'separation_date', label: 'Date of Separation', type: 'date', required: false },
+      { name: 'children_info', label: 'Children Information (Names, Ages)', type: 'textarea', required: false },
+      { name: 'grounds_divorce', label: 'Grounds for Divorce', type: 'select', options: ['Irreconcilable Differences', 'Adultery', 'Abandonment', 'Cruelty', 'Other'], required: true }
+    ],
+    
+    // Estate Planning Fields
+    last_will: [
+      ...baseFields,
+      { name: 'testator_name', label: 'Testator Full Name', type: 'text', required: true },
+      { name: 'spouse_name', label: 'Spouse Name (if applicable)', type: 'text', required: false },
+      { name: 'beneficiaries', label: 'Primary Beneficiaries', type: 'textarea', required: true },
+      { name: 'executor_name', label: 'Executor Name', type: 'text', required: true },
+      { name: 'guardian_minors', label: 'Guardian for Minor Children', type: 'text', required: false },
+      { name: 'assets_description', label: 'Description of Major Assets', type: 'textarea', required: true }
+    ],
+    
+    // Civil Litigation Fields
+    civil_complaint: [
+      ...baseFields,
+      { name: 'plaintiff_name', label: 'Plaintiff Name', type: 'text', required: true },
+      { name: 'defendant_name', label: 'Defendant Name', type: 'text', required: true },
+      { name: 'case_description', label: 'Case Description', type: 'textarea', required: true },
+      { name: 'damages_amount', label: 'Damages Sought ($)', type: 'number', required: true },
+      { name: 'court_jurisdiction', label: 'Court Jurisdiction', type: 'text', required: true },
+      { name: 'incident_date', label: 'Date of Incident', type: 'date', required: true }
+    ],
+    
+    // Employment Contract Fields
+    employment_agreement: [
+      ...baseFields,
+      { name: 'employer_name', label: 'Employer/Company Name', type: 'text', required: true },
+      { name: 'employee_name', label: 'Employee Name', type: 'text', required: true },
+      { name: 'position_title', label: 'Position Title', type: 'text', required: true },
+      { name: 'salary', label: 'Annual Salary ($)', type: 'number', required: true },
+      { name: 'start_date', label: 'Start Date', type: 'date', required: true },
+      { name: 'job_duties', label: 'Job Duties and Responsibilities', type: 'textarea', required: true }
+    ],
+    
+    // General Contract Fields
+    service_agreement: [
+      ...baseFields,
+      { name: 'service_provider', label: 'Service Provider Name', type: 'text', required: true },
+      { name: 'client_company', label: 'Client/Company Name', type: 'text', required: true },
+      { name: 'service_description', label: 'Service Description', type: 'textarea', required: true },
+      { name: 'contract_value', label: 'Contract Value ($)', type: 'number', required: true },
+      { name: 'start_date', label: 'Service Start Date', type: 'date', required: true },
+      { name: 'end_date', label: 'Service End Date', type: 'date', required: true }
+    ]
+  };
+
+  // Return specific fields if available, otherwise return base fields
+  return specificFields[specificType] || baseFields;
+};
+
+// Legacy function for backward compatibility
+const getLegacyFormFields = (formType) => {
   const formFields = {
     business_formation: [
       { name: 'client_name', label: 'Full Legal Name', type: 'text', required: true },
@@ -244,14 +420,17 @@ app.get('/form/:formType', (req, res) => {
 
 app.post('/generate', async (req, res) => {
   try {
-    const { form_type: formType, form_data: userData } = req.body;
+    const { form_type: formType, specific_type: specificType, form_data: userData } = req.body;
 
     if (!FORM_TYPES[formType]) {
       return res.status(400).json({ error: 'Invalid form type' });
     }
 
-    // Validate required fields
-    const requiredFields = getFormFields(formType).filter(field => field.required);
+    // Validate required fields based on specific type
+    const requiredFields = specificType ? 
+      getFormFields(formType, specificType).filter(field => field.required) :
+      getLegacyFormFields(formType).filter(field => field.required);
+    
     const missingFields = requiredFields.filter(field => !userData[field.name] || userData[field.name].trim() === '');
     
     if (missingFields.length > 0) {
@@ -260,12 +439,13 @@ app.post('/generate', async (req, res) => {
       });
     }
 
-    // Generate the document
-    const document = await generateDocument(formType, userData);
+    // Generate the document with specific type information
+    const document = await generateDocument(formType, userData, specificType);
 
     // Save generated document
     const timestamp = moment().format('YYYYMMDD_HHmmss');
-    const filename = `${formType}_${timestamp}.txt`;
+    const documentType = specificType || formType;
+    const filename = `${documentType}_${timestamp}.txt`;
     const filepath = path.join(uploadDir, filename);
 
     await fs.writeFile(filepath, document, 'utf8');
@@ -309,14 +489,26 @@ app.get('/download/:filename', async (req, res) => {
   }
 });
 
-app.get('/api/form-fields/:formType', (req, res) => {
+app.get('/api/form-types/:formType', (req, res) => {
   const formType = req.params.formType;
   
   if (!FORM_TYPES[formType]) {
     return res.status(400).json({ error: 'Invalid form type' });
   }
 
-  const fields = getFormFields(formType);
+  const specificTypes = getSpecificFormTypes(formType);
+  res.json(specificTypes);
+});
+
+app.get('/api/form-fields/:formType/:specificType?', (req, res) => {
+  const formType = req.params.formType;
+  const specificType = req.params.specificType;
+  
+  if (!FORM_TYPES[formType]) {
+    return res.status(400).json({ error: 'Invalid form type' });
+  }
+
+  const fields = specificType ? getFormFields(formType, specificType) : getLegacyFormFields(formType);
   res.json(fields);
 });
 

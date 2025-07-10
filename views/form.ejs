@@ -76,6 +76,15 @@
             </div>
             <div class="card-body">
                 <form id="documentForm">
+                    <!-- Form Type Selection -->
+                    <div class="mb-4">
+                        <label for="specificFormType" class="form-label">Select Specific Document Type *</label>
+                        <select class="form-select" id="specificFormType" name="specificFormType" required>
+                            <option value="">Choose a specific document type...</option>
+                        </select>
+                        <small class="form-text text-muted">Select the exact type of document you need to generate.</small>
+                    </div>
+                    
                     <div id="formFields">
                         <!-- Dynamic form fields will be loaded here -->
                     </div>
@@ -160,15 +169,47 @@
 <script>
 let currentFilename = null;
 
-// Load form fields when page loads
+// Load form types when page loads
 $(document).ready(function() {
-    loadFormFields();
+    loadSpecificFormTypes();
 });
 
-function loadFormFields() {
+function loadSpecificFormTypes() {
     const formType = '<%= formType %>';
     
-    $.get(`/api/form-fields/${formType}`)
+    $.get(`/api/form-types/${formType}`)
+        .done(function(types) {
+            renderSpecificFormTypes(types);
+        })
+        .fail(function() {
+            $('#specificFormType').html('<option value="">Error loading form types</option>');
+        });
+}
+
+function renderSpecificFormTypes(types) {
+    let html = '<option value="">Choose a specific document type...</option>';
+    
+    types.forEach(function(type) {
+        html += `<option value="${type.value}">${type.label}</option>`;
+    });
+    
+    $('#specificFormType').html(html);
+}
+
+// Handle specific form type selection
+$('#specificFormType').on('change', function() {
+    const specificType = $(this).val();
+    if (specificType) {
+        loadFormFields(specificType);
+    } else {
+        $('#formFields').html('');
+    }
+});
+
+function loadFormFields(specificType) {
+    const formType = '<%= formType %>';
+    
+    $.get(`/api/form-fields/${formType}/${specificType}`)
         .done(function(fields) {
             renderFormFields(fields);
         })
@@ -222,6 +263,13 @@ function resetForm() {
 $('#documentForm').on('submit', function(e) {
     e.preventDefault();
     
+    // Check if specific form type is selected
+    const specificType = $('#specificFormType').val();
+    if (!specificType) {
+        alert('Please select a specific document type first.');
+        return;
+    }
+    
     // Collect form data
     const formData = {};
     $(this).find('input, select, textarea').each(function() {
@@ -229,6 +277,9 @@ $('#documentForm').on('submit', function(e) {
             formData[this.name] = this.value;
         }
     });
+    
+    // Add specific form type to form data
+    formData.specific_form_type = specificType;
     
     // Show loading modal
     $('#loadingModal').modal('show');
@@ -240,6 +291,7 @@ $('#documentForm').on('submit', function(e) {
         contentType: 'application/json',
         data: JSON.stringify({
             form_type: '<%= formType %>',
+            specific_type: specificType,
             form_data: formData
         }),
         success: function(response) {
