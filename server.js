@@ -544,28 +544,138 @@ app.get('/form/:formType', (req, res) => {
   });
 });
 
+// Clean document content for different formats
+function cleanDocumentContent(content, format) {
+  let cleanedContent = content;
+  
+  if (format === 'pdf' || format === 'docx') {
+    // Remove markdown-style formatting for professional documents
+    
+    // Convert **text** to bold (for HTML) or remove ** for plain formatting
+    cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
+    
+    // Remove ### headers and convert to proper headers
+    cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1');
+    cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1');
+    cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1');
+    
+    // Remove horizontal rules (---)
+    cleanedContent = cleanedContent.replace(/^---+$/gm, '');
+    
+    // Clean up extra whitespace
+    cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
+    cleanedContent = cleanedContent.trim();
+  }
+  
+  return cleanedContent;
+}
+
+// Convert content to HTML with proper formatting
+function convertToHTML(content) {
+  let htmlContent = content;
+  
+  // Convert **text** to <strong>text</strong>
+  htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert ### to h3, ## to h2, # to h1
+  htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+  
+  // Convert --- to horizontal rules
+  htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
+  
+  // Convert line breaks to <br> tags and paragraphs
+  htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+  htmlContent = '<p>' + htmlContent + '</p>';
+  
+  // Clean up empty paragraphs
+  htmlContent = htmlContent.replace(/<p><\/p>/g, '');
+  htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+  
+  return htmlContent;
+}
+
 // Document format conversion functions
 async function generatePDF(content, filename) {
+  // Clean the content and convert to HTML
+  const cleanedContent = cleanDocumentContent(content, 'pdf');
+  const htmlFormattedContent = convertToHTML(cleanedContent);
+  
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <style>
-        body { font-family: 'Times New Roman', serif; line-height: 1.6; margin: 40px; }
-        h1, h2, h3 { color: #333; margin-top: 30px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .signature-line { margin-top: 50px; border-bottom: 1px solid #000; width: 300px; }
-        .date-line { margin-top: 20px; }
+        body { 
+          font-family: 'Times New Roman', serif; 
+          line-height: 1.6; 
+          margin: 40px; 
+          color: #000;
+        }
+        h1 { 
+          color: #000; 
+          margin-top: 30px; 
+          margin-bottom: 20px;
+          font-size: 18px;
+          font-weight: bold;
+          text-align: center;
+        }
+        h2 { 
+          color: #000; 
+          margin-top: 25px; 
+          margin-bottom: 15px;
+          font-size: 16px;
+          font-weight: bold;
+        }
+        h3 { 
+          color: #000; 
+          margin-top: 20px; 
+          margin-bottom: 10px;
+          font-size: 14px;
+          font-weight: bold;
+        }
+        p { 
+          margin-bottom: 12px; 
+          text-align: justify;
+        }
+        strong { 
+          font-weight: bold; 
+        }
+        hr { 
+          border: none; 
+          border-top: 1px solid #000; 
+          margin: 20px 0; 
+        }
+        .header { 
+          text-align: center; 
+          margin-bottom: 30px; 
+        }
+        .signature-section { 
+          margin-top: 50px; 
+          page-break-inside: avoid;
+        }
+        .signature-line { 
+          border-bottom: 1px solid #000; 
+          width: 300px; 
+          margin: 20px 0 10px 0;
+        }
+        .date-line { 
+          margin-top: 30px; 
+        }
       </style>
     </head>
     <body>
       <div class="header">
         <h1>Legal Document</h1>
       </div>
-      <pre style="white-space: pre-wrap; font-family: 'Times New Roman', serif;">${content}</pre>
-      <div class="signature-line"></div>
-      <div class="date-line">Date: _________________</div>
+      ${htmlFormattedContent}
+      <div class="signature-section">
+        <div class="signature-line"></div>
+        <p>Signature</p>
+        <div class="date-line">Date: _________________</div>
+      </div>
     </body>
     </html>
   `;
@@ -578,7 +688,9 @@ async function generatePDF(content, filename) {
         right: "0.5in",
         bottom: "0.5in",
         left: "0.5in"
-      }
+      },
+      type: 'pdf',
+      quality: '75'
     };
 
     pdf.create(htmlContent, options).toFile(filename, (err, result) => {
@@ -597,9 +709,61 @@ async function generateWord(content, filename) {
     docx.setDocSubject('Generated Legal Document');
     docx.setDocKeywords('legal, document, generated');
     
-    // Add content
-    const paragraph = docx.createP();
-    paragraph.addText(content);
+    // Clean the content for Word format
+    const cleanedContent = cleanDocumentContent(content, 'docx');
+    
+    // Split content into lines and process formatting
+    const lines = cleanedContent.split('\n');
+    
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine === '') {
+        // Add empty paragraph for spacing
+        docx.createP();
+      } else if (trimmedLine.startsWith('# ')) {
+        // Main heading
+        const heading = docx.createP();
+        heading.addText(trimmedLine.substring(2), { bold: true, font_size: 16 });
+        heading.options.align = 'center';
+      } else if (trimmedLine.startsWith('## ')) {
+        // Sub heading
+        const heading = docx.createP();
+        heading.addText(trimmedLine.substring(3), { bold: true, font_size: 14 });
+      } else if (trimmedLine.startsWith('### ')) {
+        // Sub-sub heading
+        const heading = docx.createP();
+        heading.addText(trimmedLine.substring(4), { bold: true, font_size: 12 });
+      } else {
+        // Regular paragraph
+        const paragraph = docx.createP();
+        
+        // Handle bold text within paragraphs
+        if (trimmedLine.includes('**')) {
+          const parts = trimmedLine.split(/(\*\*.*?\*\*)/);
+          parts.forEach(part => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              paragraph.addText(part.slice(2, -2), { bold: true });
+            } else {
+              paragraph.addText(part);
+            }
+          });
+        } else {
+          paragraph.addText(trimmedLine);
+        }
+      }
+    });
+    
+    // Add signature section
+    docx.createP();
+    docx.createP();
+    const sigLine = docx.createP();
+    sigLine.addText('_'.repeat(50));
+    const sigLabel = docx.createP();
+    sigLabel.addText('Signature');
+    docx.createP();
+    const dateLine = docx.createP();
+    dateLine.addText('Date: _________________');
     
     // Generate the document
     const output = require('fs').createWriteStream(filename);
@@ -668,6 +832,7 @@ app.post('/generate', async (req, res) => {
       default: // txt
         filename = `${baseFilename}.txt`;
         filepath = path.join(uploadDir, filename);
+        // For text format, keep the original formatting
         await fs.writeFile(filepath, document, 'utf8');
         break;
     }
