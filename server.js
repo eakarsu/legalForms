@@ -140,6 +140,8 @@ async function generateDocument(formType, userData, specificType = null) {
 
 // Specific form types within each category
 const getSpecificFormTypes = (formType) => {
+  console.log('getSpecificFormTypes called with:', formType);
+  
   const specificTypes = {
     business_formation: [
       { value: 'llc_articles', label: 'LLC Articles of Organization' },
@@ -201,7 +203,9 @@ const getSpecificFormTypes = (formType) => {
     ]
   };
   
-  return specificTypes[formType] || [];
+  const result = specificTypes[formType] || [];
+  console.log('Returning specific types for', formType, ':', result);
+  return result;
 };
 
 // Form field configurations
@@ -566,15 +570,24 @@ app.get('/download/:filename', async (req, res) => {
 app.get('/api/form-types/:formType', (req, res) => {
   const formType = req.params.formType;
   console.log('API request for form types:', formType);
+  console.log('Available form types:', Object.keys(FORM_TYPES));
   
   if (!FORM_TYPES[formType]) {
     console.log('Invalid form type:', formType);
     return res.status(400).json({ error: 'Invalid form type' });
   }
 
-  const specificTypes = getSpecificFormTypes(formType);
-  console.log('Returning specific types:', specificTypes);
-  res.json(specificTypes);
+  try {
+    const specificTypes = getSpecificFormTypes(formType);
+    console.log('Returning specific types for', formType, ':', specificTypes);
+    
+    // Ensure we return a proper JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.json(specificTypes);
+  } catch (error) {
+    console.error('Error getting specific types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.get('/api/form-fields/:formType/:specificType?', (req, res) => {

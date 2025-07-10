@@ -179,25 +179,33 @@ function loadSpecificFormTypes() {
     const formType = '<%= formType %>';
     console.log('Loading form types for:', formType);
     
-    $.get(`/api/form-types/${formType}`)
-        .done(function(types) {
+    // Add error handling and timeout
+    $.ajax({
+        url: `/api/form-types/${formType}`,
+        method: 'GET',
+        timeout: 10000,
+        success: function(types) {
             console.log('Received form types:', types);
             renderSpecificFormTypes(types);
-        })
-        .fail(function(xhr, status, error) {
-            console.error('Error loading form types:', error);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading form types:', error, xhr.responseText);
             $('#specificFormType').html('<option value="">Error loading form types</option>');
-        });
+        }
+    });
 }
 
 function renderSpecificFormTypes(types) {
+    console.log('Rendering types:', types);
     let html = '<option value="">Choose a specific document type...</option>';
     
-    if (types && types.length > 0) {
+    if (types && Array.isArray(types) && types.length > 0) {
         types.forEach(function(type) {
+            console.log('Adding type:', type);
             html += `<option value="${type.value}">${type.label}</option>`;
         });
     } else {
+        console.log('No types available or invalid data:', types);
         html += '<option value="">No document types available</option>';
     }
     
