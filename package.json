@@ -28,7 +28,6 @@
     "express-rate-limit": "^6.10.0",
     "express-validator": "^7.0.0",
     "helmet": "^7.1.0",
-    "html-pdf": "^3.0.1",
     "moment": "^2.29.4",
     "multer": "^2.0.0",
     "officegen": "^0.6.5",

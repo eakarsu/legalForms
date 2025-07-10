@@ -10,7 +10,6 @@ const rateLimit = require('express-rate-limit');
 const fileUpload = require('express-fileupload');
 const puppeteer = require('puppeteer');
 const officegen = require('officegen');
-const pdf = require('html-pdf');
 const compression = require('compression');
 const { SitemapStream, streamToPromise } = require('sitemap');
 require('dotenv').config();
@@ -867,9 +866,8 @@ function convertToHTML(content) {
   return htmlContent;
 }
 
-// Document format conversion functions
+// Modified generatePDF function that saves to file AND returns filename
 async function generatePDF(content, filename) {
-  // Clean the content and convert to HTML
   const cleanedContent = cleanDocumentContent(content, 'pdf');
   const htmlFormattedContent = convertToHTML(cleanedContent);
   
@@ -877,115 +875,74 @@ async function generatePDF(content, filename) {
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="utf-8">
+      <meta charset="UTF-8">
+      <title>Legal Document</title>
       <style>
-        body { 
-          font-family: 'Times New Roman', serif; 
-          line-height: 1.8; 
-          margin: 40px; 
-          color: #000;
-          font-size: 12px;
-        }
-        h1 { 
-          color: #000; 
-          margin-top: 30px; 
-          margin-bottom: 20px;
-          font-size: 16px;
-          font-weight: bold;
-          text-align: center;
-          text-transform: uppercase;
-        }
-        h2 { 
-          color: #000; 
-          margin-top: 25px; 
-          margin-bottom: 15px;
-          font-size: 14px;
-          font-weight: bold;
-          text-transform: uppercase;
-        }
-        h3 { 
-          color: #000; 
-          margin-top: 20px; 
-          margin-bottom: 10px;
-          font-size: 13px;
-          font-weight: bold;
-        }
-        p { 
-          margin-bottom: 15px; 
-          text-align: justify;
-        }
-        strong { 
-          font-weight: bold; 
-        }
-        hr { 
-          border: none; 
-          border-top: 1px solid #000; 
-          margin: 25px 0; 
-        }
-        .header { 
-          text-align: center; 
-          margin-bottom: 40px; 
-        }
-        .field-line {
-          margin-bottom: 8px;
-          line-height: 1.4;
-        }
-        .field-label {
-          font-weight: bold;
-          margin-top: 15px;
-          margin-bottom: 5px;
-        }
-        .signature-section { 
-          margin-top: 60px; 
-          page-break-inside: avoid;
-        }
-        .signature-line { 
-          border-bottom: 1px solid #000; 
-          width: 300px; 
-          margin: 30px 0 10px 0;
-          display: inline-block;
-        }
-        .date-line { 
-          margin-top: 30px; 
-        }
-        br {
-          line-height: 1.8;
-        }
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1, h2, h3 { color: #333; margin-top: 30px; }
+        p { margin-bottom: 15px; }
+        .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
       </style>
     </head>
     <body>
-      <div class="header">
-        <h1>Legal Document</h1>
-      </div>
       ${htmlFormattedContent}
-      <div class="signature-section">
+      <div style="margin-top: 50px;">
+        <p><strong>Signature:</strong></p>
         <div class="signature-line"></div>
-        <p>Signature</p>
-        <div class="date-line">Date: _________________</div>
+        <p>Date: _______________</p>
       </div>
     </body>
     </html>
   `;
 
-  return new Promise((resolve, reject) => {
-    const options = {
-      format: 'Letter',
-      border: {
-        top: "0.5in",
-        right: "0.5in",
-        bottom: "0.5in",
-        left: "0.5in"
-      },
-      type: 'pdf',
-      quality: '75'
-    };
-
-    pdf.create(htmlContent, options).toFile(filename, (err, result) => {
-      if (err) reject(err);
-      else resolve(result.filename);
-    });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
+  
+  try {
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+    });
+    
+    // Save to file system (like your original approach)
+    const fs = require('fs').promises;
+    const fullPath = path.join(__dirname, 'uploads', filename);
+    await fs.writeFile(fullPath, pdfBuffer);
+    
+    return fullPath; // Returns filename like your original function
+    
+  } finally {
+    await browser.close();
+  }
 }
+
+// Endpoint that works with file-based approach
+app.post('/generate-pdf', async (req, res) => {
+  try {
+    const filename = `${formType}_${Date.now()}.pdf`;
+    const filePath = await generatePDF(documentContent, filename);
+    
+    // Send file and optionally clean up
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+      }
+      // Optionally delete file after sending
+      // fs.unlink(filePath).catch(console.error);
+    });
+    
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF document' });
+  }
+});
+
 
 async function generateWord(content, filename) {
   return new Promise((resolve, reject) => {
