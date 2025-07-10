@@ -203,6 +203,30 @@ app.get('/', (req, res) => {
   });
 });
 
+app.get('/home', (req, res) => {
+  res.redirect('/');
+});
+
+app.get('/services', (req, res) => {
+  res.render('index', { 
+    formTypes: FORM_TYPES,
+    title: 'Legal Forms Generator - Services'
+  });
+});
+
+app.get('/features', (req, res) => {
+  res.render('index', { 
+    formTypes: FORM_TYPES,
+    title: 'Legal Forms Generator - Features'
+  });
+});
+
+app.get('/contact', (req, res) => {
+  res.render('contact', { 
+    title: 'Contact Us - Legal Forms Generator'
+  });
+});
+
 app.get('/form/:formType', (req, res) => {
   const formType = req.params.formType;
   
@@ -226,6 +250,16 @@ app.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Invalid form type' });
     }
 
+    // Validate required fields
+    const requiredFields = getFormFields(formType).filter(field => field.required);
+    const missingFields = requiredFields.filter(field => !userData[field.name] || userData[field.name].trim() === '');
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: `Missing required fields: ${missingFields.map(f => f.label).join(', ')}` 
+      });
+    }
+
     // Generate the document
     const document = await generateDocument(formType, userData);
 
@@ -243,7 +277,21 @@ app.post('/generate', async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating document:', error);
-    res.status(500).json({ error: 'Failed to generate document' });
+    res.status(500).json({ error: 'Failed to generate document. Please try again.' });
+  }
+});
+
+app.post('/contact', (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, subject, message } = req.body;
+    
+    // In a real application, you would send an email or save to database
+    console.log('Contact form submission:', { firstName, lastName, email, phone, subject, message });
+    
+    res.json({ success: true, message: 'Thank you for your message! We will get back to you soon.' });
+  } catch (error) {
+    console.error('Error processing contact form:', error);
+    res.status(500).json({ error: 'Failed to send message. Please try again.' });
   }
 });
 

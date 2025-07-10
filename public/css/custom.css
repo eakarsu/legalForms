@@ -395,6 +395,11 @@ html {
     color: #667eea !important;
 }
 
+.nav-link.active {
+    color: #667eea !important;
+    font-weight: 600;
+}
+
 /* Social Links */
 .social-links a {
     transition: color 0.3s ease;
