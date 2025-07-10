@@ -29,7 +29,11 @@
     "moment": "^2.29.4",
     "ejs": "^3.1.9",
     "express-validator": "^6.15.0",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "puppeteer": "^21.5.0",
+    "officegen": "^0.6.5",
+    "html-pdf": "^3.0.1",
+    "markdown-pdf": "^10.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",

@@ -8,6 +8,9 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const fileUpload = require('express-fileupload');
+const puppeteer = require('puppeteer');
+const officegen = require('officegen');
+const pdf = require('html-pdf');
 require('dotenv').config();
 
 const app = express();
@@ -541,12 +544,89 @@ app.get('/form/:formType', (req, res) => {
   });
 });
 
+// Document format conversion functions
+async function generatePDF(content, filename) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Times New Roman', serif; line-height: 1.6; margin: 40px; }
+        h1, h2, h3 { color: #333; margin-top: 30px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .signature-line { margin-top: 50px; border-bottom: 1px solid #000; width: 300px; }
+        .date-line { margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Legal Document</h1>
+      </div>
+      <pre style="white-space: pre-wrap; font-family: 'Times New Roman', serif;">${content}</pre>
+      <div class="signature-line"></div>
+      <div class="date-line">Date: _________________</div>
+    </body>
+    </html>
+  `;
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      format: 'Letter',
+      border: {
+        top: "0.5in",
+        right: "0.5in",
+        bottom: "0.5in",
+        left: "0.5in"
+      }
+    };
+
+    pdf.create(htmlContent, options).toFile(filename, (err, result) => {
+      if (err) reject(err);
+      else resolve(result.filename);
+    });
+  });
+}
+
+async function generateWord(content, filename) {
+  return new Promise((resolve, reject) => {
+    const docx = officegen('docx');
+    
+    // Add document properties
+    docx.setDocTitle('Legal Document');
+    docx.setDocSubject('Generated Legal Document');
+    docx.setDocKeywords('legal, document, generated');
+    
+    // Add content
+    const paragraph = docx.createP();
+    paragraph.addText(content);
+    
+    // Generate the document
+    const output = require('fs').createWriteStream(filename);
+    docx.generate(output);
+    
+    output.on('close', () => {
+      resolve(filename);
+    });
+    
+    output.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
 app.post('/generate', async (req, res) => {
   try {
-    const { form_type: formType, specific_type: specificType, form_data: userData } = req.body;
+    const { form_type: formType, specific_type: specificType, form_data: userData, format = 'txt' } = req.body;
 
     if (!FORM_TYPES[formType]) {
       return res.status(400).json({ error: 'Invalid form type' });
+    }
+
+    // Validate format
+    const allowedFormats = ['txt', 'pdf', 'docx'];
+    if (!allowedFormats.includes(format)) {
+      return res.status(400).json({ error: 'Invalid document format' });
     }
 
     // Validate required fields based on specific type
@@ -565,18 +645,38 @@ app.post('/generate', async (req, res) => {
     // Generate the document with specific type information
     const document = await generateDocument(formType, userData, specificType);
 
-    // Save generated document
+    // Save generated document in requested format
     const timestamp = moment().format('YYYYMMDD_HHmmss');
     const documentType = specificType || formType;
-    const filename = `${documentType}_${timestamp}.txt`;
-    const filepath = path.join(uploadDir, filename);
-
-    await fs.writeFile(filepath, document, 'utf8');
+    const baseFilename = `${documentType}_${timestamp}`;
+    
+    let filename, filepath;
+    
+    switch (format) {
+      case 'pdf':
+        filename = `${baseFilename}.pdf`;
+        filepath = path.join(uploadDir, filename);
+        await generatePDF(document, filepath);
+        break;
+        
+      case 'docx':
+        filename = `${baseFilename}.docx`;
+        filepath = path.join(uploadDir, filename);
+        await generateWord(document, filepath);
+        break;
+        
+      default: // txt
+        filename = `${baseFilename}.txt`;
+        filepath = path.join(uploadDir, filename);
+        await fs.writeFile(filepath, document, 'utf8');
+        break;
+    }
 
     res.json({
       success: true,
       document: document,
-      filename: filename
+      filename: filename,
+      format: format
     });
   } catch (error) {
     console.error('Error generating document:', error);
@@ -606,6 +706,24 @@ app.get('/download/:filename', async (req, res) => {
     // Check if file exists
     await fs.access(filepath);
     
+    // Set appropriate content type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    let contentType = 'application/octet-stream';
+    
+    switch (ext) {
+      case '.pdf':
+        contentType = 'application/pdf';
+        break;
+      case '.docx':
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        break;
+      case '.txt':
+        contentType = 'text/plain';
+        break;
+    }
+    
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.download(filepath);
   } catch (error) {
     res.status(404).send('File not found');

@@ -85,6 +85,17 @@
                         <small class="form-text text-muted">Select the exact type of document you need to generate.</small>
                     </div>
                     
+                    <!-- Document Format Selection -->
+                    <div class="mb-4">
+                        <label for="documentFormat" class="form-label">Select Document Format *</label>
+                        <select class="form-select" id="documentFormat" name="documentFormat" required>
+                            <option value="pdf">PDF Document (.pdf)</option>
+                            <option value="docx">Microsoft Word (.docx)</option>
+                            <option value="txt">Text Document (.txt)</option>
+                        </select>
+                        <small class="form-text text-muted">Choose the format for your generated document.</small>
+                    </div>
+                    
                     <div id="formFields">
                         <!-- Dynamic form fields will be loaded here -->
                     </div>
@@ -154,13 +165,22 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Document Preview:</strong> This is a text preview of your document. The downloaded file will be formatted according to your selected format.
+                </div>
                 <div id="documentContent" class="generated-document"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="downloadBtn">
-                    <i class="fas fa-download me-2"></i>Download Document
-                </button>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" id="downloadBtn">
+                        <i class="fas fa-download me-2"></i>Download Document
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="regenerateBtn">
+                        <i class="fas fa-redo me-2"></i>Generate Different Format
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -335,6 +355,9 @@
             return;
         }
         
+        // Get selected format
+        const format = $('#documentFormat').val() || 'pdf';
+        
         // Collect form data
         const formData = {};
         $(this).find('input, select, textarea').each(function() {
@@ -346,7 +369,8 @@
         // Add specific form type to form data
         formData.specific_form_type = specificType;
         
-        // Show loading modal
+        // Show loading modal with format info
+        $('#loadingModal .modal-body p').text(`Please wait while we create your ${format.toUpperCase()} legal document.`);
         $('#loadingModal').modal('show');
         
         // Submit to backend
@@ -357,7 +381,8 @@
             data: JSON.stringify({
                 form_type: '<%= formType %>',
                 specific_type: specificType,
-                form_data: formData
+                form_data: formData,
+                format: format
             }),
             success: function(response) {
                 $('#loadingModal').modal('hide');
@@ -365,6 +390,11 @@
                 if (response.success) {
                     $('#documentContent').text(response.document);
                     currentFilename = response.filename;
+                    
+                    // Update download button text based on format
+                    const formatText = response.format.toUpperCase();
+                    $('#downloadBtn').html(`<i class="fas fa-download me-2"></i>Download ${formatText} Document`);
+                    
                     $('#resultsModal').modal('show');
                 } else {
                     alert('Error generating document: ' + response.error);
@@ -382,6 +412,14 @@
         if (currentFilename) {
             window.location.href = `/download/${currentFilename}`;
         }
+    });
+    
+    // Handle regenerate with different format
+    $(document).on('click', '#regenerateBtn', function() {
+        $('#resultsModal').modal('hide');
+        // Scroll back to format selection
+        $('#documentFormat')[0].scrollIntoView({ behavior: 'smooth' });
+        $('#documentFormat').focus();
     });
     </script>
 </body>
