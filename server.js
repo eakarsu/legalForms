@@ -141,6 +141,22 @@ async function loadSpecificPrompt(specificType) {
 
 // Generate legal document using OpenRouter AI
 async function generateDocument(formType, userData, specificType = null) {
+  // Check if API key is configured and clean
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) {
+    console.error('OPENROUTER_API_KEY environment variable is not set');
+    throw new Error('AI service is not configured. Please contact support.');
+  }
+
+  // Validate API key format
+  if (!apiKey.startsWith('sk-or-v1-')) {
+    console.error('Invalid OpenRouter API key format');
+    throw new Error('AI service configuration error. Please contact support.');
+  }
+
+  console.log('API Key length:', apiKey.length);
+  console.log('API Key starts with:', apiKey.substring(0, 10) + '...');
+
   let prompt;
   
   // Use specific prompt if available, otherwise fall back to general prompt
@@ -165,7 +181,7 @@ async function generateDocument(formType, userData, specificType = null) {
 
   // Combine processed prompt with user data
   const fullPrompt = `${processedPrompt}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information and template.`;
-  console.log (` key :${process.env.OPENROUTER_API_KEY}}`) 
+
   try {
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
       model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
@@ -179,7 +195,7 @@ async function generateDocument(formType, userData, specificType = null) {
       temperature: 0.3
     }, {
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.SITE_URL || 'http://localhost:3000',
         'X-Title': 'Legal Forms Generator'
@@ -189,7 +205,17 @@ async function generateDocument(formType, userData, specificType = null) {
     return response.data.choices[0].message.content;
   } catch (error) {
     console.error('Error generating document:', error.response?.data || error.message);
-    throw new Error('Failed to generate document using AI');
+    
+    // Provide more specific error messages
+    if (error.response?.status === 401) {
+      throw new Error('AI service authentication failed. Please check your API key configuration.');
+    } else if (error.response?.status === 429) {
+      throw new Error('AI service is temporarily busy. Please try again in a moment.');
+    } else if (error.response?.status >= 500) {
+      throw new Error('AI service is temporarily unavailable. Please try again later.');
+    } else {
+      throw new Error('Failed to generate document using AI. Please try again.');
+    }
   }
 }
 
