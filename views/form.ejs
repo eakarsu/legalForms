@@ -166,192 +166,6 @@
     </div>
 </div>
 
-<script>
-let currentFilename = null;
-
-// Load form types when page loads
-$(document).ready(function() {
-    console.log('Document ready, jQuery version:', $.fn.jquery);
-    console.log('Page loaded, loading form types...');
-    
-    // Test API connectivity first
-    $.get('/api/test')
-        .done(function(response) {
-            console.log('API test successful:', response);
-            loadSpecificFormTypes();
-        })
-        .fail(function(xhr, status, error) {
-            console.error('API test failed:', error);
-            $('#specificFormType').html('<option value="">API connection failed</option>');
-        });
-});
-
-function loadSpecificFormTypes() {
-    const formType = '<%= formType %>';
-    console.log('Loading form types for:', formType);
-    
-    // Add error handling and timeout
-    $.ajax({
-        url: `/api/form-types/${formType}`,
-        method: 'GET',
-        timeout: 10000,
-        dataType: 'json',
-        success: function(types) {
-            console.log('Received form types:', types);
-            console.log('Types is array:', Array.isArray(types));
-            console.log('Types length:', types ? types.length : 'undefined');
-            renderSpecificFormTypes(types);
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading form types:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            $('#specificFormType').html('<option value="">Error loading form types</option>');
-        }
-    });
-}
-
-function renderSpecificFormTypes(types) {
-    console.log('Rendering types:', types);
-    let html = '<option value="">Choose a specific document type...</option>';
-    
-    if (types && Array.isArray(types) && types.length > 0) {
-        types.forEach(function(type) {
-            console.log('Adding type:', type);
-            html += `<option value="${type.value}">${type.label}</option>`;
-        });
-    } else {
-        console.log('No types available or invalid data:', types);
-        html += '<option value="">No document types available</option>';
-    }
-    
-    console.log('Setting dropdown HTML:', html);
-    $('#specificFormType').html(html);
-}
-
-// Handle specific form type selection
-$('#specificFormType').on('change', function() {
-    const specificType = $(this).val();
-    if (specificType) {
-        loadFormFields(specificType);
-    } else {
-        $('#formFields').html('');
-    }
-});
-
-function loadFormFields(specificType) {
-    const formType = '<%= formType %>';
-    
-    $.get(`/api/form-fields/${formType}/${specificType}`)
-        .done(function(fields) {
-            renderFormFields(fields);
-        })
-        .fail(function() {
-            $('#formFields').html('<div class="alert alert-danger">Error loading form fields</div>');
-        });
-}
-
-function renderFormFields(fields) {
-    let html = '';
-    
-    fields.forEach(function(field) {
-        html += '<div class="mb-3">';
-        html += `<label for="${field.name}" class="form-label">`;
-        html += field.label;
-        if (field.required) {
-            html += ' <span class="text-danger">*</span>';
-        }
-        html += '</label>';
-        
-        if (field.type === 'select') {
-            html += `<select class="form-select" id="${field.name}" name="${field.name}"`;
-            if (field.required) html += ' required';
-            html += '>';
-            html += '<option value="">Select an option</option>';
-            field.options.forEach(function(option) {
-                html += `<option value="${option}">${option}</option>`;
-            });
-            html += '</select>';
-        } else if (field.type === 'textarea') {
-            html += `<textarea class="form-control" id="${field.name}" name="${field.name}" rows="3"`;
-            if (field.required) html += ' required';
-            html += '></textarea>';
-        } else {
-            html += `<input type="${field.type}" class="form-control" id="${field.name}" name="${field.name}"`;
-            if (field.required) html += ' required';
-            html += '>';
-        }
-        
-        html += '</div>';
-    });
-    
-    $('#formFields').html(html);
-}
-
-function resetForm() {
-    document.getElementById('documentForm').reset();
-}
-
-// Handle form submission
-$('#documentForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    // Check if specific form type is selected
-    const specificType = $('#specificFormType').val();
-    if (!specificType) {
-        alert('Please select a specific document type first.');
-        return;
-    }
-    
-    // Collect form data
-    const formData = {};
-    $(this).find('input, select, textarea').each(function() {
-        if (this.name) {
-            formData[this.name] = this.value;
-        }
-    });
-    
-    // Add specific form type to form data
-    formData.specific_form_type = specificType;
-    
-    // Show loading modal
-    $('#loadingModal').modal('show');
-    
-    // Submit to backend
-    $.ajax({
-        url: '/generate',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            form_type: '<%= formType %>',
-            specific_type: specificType,
-            form_data: formData
-        }),
-        success: function(response) {
-            $('#loadingModal').modal('hide');
-            
-            if (response.success) {
-                $('#documentContent').text(response.document);
-                currentFilename = response.filename;
-                $('#resultsModal').modal('show');
-            } else {
-                alert('Error generating document: ' + response.error);
-            }
-        },
-        error: function(xhr) {
-            $('#loadingModal').modal('hide');
-            alert('Error generating document. Please try again.');
-        }
-    });
-});
-
-// Handle download
-$('#downloadBtn').on('click', function() {
-    if (currentFilename) {
-        window.location.href = `/download/${currentFilename}`;
-    }
-});
-</script>
     </main>
 
     <!-- Footer -->
@@ -382,5 +196,193 @@ $('#downloadBtn').on('click', function() {
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+    let currentFilename = null;
+
+    // Load form types when page loads
+    $(document).ready(function() {
+        console.log('Document ready, jQuery version:', $.fn.jquery);
+        console.log('Page loaded, loading form types...');
+        
+        // Test API connectivity first
+        $.get('/api/test')
+            .done(function(response) {
+                console.log('API test successful:', response);
+                loadSpecificFormTypes();
+            })
+            .fail(function(xhr, status, error) {
+                console.error('API test failed:', error);
+                $('#specificFormType').html('<option value="">API connection failed</option>');
+            });
+    });
+
+    function loadSpecificFormTypes() {
+        const formType = '<%= formType %>';
+        console.log('Loading form types for:', formType);
+        
+        // Add error handling and timeout
+        $.ajax({
+            url: `/api/form-types/${formType}`,
+            method: 'GET',
+            timeout: 10000,
+            dataType: 'json',
+            success: function(types) {
+                console.log('Received form types:', types);
+                console.log('Types is array:', Array.isArray(types));
+                console.log('Types length:', types ? types.length : 'undefined');
+                renderSpecificFormTypes(types);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading form types:', error);
+                console.error('Status:', status);
+                console.error('Response:', xhr.responseText);
+                $('#specificFormType').html('<option value="">Error loading form types</option>');
+            }
+        });
+    }
+
+    function renderSpecificFormTypes(types) {
+        console.log('Rendering types:', types);
+        let html = '<option value="">Choose a specific document type...</option>';
+        
+        if (types && Array.isArray(types) && types.length > 0) {
+            types.forEach(function(type) {
+                console.log('Adding type:', type);
+                html += `<option value="${type.value}">${type.label}</option>`;
+            });
+        } else {
+            console.log('No types available or invalid data:', types);
+            html += '<option value="">No document types available</option>';
+        }
+        
+        console.log('Setting dropdown HTML:', html);
+        $('#specificFormType').html(html);
+    }
+
+    // Handle specific form type selection
+    $(document).on('change', '#specificFormType', function() {
+        const specificType = $(this).val();
+        if (specificType) {
+            loadFormFields(specificType);
+        } else {
+            $('#formFields').html('');
+        }
+    });
+
+    function loadFormFields(specificType) {
+        const formType = '<%= formType %>';
+        
+        $.get(`/api/form-fields/${formType}/${specificType}`)
+            .done(function(fields) {
+                renderFormFields(fields);
+            })
+            .fail(function() {
+                $('#formFields').html('<div class="alert alert-danger">Error loading form fields</div>');
+            });
+    }
+
+    function renderFormFields(fields) {
+        let html = '';
+        
+        fields.forEach(function(field) {
+            html += '<div class="mb-3">';
+            html += `<label for="${field.name}" class="form-label">`;
+            html += field.label;
+            if (field.required) {
+                html += ' <span class="text-danger">*</span>';
+            }
+            html += '</label>';
+            
+            if (field.type === 'select') {
+                html += `<select class="form-select" id="${field.name}" name="${field.name}"`;
+                if (field.required) html += ' required';
+                html += '>';
+                html += '<option value="">Select an option</option>';
+                field.options.forEach(function(option) {
+                    html += `<option value="${option}">${option}</option>`;
+                });
+                html += '</select>';
+            } else if (field.type === 'textarea') {
+                html += `<textarea class="form-control" id="${field.name}" name="${field.name}" rows="3"`;
+                if (field.required) html += ' required';
+                html += '></textarea>';
+            } else {
+                html += `<input type="${field.type}" class="form-control" id="${field.name}" name="${field.name}"`;
+                if (field.required) html += ' required';
+                html += '>';
+            }
+            
+            html += '</div>';
+        });
+        
+        $('#formFields').html(html);
+    }
+
+    function resetForm() {
+        document.getElementById('documentForm').reset();
+        $('#formFields').html('');
+    }
+
+    // Handle form submission
+    $(document).on('submit', '#documentForm', function(e) {
+        e.preventDefault();
+        
+        // Check if specific form type is selected
+        const specificType = $('#specificFormType').val();
+        if (!specificType) {
+            alert('Please select a specific document type first.');
+            return;
+        }
+        
+        // Collect form data
+        const formData = {};
+        $(this).find('input, select, textarea').each(function() {
+            if (this.name) {
+                formData[this.name] = this.value;
+            }
+        });
+        
+        // Add specific form type to form data
+        formData.specific_form_type = specificType;
+        
+        // Show loading modal
+        $('#loadingModal').modal('show');
+        
+        // Submit to backend
+        $.ajax({
+            url: '/generate',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                form_type: '<%= formType %>',
+                specific_type: specificType,
+                form_data: formData
+            }),
+            success: function(response) {
+                $('#loadingModal').modal('hide');
+                
+                if (response.success) {
+                    $('#documentContent').text(response.document);
+                    currentFilename = response.filename;
+                    $('#resultsModal').modal('show');
+                } else {
+                    alert('Error generating document: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                $('#loadingModal').modal('hide');
+                alert('Error generating document. Please try again.');
+            }
+        });
+    });
+
+    // Handle download
+    $(document).on('click', '#downloadBtn', function() {
+        if (currentFilename) {
+            window.location.href = `/download/${currentFilename}`;
+        }
+    });
+    </script>
 </body>
 </html>
