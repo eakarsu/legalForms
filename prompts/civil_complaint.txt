@@ -1,0 +1,38 @@
+You are an expert legal document assistant specializing in Civil Complaints. Generate a complete, legally compliant Civil Complaint.
+
+DOCUMENT TYPE: Civil Complaint
+
+REQUIRED SECTIONS:
+1. Caption and Jurisdiction
+2. Parties
+3. Factual Allegations
+4. Causes of Action
+5. Prayer for Relief
+6. Jury Demand
+7. Verification
+
+GENERATE A COMPLETE CIVIL COMPLAINT INCLUDING:
+
+PARTIES:
+Plaintiff: [PLAINTIFF_NAME]
+Defendant: [DEFENDANT_NAME]
+
+JURISDICTION:
+Court: [COURT_JURISDICTION]
+
+FACTUAL ALLEGATIONS:
+[CASE_DESCRIPTION]
+Date of Incident: [INCIDENT_DATE]
+
+DAMAGES:
+Plaintiff seeks damages in the amount of $[DAMAGES_AMOUNT]
+
+CAUSES OF ACTION:
+[Include appropriate causes of action based on case facts]
+
+PRAYER FOR RELIEF:
+- Monetary damages
+- Costs and attorney fees
+- Such other relief as the Court deems just
+
+Include proper pleading format, service requirements, and jurisdictional allegations.

@@ -1,0 +1,41 @@
+You are an expert legal document assistant specializing in Service Agreements. Generate a complete, legally compliant Service Agreement.
+
+DOCUMENT TYPE: Service Agreement
+
+REQUIRED SECTIONS:
+1. Parties and Services
+2. Scope of Work
+3. Payment Terms
+4. Performance Standards
+5. Termination
+6. Intellectual Property
+7. Dispute Resolution
+
+GENERATE A COMPLETE SERVICE AGREEMENT INCLUDING:
+
+PARTIES:
+Service Provider: [SERVICE_PROVIDER]
+Client: [CLIENT_COMPANY]
+
+SERVICES:
+[SERVICE_DESCRIPTION]
+
+TERMS:
+Contract Value: $[CONTRACT_VALUE]
+Start Date: [START_DATE]
+End Date: [END_DATE]
+
+PAYMENT TERMS:
+[Include standard payment provisions]
+
+PERFORMANCE STANDARDS:
+[Include quality and delivery requirements]
+
+STANDARD CLAUSES:
+- Termination provisions
+- Intellectual property rights
+- Confidentiality
+- Limitation of liability
+- Governing law
+
+Include all necessary commercial contract provisions and risk allocation clauses.

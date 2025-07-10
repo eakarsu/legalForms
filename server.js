@@ -118,25 +118,43 @@ async function loadPrompt(formType) {
   }
 }
 
+// Load specific prompt based on document type
+async function loadSpecificPrompt(specificType) {
+  try {
+    const promptPath = path.join(__dirname, `prompts/${specificType}.txt`);
+    return await fs.readFile(promptPath, 'utf8');
+  } catch (error) {
+    console.error('Error loading specific prompt:', error);
+    return null;
+  }
+}
+
 // Generate legal document using OpenRouter AI
 async function generateDocument(formType, userData, specificType = null) {
-  const prompt = await loadPrompt(formType);
+  let prompt;
+  
+  // Use specific prompt if available, otherwise fall back to general prompt
+  if (specificType) {
+    prompt = await loadSpecificPrompt(specificType);
+  }
+  
+  if (!prompt) {
+    prompt = await loadPrompt(formType);
+  }
+  
   if (!prompt) {
     throw new Error('Failed to load prompt template');
   }
 
-  // Add specific document type information to the prompt
-  let documentTypeInfo = '';
-  if (specificType) {
-    const specificTypes = getSpecificFormTypes(formType);
-    const typeInfo = specificTypes.find(t => t.value === specificType);
-    if (typeInfo) {
-      documentTypeInfo = `\n\nSPECIFIC DOCUMENT TYPE: ${typeInfo.label}\nGenerate specifically a ${typeInfo.label} document.`;
-    }
-  }
+  // Replace placeholders in prompt with actual user data
+  let processedPrompt = prompt;
+  Object.keys(userData).forEach(key => {
+    const placeholder = `[${key.toUpperCase()}]`;
+    processedPrompt = processedPrompt.replace(new RegExp(placeholder, 'g'), userData[key] || '');
+  });
 
-  // Combine prompt with user data
-  const fullPrompt = `${prompt}${documentTypeInfo}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information.`;
+  // Combine processed prompt with user data
+  const fullPrompt = `${processedPrompt}\n\nUSER PROVIDED INFORMATION:\n${JSON.stringify(userData, null, 2)}\n\nGenerate a complete, professional legal document based on the above information and template.`;
 
   try {
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {

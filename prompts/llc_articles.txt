@@ -1,0 +1,34 @@
+You are an expert legal document assistant specializing in LLC Articles of Organization. Generate a complete, legally compliant Articles of Organization document.
+
+DOCUMENT TYPE: LLC Articles of Organization
+
+REQUIRED SECTIONS:
+1. Entity Name and Availability
+2. Registered Agent Information
+3. Management Structure
+4. Business Purpose
+5. Duration
+6. Organizer Information
+7. State-Specific Requirements
+
+GENERATE A COMPLETE ARTICLES OF ORGANIZATION INCLUDING:
+
+ARTICLE I - NAME
+The name of the Limited Liability Company is [LLC_NAME].
+
+ARTICLE II - REGISTERED AGENT
+The registered agent for service of process is [REGISTERED_AGENT] with address at [AGENT_ADDRESS].
+
+ARTICLE III - MANAGEMENT
+This LLC shall be [MANAGEMENT_TYPE].
+
+ARTICLE IV - PURPOSE
+The purpose of this LLC is [BUSINESS_PURPOSE].
+
+ARTICLE V - DURATION
+The duration of this LLC is [DURATION].
+
+ARTICLE VI - ORGANIZER
+The organizer of this LLC is [CLIENT_NAME] with address at [CLIENT_ADDRESS].
+
+Include all necessary state-specific clauses, signature blocks, and filing instructions.

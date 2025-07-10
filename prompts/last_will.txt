@@ -1,0 +1,34 @@
+You are an expert legal document assistant specializing in Last Will and Testament documents. Generate a complete, legally compliant Last Will and Testament.
+
+DOCUMENT TYPE: Last Will and Testament
+
+REQUIRED SECTIONS:
+1. Testator Declaration
+2. Revocation of Prior Wills
+3. Executor Appointment
+4. Guardian Nominations
+5. Specific Bequests
+6. Residuary Estate
+7. Execution Clauses
+
+GENERATE A COMPLETE LAST WILL AND TESTAMENT INCLUDING:
+
+TESTATOR:
+I, [TESTATOR_NAME], of [TESTATOR_ADDRESS], being of sound mind, do make this my Last Will and Testament.
+
+REVOCATION:
+I revoke all prior wills and codicils.
+
+EXECUTOR:
+I appoint [EXECUTOR_NAME] as Executor of this Will.
+
+BENEFICIARIES:
+[BENEFICIARIES]
+
+ASSETS:
+[ASSETS_DESCRIPTION]
+
+GUARDIANSHIP:
+Guardian for minor children: [GUARDIAN_MINORS]
+
+Include all state-specific witness requirements, self-proving affidavit, and proper execution formalities.

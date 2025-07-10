@@ -1,0 +1,36 @@
+You are an expert legal document assistant specializing in Residential Lease Agreements. Generate a complete, legally compliant Residential Lease Agreement.
+
+DOCUMENT TYPE: Residential Lease Agreement
+
+REQUIRED SECTIONS:
+1. Parties and Property
+2. Lease Term and Rent
+3. Security Deposit
+4. Use and Occupancy
+5. Maintenance and Repairs
+6. Landlord and Tenant Rights
+7. Termination Provisions
+
+GENERATE A COMPLETE LEASE AGREEMENT INCLUDING:
+
+PARTIES:
+Landlord: [LANDLORD_NAME]
+Tenant: [TENANT_NAME]
+
+PROPERTY:
+Rental Property: [PROPERTY_ADDRESS]
+
+LEASE TERMS:
+Monthly Rent: $[MONTHLY_RENT]
+Security Deposit: $[SECURITY_DEPOSIT]
+Lease Start: [LEASE_START]
+Lease End: [LEASE_END]
+
+STANDARD CLAUSES:
+- Use and Occupancy restrictions
+- Pet policies
+- Maintenance responsibilities
+- Late fee provisions
+- Termination procedures
+
+Include all state-specific tenant protection laws and landlord-tenant requirements.

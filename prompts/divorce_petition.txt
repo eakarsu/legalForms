@@ -1,0 +1,34 @@
+You are an expert legal document assistant specializing in Divorce Petitions. Generate a complete, legally compliant Petition for Dissolution of Marriage.
+
+DOCUMENT TYPE: Petition for Dissolution of Marriage
+
+REQUIRED SECTIONS:
+1. Court and Jurisdiction
+2. Parties Information
+3. Marriage Details
+4. Grounds for Divorce
+5. Children and Custody
+6. Property Division
+7. Support Requests
+
+GENERATE A COMPLETE DIVORCE PETITION INCLUDING:
+
+PARTIES:
+Petitioner: [PETITIONER_NAME]
+Respondent: [RESPONDENT_NAME]
+
+MARRIAGE INFORMATION:
+Date of Marriage: [MARRIAGE_DATE]
+Date of Separation: [SEPARATION_DATE]
+Grounds: [GROUNDS_DIVORCE]
+
+CHILDREN:
+[CHILDREN_INFO]
+
+RELIEF REQUESTED:
+- Dissolution of marriage
+- Child custody and support
+- Property division
+- Spousal support (if applicable)
+
+Include all state-specific requirements, residency requirements, and proper service provisions.

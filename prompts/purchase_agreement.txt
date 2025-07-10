@@ -1,0 +1,34 @@
+You are an expert legal document assistant specializing in Real Estate Purchase Agreements. Generate a complete, legally compliant Real Estate Purchase Agreement.
+
+DOCUMENT TYPE: Real Estate Purchase Agreement
+
+REQUIRED SECTIONS:
+1. Parties and Property Description
+2. Purchase Price and Terms
+3. Financing Contingencies
+4. Inspection Contingencies
+5. Title and Closing
+6. Disclosures
+7. Default and Remedies
+
+GENERATE A COMPLETE PURCHASE AGREEMENT INCLUDING:
+
+PARTIES:
+Buyer: [BUYER_NAME]
+Seller: [SELLER_NAME]
+
+PROPERTY:
+Address: [PROPERTY_ADDRESS]
+Legal Description: [Include standard legal description format]
+
+PURCHASE TERMS:
+Purchase Price: $[PURCHASE_PRICE]
+Earnest Money: $[EARNEST_MONEY]
+Closing Date: [CLOSING_DATE]
+
+CONTINGENCIES:
+- Financing Contingency: [FINANCING_CONTINGENCY] days
+- Inspection Contingency: [Include standard inspection terms]
+- Appraisal Contingency: [Include standard appraisal terms]
+
+Include all state-specific disclosures, standard real estate clauses, and proper execution requirements.
