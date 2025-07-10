@@ -1,4 +1,5 @@
 /* Custom styles for Legal Forms Generator */
+/* CSS Loading Test - if you see this comment in browser dev tools, CSS is loading */
 
 /* Hero Section */
 .hero-section {
@@ -55,8 +56,12 @@
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
+    0%, 100% { 
+        transform: translateY(0px); 
+    }
+    50% { 
+        transform: translateY(-20px); 
+    }
 }
 
 .min-vh-50 {
