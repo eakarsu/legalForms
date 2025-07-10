@@ -588,8 +588,12 @@ function convertToHTML(content) {
   // Convert --- to horizontal rules
   htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
   
-  // Handle special formatting for labels and values (like "Organizer: Name")
-  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.*)$/gm, '<div class="field-label">$1</div><div class="field-value">$2</div>');
+  // Handle special formatting for labels and values (like "Address: 123 Main St")
+  // Keep label and value on the same line
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
+  
+  // Handle labels without values (like "Address:" on its own line)
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
   
   // Convert double line breaks to paragraph breaks
   htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
@@ -597,7 +601,7 @@ function convertToHTML(content) {
   // Convert single line breaks to <br> tags for better formatting
   htmlContent = htmlContent.replace(/\n/g, '<br>');
   
-  // Wrap in paragraphs
+  // Wrap remaining content in paragraphs
   htmlContent = '<p>' + htmlContent + '</p>';
   
   // Clean up empty paragraphs and fix nested tags
@@ -605,8 +609,8 @@ function convertToHTML(content) {
   htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
   htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
   htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
-  htmlContent = htmlContent.replace(/<p>(<div class="field-label">.*?<\/div>)<\/p>/g, '$1');
-  htmlContent = htmlContent.replace(/<p>(<div class="field-value">.*?<\/div>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
   
   return htmlContent;
 }
@@ -670,14 +674,14 @@ async function generatePDF(content, filename) {
           text-align: center; 
           margin-bottom: 40px; 
         }
+        .field-line {
+          margin-bottom: 8px;
+          line-height: 1.4;
+        }
         .field-label {
           font-weight: bold;
           margin-top: 15px;
           margin-bottom: 5px;
-        }
-        .field-value {
-          margin-bottom: 10px;
-          padding-left: 20px;
         }
         .signature-section { 
           margin-top: 60px; 
