@@ -1,0 +1,218 @@
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item active"><%= formConfig.name %></li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h1><%= formConfig.name %></h1>
+        <p class="lead"><%= formConfig.description %></p>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Document Information</h5>
+            </div>
+            <div class="card-body">
+                <form id="documentForm">
+                    <div id="formFields">
+                        <!-- Dynamic form fields will be loaded here -->
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-file-alt me-2"></i>
+                                Generate Document
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>
+                                Reset Form
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Form Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>Fill out all required fields</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Provide accurate information</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Review generated document</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Consult with attorney if needed</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <small>
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Always have legal documents reviewed by a qualified attorney before use.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Generating Document...</h5>
+                <p class="text-muted">Please wait while we create your legal document.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generated Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="documentContent" class="generated-document"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadBtn">
+                    <i class="fas fa-download me-2"></i>Download Document
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentFilename = null;
+
+// Load form fields when page loads
+$(document).ready(function() {
+    loadFormFields();
+});
+
+function loadFormFields() {
+    const formType = '<%= formType %>';
+    
+    $.get(`/api/form-fields/${formType}`)
+        .done(function(fields) {
+            renderFormFields(fields);
+        })
+        .fail(function() {
+            $('#formFields').html('<div class="alert alert-danger">Error loading form fields</div>');
+        });
+}
+
+function renderFormFields(fields) {
+    let html = '';
+    
+    fields.forEach(function(field) {
+        html += '<div class="mb-3">';
+        html += `<label for="${field.name}" class="form-label">`;
+        html += field.label;
+        if (field.required) {
+            html += ' <span class="text-danger">*</span>';
+        }
+        html += '</label>';
+        
+        if (field.type === 'select') {
+            html += `<select class="form-select" id="${field.name}" name="${field.name}"`;
+            if (field.required) html += ' required';
+            html += '>';
+            html += '<option value="">Select an option</option>';
+            field.options.forEach(function(option) {
+                html += `<option value="${option}">${option}</option>`;
+            });
+            html += '</select>';
+        } else if (field.type === 'textarea') {
+            html += `<textarea class="form-control" id="${field.name}" name="${field.name}" rows="3"`;
+            if (field.required) html += ' required';
+            html += '></textarea>';
+        } else {
+            html += `<input type="${field.type}" class="form-control" id="${field.name}" name="${field.name}"`;
+            if (field.required) html += ' required';
+            html += '>';
+        }
+        
+        html += '</div>';
+    });
+    
+    $('#formFields').html(html);
+}
+
+function resetForm() {
+    document.getElementById('documentForm').reset();
+}
+
+// Handle form submission
+$('#documentForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    // Collect form data
+    const formData = {};
+    $(this).find('input, select, textarea').each(function() {
+        if (this.name) {
+            formData[this.name] = this.value;
+        }
+    });
+    
+    // Show loading modal
+    $('#loadingModal').modal('show');
+    
+    // Submit to backend
+    $.ajax({
+        url: '/generate',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            form_type: '<%= formType %>',
+            form_data: formData
+        }),
+        success: function(response) {
+            $('#loadingModal').modal('hide');
+            
+            if (response.success) {
+                $('#documentContent').text(response.document);
+                currentFilename = response.filename;
+                $('#resultsModal').modal('show');
+            } else {
+                alert('Error generating document: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            $('#loadingModal').modal('hide');
+            alert('Error generating document. Please try again.');
+        }
+    });
+});
+
+// Handle download
+$('#downloadBtn').on('click', function() {
+    if (currentFilename) {
+        window.location.href = `/download/${currentFilename}`;
+    }
+});
+</script>

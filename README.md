@@ -71,36 +71,35 @@ A comprehensive web application for generating professional legal documents usin
    cd legal-forms-generator
    ```
 
-2. **Create a virtual environment**:
+2. **Install Node.js dependencies**:
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   npm install
    ```
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables**:
+3. **Set up environment variables**:
    ```bash
    cp .env.example .env
    # Edit .env file with your actual values
    ```
 
-5. **Configure OpenAI API** (Required for AI document generation):
-   - Get an API key from OpenAI
-   - Add it to your `.env` file: `OPENAI_API_KEY=your-key-here`
+4. **Configure OpenRouter API** (Required for AI document generation):
+   - Get an API key from OpenRouter (https://openrouter.ai/)
+   - Add it to your `.env` file: `OPENROUTER_API_KEY=your-key-here`
 
 ## Usage
 
 1. **Start the application**:
    ```bash
-   python run.py
+   npm start
+   ```
+   
+   For development with auto-restart:
+   ```bash
+   npm run dev
    ```
 
 2. **Access the web interface**:
-   - Open your browser to `http://localhost:5000`
+   - Open your browser to `http://localhost:3000`
    - Select the type of legal form you need
    - Fill out the required information
    - Generate and download your document
@@ -109,10 +108,12 @@ A comprehensive web application for generating professional legal documents usin
 
 ### Environment Variables
 
-- `SECRET_KEY`: Flask secret key for session management
-- `OPENAI_API_KEY`: Your OpenAI API key for document generation
-- `FLASK_ENV`: Set to 'development' for debug mode
-- `PORT`: Port number for the web server (default: 5000)
+- `PORT`: Port number for the web server (default: 3000)
+- `NODE_ENV`: Environment mode ('development' or 'production')
+- `OPENROUTER_API_KEY`: Your OpenRouter API key for document generation
+- `OPENROUTER_MODEL`: AI model to use (default: 'anthropic/claude-3-haiku')
+- `SITE_URL`: Your site URL for OpenRouter API
+- `SESSION_SECRET`: Secret key for session management
 
 ### Customization
 
@@ -125,10 +126,8 @@ A comprehensive web application for generating professional legal documents usin
 
 ```
 legal-forms-generator/
-├── app.py                 # Main Flask application
-├── run.py                 # Application startup script
-├── config.py              # Configuration settings
-├── requirements.txt       # Python dependencies
+├── server.js              # Main Express application
+├── package.json           # Node.js dependencies and scripts
 ├── .env.example          # Environment variables template
 ├── README.md             # This file
 ├── prompts/              # AI prompt templates
@@ -139,11 +138,12 @@ legal-forms-generator/
 │   ├── civil_litigation.txt
 │   ├── employment_contracts.txt
 │   └── general_contracts.txt
-├── templates/            # HTML templates
-│   ├── base.html
-│   ├── index.html
-│   └── form.html
-├── static/               # Static assets
+├── views/                # EJS templates
+│   ├── base.ejs
+│   ├── index.ejs
+│   ├── form.ejs
+│   └── 404.ejs
+├── public/               # Static assets
 │   └── css/
 │       └── custom.css
 └── uploads/              # Generated documents storage

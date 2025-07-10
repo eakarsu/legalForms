@@ -1,0 +1,133 @@
+/* Custom styles for Legal Forms Generator */
+
+.form-card {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+}
+
+.form-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.jumbotron {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border-radius: 1rem;
+}
+
+.generated-document {
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    vertical-align: text-bottom;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: #007bff;
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-1px);
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+}
+
+.text-primary {
+    color: #007bff !important;
+}
+
+.footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 3rem 0 2rem;
+    margin-top: 4rem;
+}
+
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.modal-xl {
+    max-width: 90%;
+}
+
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 2rem !important;
+    }
+    
+    .jumbotron h1 {
+        font-size: 2rem;
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+    }
+}
