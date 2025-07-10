@@ -15,6 +15,13 @@ const compression = require('compression');
 const { SitemapStream, streamToPromise } = require('sitemap');
 require('dotenv').config();
 
+// Debug: Check if .env file is loaded
+console.log('=== Environment Variables Check ===');
+console.log('OPENROUTER_API_KEY loaded:', !!process.env.OPENROUTER_API_KEY);
+console.log('OPENROUTER_MODEL loaded:', process.env.OPENROUTER_MODEL || 'not set');
+console.log('PORT loaded:', process.env.PORT || 'using default 3000');
+console.log('===================================');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -141,18 +148,28 @@ async function loadSpecificPrompt(specificType) {
 
 // Generate legal document using OpenRouter AI
 async function generateDocument(formType, userData, specificType = null) {
+  // Debug environment variables
+  console.log('Environment check:');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('OPENROUTER_API_KEY exists:', !!process.env.OPENROUTER_API_KEY);
+  console.log('OPENROUTER_API_KEY length:', process.env.OPENROUTER_API_KEY?.length);
+  console.log('OPENROUTER_MODEL:', process.env.OPENROUTER_MODEL);
+  
   // Check if API key is configured and clean
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    console.error('OPENROUTER_API_KEY environment variable is not set');
+    console.error('OPENROUTER_API_KEY environment variable is not set or empty');
+    console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('OPENROUTER')));
     throw new Error('AI service is not configured. Please contact support.');
   }
 
   // Validate API key format
   if (!apiKey.startsWith('sk-or-v1-')) {
-    console.error('Invalid OpenRouter API key format');
+    console.error('Invalid OpenRouter API key format. Key starts with:', apiKey.substring(0, 10));
     throw new Error('AI service configuration error. Please contact support.');
   }
+  
+  console.log('API key validation passed. Key starts with:', apiKey.substring(0, 10));
 
   let prompt;
   
@@ -1214,7 +1231,13 @@ app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'API is working', 
     timestamp: new Date().toISOString(),
-    formTypes: Object.keys(FORM_TYPES)
+    formTypes: Object.keys(FORM_TYPES),
+    envCheck: {
+      hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
+      keyLength: process.env.OPENROUTER_API_KEY?.length || 0,
+      model: process.env.OPENROUTER_MODEL || 'not set',
+      nodeEnv: process.env.NODE_ENV || 'not set'
+    }
   });
 });
 
