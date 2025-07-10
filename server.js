@@ -197,18 +197,25 @@ const getFormFields = (formType) => {
 
 // Routes
 app.get('/', (req, res) => {
-  res.render('index', { formTypes: FORM_TYPES });
+  res.render('index', { 
+    formTypes: FORM_TYPES,
+    title: 'Legal Forms Generator - Professional AI-Powered Legal Documents'
+  });
 });
 
 app.get('/form/:formType', (req, res) => {
   const formType = req.params.formType;
   
   if (!FORM_TYPES[formType]) {
-    return res.status(404).send('Form type not found');
+    return res.status(404).render('404');
   }
 
   const formConfig = FORM_TYPES[formType];
-  res.render('form', { formType, formConfig });
+  res.render('form', { 
+    formType, 
+    formConfig,
+    title: `${formConfig.name} - Legal Forms Generator`
+  });
 });
 
 app.post('/generate', async (req, res) => {
