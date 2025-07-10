@@ -626,6 +626,47 @@ app.get('/contact', (req, res) => {
   });
 });
 
+// Legal pages routes
+app.get('/privacy', (req, res) => {
+  res.render('privacy', { 
+    title: 'Privacy Policy - LegalFormsAI',
+    description: 'LegalFormsAI Privacy Policy - Learn how we collect, use, and protect your personal information when using our legal document generation service.',
+    keywords: 'privacy policy, data protection, legal forms privacy, personal information',
+    canonical: process.env.SITE_URL + '/privacy' || 'https://legalaiforms.com/privacy',
+    req: req
+  });
+});
+
+app.get('/terms', (req, res) => {
+  res.render('terms', { 
+    title: 'Terms of Service - LegalFormsAI',
+    description: 'LegalFormsAI Terms of Service - Read our terms and conditions for using our AI-powered legal document generation platform.',
+    keywords: 'terms of service, terms and conditions, legal forms terms, user agreement',
+    canonical: process.env.SITE_URL + '/terms' || 'https://legalaiforms.com/terms',
+    req: req
+  });
+});
+
+app.get('/disclaimer', (req, res) => {
+  res.render('disclaimer', { 
+    title: 'Legal Disclaimer - LegalFormsAI',
+    description: 'LegalFormsAI Legal Disclaimer - Important information about the limitations and proper use of our legal document generation service.',
+    keywords: 'legal disclaimer, limitations, legal advice disclaimer, document templates',
+    canonical: process.env.SITE_URL + '/disclaimer' || 'https://legalaiforms.com/disclaimer',
+    req: req
+  });
+});
+
+app.get('/cookies', (req, res) => {
+  res.render('cookies', { 
+    title: 'Cookie Policy - LegalFormsAI',
+    description: 'LegalFormsAI Cookie Policy - Learn about how we use cookies and similar technologies to improve your experience on our website.',
+    keywords: 'cookie policy, cookies, tracking, website analytics, user experience',
+    canonical: process.env.SITE_URL + '/cookies' || 'https://legalaiforms.com/cookies',
+    req: req
+  });
+});
+
 // SEO Routes
 app.get('/sitemap.xml', async (req, res) => {
   try {
@@ -636,6 +677,10 @@ app.get('/sitemap.xml', async (req, res) => {
     sitemap.write({ url: '/about', changefreq: 'monthly', priority: 0.8 });
     sitemap.write({ url: '/faq', changefreq: 'monthly', priority: 0.8 });
     sitemap.write({ url: '/contact', changefreq: 'monthly', priority: 0.8 });
+    sitemap.write({ url: '/privacy', changefreq: 'yearly', priority: 0.6 });
+    sitemap.write({ url: '/terms', changefreq: 'yearly', priority: 0.6 });
+    sitemap.write({ url: '/disclaimer', changefreq: 'yearly', priority: 0.6 });
+    sitemap.write({ url: '/cookies', changefreq: 'yearly', priority: 0.6 });
     
     // Add form pages
     Object.keys(FORM_TYPES).forEach(formType => {
