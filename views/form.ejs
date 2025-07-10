@@ -171,8 +171,19 @@ let currentFilename = null;
 
 // Load form types when page loads
 $(document).ready(function() {
+    console.log('Document ready, jQuery version:', $.fn.jquery);
     console.log('Page loaded, loading form types...');
-    loadSpecificFormTypes();
+    
+    // Test API connectivity first
+    $.get('/api/test')
+        .done(function(response) {
+            console.log('API test successful:', response);
+            loadSpecificFormTypes();
+        })
+        .fail(function(xhr, status, error) {
+            console.error('API test failed:', error);
+            $('#specificFormType').html('<option value="">API connection failed</option>');
+        });
 });
 
 function loadSpecificFormTypes() {
@@ -184,12 +195,17 @@ function loadSpecificFormTypes() {
         url: `/api/form-types/${formType}`,
         method: 'GET',
         timeout: 10000,
+        dataType: 'json',
         success: function(types) {
             console.log('Received form types:', types);
+            console.log('Types is array:', Array.isArray(types));
+            console.log('Types length:', types ? types.length : 'undefined');
             renderSpecificFormTypes(types);
         },
         error: function(xhr, status, error) {
-            console.error('Error loading form types:', error, xhr.responseText);
+            console.error('Error loading form types:', error);
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
             $('#specificFormType').html('<option value="">Error loading form types</option>');
         }
     });

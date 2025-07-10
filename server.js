@@ -13,8 +13,35 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
-app.use(helmet());
+// Security middleware with relaxed CSP for development
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://code.jquery.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
 app.use(cors());
 
 // Rate limiting
@@ -580,14 +607,25 @@ app.get('/api/form-types/:formType', (req, res) => {
   try {
     const specificTypes = getSpecificFormTypes(formType);
     console.log('Returning specific types for', formType, ':', specificTypes);
+    console.log('Number of types:', specificTypes.length);
     
-    // Ensure we return a proper JSON response
+    // Ensure we return a proper JSON response with CORS headers
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.json(specificTypes);
   } catch (error) {
     console.error('Error getting specific types:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Test endpoint to verify API is working
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API is working', 
+    timestamp: new Date().toISOString(),
+    formTypes: Object.keys(FORM_TYPES)
+  });
 });
 
 app.get('/api/form-fields/:formType/:specificType?', (req, res) => {
@@ -599,6 +637,7 @@ app.get('/api/form-fields/:formType/:specificType?', (req, res) => {
   }
 
   const fields = specificType ? getFormFields(formType, specificType) : getLegacyFormFields(formType);
+  res.setHeader('Content-Type', 'application/json');
   res.json(fields);
 });
 
