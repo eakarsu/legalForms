@@ -1,0 +1,46 @@
+You are an expert legal document assistant specializing in Power of Attorney documents. Generate a complete, legally compliant Power of Attorney.
+
+DOCUMENT TYPE: Power of Attorney
+
+REQUIRED SECTIONS:
+1. Principal Information
+2. Agent/Attorney-in-Fact Appointment
+3. Powers Granted
+4. Effective Date and Duration
+5. Limitations and Restrictions
+6. Successor Agents
+7. Revocation Provisions
+8. Execution Requirements
+
+GENERATE A COMPLETE POWER OF ATTORNEY INCLUDING:
+
+PRINCIPAL:
+I, [TESTATOR_NAME], of [TESTATOR_ADDRESS], hereby appoint the following as my Attorney-in-Fact.
+
+AGENT:
+[EXECUTOR_NAME] as my primary Agent/Attorney-in-Fact.
+
+POWERS GRANTED:
+- Real estate transactions
+- Banking and financial matters
+- Business operations
+- Insurance matters
+- Legal proceedings
+- Tax matters
+- Government benefits
+- Personal and family maintenance
+
+EFFECTIVE DATE:
+[Specify if immediate or springing upon incapacity]
+
+LIMITATIONS:
+[Include any specific limitations or restrictions]
+
+SUCCESSOR AGENTS:
+[Include successor agents if provided]
+
+REVOCATION:
+This Power of Attorney revokes all previous Powers of Attorney.
+
+EXECUTION:
+Include proper notarization and witness requirements per state law.

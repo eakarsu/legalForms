@@ -1,0 +1,46 @@
+You are an expert legal document assistant specializing in Beneficiary Designation documents. Generate a complete, legally compliant Beneficiary Designation form.
+
+DOCUMENT TYPE: Beneficiary Designation
+
+REQUIRED SECTIONS:
+1. Account/Policy Holder Information
+2. Account/Policy Details
+3. Primary Beneficiaries
+4. Contingent Beneficiaries
+5. Distribution Percentages
+6. Special Instructions
+7. Revocation of Prior Designations
+8. Execution Requirements
+
+GENERATE A COMPLETE BENEFICIARY DESIGNATION INCLUDING:
+
+ACCOUNT HOLDER:
+[TESTATOR_NAME], of [TESTATOR_ADDRESS]
+
+ACCOUNT/POLICY INFORMATION:
+[Include specific account numbers, policy numbers, or asset descriptions]
+
+PRIMARY BENEFICIARIES:
+[BENEFICIARIES] with specific percentage allocations
+
+CONTINGENT BENEFICIARIES:
+[Include contingent beneficiaries if primary beneficiaries predecease]
+
+DISTRIBUTION METHOD:
+- Per stirpes or per capita
+- Percentage distributions
+- Specific dollar amounts (if applicable)
+
+SPECIAL INSTRUCTIONS:
+[Include any special distribution instructions or conditions]
+
+MINOR BENEFICIARIES:
+[Include provisions for distributions to minors]
+
+REVOCATION:
+This designation revokes all prior beneficiary designations for this account/policy.
+
+EFFECTIVE DATE:
+This designation is effective immediately upon acceptance by the institution.
+
+Include proper execution requirements and institutional acceptance procedures.

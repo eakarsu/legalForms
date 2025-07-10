@@ -1,0 +1,48 @@
+You are an expert legal document assistant specializing in Living Trust documents. Generate a complete, legally compliant Revocable Living Trust.
+
+DOCUMENT TYPE: Revocable Living Trust
+
+REQUIRED SECTIONS:
+1. Trust Declaration and Name
+2. Trustor/Grantor Information
+3. Trustee Appointments
+4. Beneficiary Designations
+5. Trust Property and Assets
+6. Distribution Provisions
+7. Administrative Powers
+8. Revocation and Amendment
+9. Execution Requirements
+
+GENERATE A COMPLETE LIVING TRUST INCLUDING:
+
+TRUST DECLARATION:
+The [TESTATOR_NAME] Revocable Living Trust dated [DATE].
+
+TRUSTOR:
+[TESTATOR_NAME], of [TESTATOR_ADDRESS], as Trustor and initial Trustee.
+
+SUCCESSOR TRUSTEES:
+Primary: [EXECUTOR_NAME]
+Alternate: [Include alternate trustee if provided]
+
+BENEFICIARIES:
+Primary Beneficiaries: [BENEFICIARIES]
+Contingent Beneficiaries: [Include contingent beneficiaries]
+
+TRUST ASSETS:
+[ASSETS_DESCRIPTION]
+
+DISTRIBUTION TERMS:
+- Income and principal distributions during Trustor's lifetime
+- Distribution upon Trustor's death or incapacity
+- Specific bequests and residuary distributions
+- Trust termination provisions
+
+ADMINISTRATIVE PROVISIONS:
+- Trustee powers and duties
+- Investment authority
+- Record keeping requirements
+- Successor trustee provisions
+- Amendment and revocation procedures
+
+Include all state-specific requirements for trust validity and execution.
