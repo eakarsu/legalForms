@@ -4,8 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' ? title : 'Legal Forms Generator - Professional AI-Powered Legal Documents' %></title>
-    <meta name="description" content="Generate professional legal documents quickly and accurately using AI-powered templates. Business formation, real estate, family law, and more.">
-    <meta name="keywords" content="legal forms, legal documents, AI legal assistant, business formation, real estate contracts, family law">
+    <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'Generate professional legal documents quickly and accurately using AI-powered templates. Business formation, real estate, family law, and more.' %>">
+    <meta name="keywords" content="<%= typeof keywords !== 'undefined' ? keywords : 'legal forms, legal documents, AI legal assistant, business formation, real estate contracts, family law' %>">
+    <meta name="author" content="LegalFormsAI">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalaiforms.com' + (typeof req !== 'undefined' ? req.path : '') %>">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalaiforms.com' + (typeof req !== 'undefined' ? req.path : '') %>">
+    <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'Legal Forms Generator - Professional AI-Powered Legal Documents' %>">
+    <meta property="og:description" content="<%= typeof description !== 'undefined' ? description : 'Generate professional legal documents quickly and accurately using AI-powered templates. Business formation, real estate, family law, and more.' %>">
+    <meta property="og:image" content="https://legalaiforms.com/images/og-image.jpg">
+    <meta property="og:site_name" content="LegalFormsAI">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalaiforms.com' + (typeof req !== 'undefined' ? req.path : '') %>">
+    <meta property="twitter:title" content="<%= typeof title !== 'undefined' ? title : 'Legal Forms Generator - Professional AI-Powered Legal Documents' %>">
+    <meta property="twitter:description" content="<%= typeof description !== 'undefined' ? description : 'Generate professional legal documents quickly and accurately using AI-powered templates. Business formation, real estate, family law, and more.' %>">
+    <meta property="twitter:image" content="https://legalaiforms.com/images/twitter-image.jpg">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -18,6 +36,42 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "LegalFormsAI",
+      "url": "https://legalaiforms.com",
+      "logo": "https://legalaiforms.com/images/logo.png",
+      "description": "Professional AI-powered legal document generation platform",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "US"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-800-LEGAL-AI",
+        "contactType": "customer service",
+        "availableLanguage": "English"
+      },
+      "sameAs": [
+        "https://twitter.com/legalformsai",
+        "https://linkedin.com/company/legalformsai"
+      ]
+    }
+    </script>
+    
+    <% if (typeof structuredData !== 'undefined') { %>
+    <script type="application/ld+json">
+    <%- JSON.stringify(structuredData) %>
+    </script>
+    <% } %>
 </head>
 <body>
     <!-- Navigation -->

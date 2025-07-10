@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /uploads/
+Disallow: /api/
+Disallow: /download/
+
+Sitemap: https://legalaiforms.com/sitemap.xml

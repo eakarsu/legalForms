@@ -31,7 +31,9 @@
     "multer": "^2.0.0",
     "officegen": "^0.6.5",
     "puppeteer": "^22.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "sitemap": "^7.1.1",
+    "compression": "^1.7.4"
   },
   "devDependencies": {
     "jest": "^29.7.0",

@@ -11,12 +11,17 @@ const fileUpload = require('express-fileupload');
 const puppeteer = require('puppeteer');
 const officegen = require('officegen');
 const pdf = require('html-pdf');
+const compression = require('compression');
+const { SitemapStream, streamToPromise } = require('sitemap');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware with relaxed CSP for development
+// Enable compression for better performance
+app.use(compression());
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -26,7 +31,9 @@ app.use(helmet({
         "'unsafe-inline'",
         "https://cdn.jsdelivr.net",
         "https://code.jquery.com",
-        "https://cdnjs.cloudflare.com"
+        "https://cdnjs.cloudflare.com",
+        "https://www.googletagmanager.com",
+        "https://www.google-analytics.com"
       ],
       styleSrc: [
         "'self'",
@@ -41,7 +48,7 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com"
       ],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'", "https://www.google-analytics.com"]
     }
   }
 }));
@@ -497,11 +504,76 @@ const getLegacyFormFields = (formType) => {
   return formFields[formType] || [];
 };
 
+// SEO helper function to generate page metadata
+function generatePageMeta(page, formType = null) {
+  const baseUrl = process.env.SITE_URL || 'https://legalaiforms.com';
+  
+  const pageMeta = {
+    home: {
+      title: 'Legal Forms Generator - AI-Powered Legal Documents | LegalFormsAI',
+      description: 'Generate professional legal documents instantly with AI. Business formation, real estate contracts, family law, estate planning & more. Trusted by 10,000+ users.',
+      keywords: 'legal forms generator, AI legal documents, business formation documents, real estate contracts, family law forms, estate planning documents',
+      canonical: baseUrl + '/'
+    },
+    business_formation: {
+      title: 'Business Formation Documents - LLC & Corporation Forms | LegalFormsAI',
+      description: 'Create LLC articles, corporation bylaws, operating agreements & more. AI-generated business formation documents with state-specific compliance.',
+      keywords: 'LLC formation, corporation documents, business formation, articles of incorporation, operating agreement, business bylaws',
+      canonical: baseUrl + '/form/business_formation'
+    },
+    real_estate: {
+      title: 'Real Estate Legal Forms - Purchase Agreements & Contracts | LegalFormsAI',
+      description: 'Generate real estate purchase agreements, lease contracts, property deeds & disclosure forms. Professional real estate legal documents.',
+      keywords: 'real estate contracts, purchase agreement, lease agreement, property deed, real estate forms',
+      canonical: baseUrl + '/form/real_estate'
+    },
+    family_law: {
+      title: 'Family Law Documents - Divorce, Custody & Legal Forms | LegalFormsAI',
+      description: 'Create divorce petitions, custody agreements, prenuptial agreements & family law documents. State-compliant family legal forms.',
+      keywords: 'divorce petition, custody agreement, family law forms, prenuptial agreement, legal separation',
+      canonical: baseUrl + '/form/family_law'
+    },
+    estate_planning: {
+      title: 'Estate Planning Documents - Wills, Trusts & Legal Forms | LegalFormsAI',
+      description: 'Generate last wills, living trusts, power of attorney & healthcare directives. Professional estate planning legal documents.',
+      keywords: 'last will testament, living trust, power of attorney, estate planning, healthcare directive',
+      canonical: baseUrl + '/form/estate_planning'
+    },
+    contact: {
+      title: 'Contact LegalFormsAI - Legal Document Generation Support',
+      description: 'Contact our legal document generation experts. Get help with AI-powered legal forms, business documents, and professional legal templates.',
+      keywords: 'legal forms support, contact legal AI, legal document help',
+      canonical: baseUrl + '/contact'
+    }
+  };
+  
+  return pageMeta[formType || page] || pageMeta.home;
+}
+
 // Routes
 app.get('/', (req, res) => {
+  const meta = generatePageMeta('home');
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "LegalFormsAI",
+    "url": "https://legalaiforms.com",
+    "description": "Professional AI-powered legal document generation platform",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://legalaiforms.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+  
   res.render('index', { 
     formTypes: FORM_TYPES,
-    title: 'Legal Forms Generator - Professional AI-Powered Legal Documents'
+    title: meta.title,
+    description: meta.description,
+    keywords: meta.keywords,
+    canonical: meta.canonical,
+    structuredData: structuredData,
+    req: req
   });
 });
 
@@ -524,9 +596,56 @@ app.get('/features', (req, res) => {
 });
 
 app.get('/contact', (req, res) => {
+  const meta = generatePageMeta('contact');
   res.render('contact', { 
-    title: 'Contact Us - Legal Forms Generator'
+    title: meta.title,
+    description: meta.description,
+    keywords: meta.keywords,
+    canonical: meta.canonical,
+    req: req
   });
+});
+
+// SEO Routes
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const sitemap = new SitemapStream({ hostname: process.env.SITE_URL || 'https://legalaiforms.com' });
+    
+    // Add static pages
+    sitemap.write({ url: '/', changefreq: 'weekly', priority: 1.0 });
+    sitemap.write({ url: '/contact', changefreq: 'monthly', priority: 0.8 });
+    
+    // Add form pages
+    Object.keys(FORM_TYPES).forEach(formType => {
+      sitemap.write({ 
+        url: `/form/${formType}`, 
+        changefreq: 'monthly', 
+        priority: 0.9 
+      });
+    });
+    
+    sitemap.end();
+    
+    const sitemapXML = await streamToPromise(sitemap);
+    res.header('Content-Type', 'application/xml');
+    res.send(sitemapXML.toString());
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+app.get('/robots.txt', (req, res) => {
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /uploads/
+Disallow: /api/
+Disallow: /download/
+
+Sitemap: ${process.env.SITE_URL || 'https://legalaiforms.com'}/sitemap.xml`;
+  
+  res.type('text/plain');
+  res.send(robotsTxt);
 });
 
 app.get('/form/:formType', (req, res) => {
@@ -537,10 +656,30 @@ app.get('/form/:formType', (req, res) => {
   }
 
   const formConfig = FORM_TYPES[formType];
+  const meta = generatePageMeta('form', formType);
+  
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": formConfig.name,
+    "description": formConfig.description,
+    "provider": {
+      "@type": "Organization",
+      "name": "LegalFormsAI"
+    },
+    "serviceType": "Legal Document Generation",
+    "areaServed": "United States"
+  };
+  
   res.render('form', { 
     formType, 
     formConfig,
-    title: `${formConfig.name} - Legal Forms Generator`
+    title: meta.title,
+    description: meta.description,
+    keywords: meta.keywords,
+    canonical: meta.canonical,
+    structuredData: structuredData,
+    req: req
   });
 });
 
