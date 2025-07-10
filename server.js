@@ -24,6 +24,8 @@ console.log('===================================');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1);
+
 // Security middleware with relaxed CSP for development
 // Enable compression for better performance
 app.use(compression());
@@ -910,17 +912,23 @@ async function generatePDF(content, filename) {
       margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
     });
     
-    // Save to file system (like your original approach)
-    const fs = require('fs').promises;
-    const fullPath = path.join(__dirname, 'uploads', filename);
+    // Fix: Use only the filename, not full path
+    const safeFilename = path.basename(filename);
+    const fullPath = path.join(__dirname, 'uploads', safeFilename);
+    
+    // Ensure directory exists
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    
+    // Write the PDF buffer to file
     await fs.writeFile(fullPath, pdfBuffer);
     
-    return fullPath; // Returns filename like your original function
+    return fullPath;
     
   } finally {
     await browser.close();
   }
 }
+
 
 // Endpoint that works with file-based approach
 app.post('/generate-pdf', async (req, res) => {
@@ -1082,8 +1090,7 @@ app.post('/generate', async (req, res) => {
     switch (format) {
       case 'pdf':
         filename = `${baseFilename}.pdf`;
-        filepath = path.join(uploadDir, filename);
-        await generatePDF(document, filepath);
+        await generatePDF(document, filename );
         break;
         
       case 'docx':
