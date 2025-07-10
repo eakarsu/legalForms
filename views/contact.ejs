@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= typeof title !== 'undefined' ? title : 'Contact Us - Legal Forms Generator' %></title>
-    <meta name="description" content="Contact Legal Forms Generator for support and inquiries.">
+    <title>Contact LegalFormsAI - Legal Document Generation Support</title>
+    <meta name="description" content="Contact our legal document generation experts. Get help with AI-powered legal forms, business documents, and professional legal templates.">
+    <meta name="keywords" content="legal forms support, contact legal AI, legal document help">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://legalaiforms.com/contact">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Contact LegalFormsAI - Legal Document Generation Support">
+    <meta property="og:description" content="Contact our legal document generation experts. Get help with AI-powered legal forms, business documents, and professional legal templates.">
+    <meta property="og:url" content="https://legalaiforms.com/contact">
+    <meta property="og:type" content="website">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -63,14 +72,44 @@
         <div class="row">
             <div class="col-12 text-center mb-5">
                 <h1 class="section-title">Contact Us</h1>
-                <p class="section-subtitle">Get in touch with our legal document experts</p>
+                <p class="section-subtitle">Get in touch with our legal document generation experts</p>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-md-4 text-center mb-4">
+                <div class="contact-info-card">
+                    <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
+                    <h5>Email Support</h5>
+                    <p class="text-muted">support@legalaiforms.com</p>
+                    <small>Response within 24 hours</small>
+                </div>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="contact-info-card">
+                    <i class="fas fa-phone fa-2x text-primary mb-3"></i>
+                    <h5>Phone Support</h5>
+                    <p class="text-muted">1-800-LEGAL-AI</p>
+                    <small>Mon-Fri 9AM-6PM EST</small>
+                </div>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="contact-info-card">
+                    <i class="fas fa-comments fa-2x text-primary mb-3"></i>
+                    <h5>Live Chat</h5>
+                    <p class="text-muted">Available on website</p>
+                    <small>Mon-Fri 9AM-6PM EST</small>
+                </div>
             </div>
         </div>
 
         <div class="row">
             <div class="col-lg-8 mx-auto">
                 <div class="card shadow-sm">
-                    <div class="card-body p-5">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Send us a Message</h5>
+                    </div>
+                    <div class="card-body p-4">
                         <form id="contactForm">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -95,49 +134,76 @@
                                 <select class="form-select" id="subject" name="subject" required>
                                     <option value="">Select a subject</option>
                                     <option value="general">General Inquiry</option>
-                                    <option value="support">Technical Support</option>
-                                    <option value="legal">Legal Question</option>
-                                    <option value="billing">Billing Issue</option>
+                                    <option value="technical">Technical Support</option>
+                                    <option value="legal">Legal Document Question</option>
+                                    <option value="billing">Billing Question</option>
                                     <option value="partnership">Partnership Opportunity</option>
+                                    <option value="feedback">Feedback</option>
+                                    <option value="other">Other</option>
                                 </select>
                             </div>
-                            <div class="mb-4">
+                            
+                            <div class="mb-3">
                                 <label for="message" class="form-label">Message *</label>
-                                <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                                <textarea class="form-control" id="message" name="message" rows="5" required placeholder="Please describe your question or concern in detail..."></textarea>
                             </div>
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-paper-plane me-2"></i>
-                                    Send Message
-                                </button>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="newsletter" name="newsletter">
+                                <label class="form-check-label" for="newsletter">
+                                    Subscribe to our newsletter for legal document tips and updates
+                                </label>
                             </div>
+                            
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Important:</strong> This contact form is for general inquiries only. 
+                                    We do not provide legal advice through this form. For legal advice, please consult with a qualified attorney.
+                                </small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                            </button>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row mt-5">
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon-large mb-3">
-                    <i class="fas fa-envelope"></i>
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <h3 class="text-center mb-4">Frequently Asked Questions</h3>
+                        <p class="text-center text-muted mb-4">Before contacting us, you might find your answer in our FAQ section.</p>
+                        <div class="text-center">
+                            <a href="/faq" class="btn btn-outline-primary">
+                                <i class="fas fa-question-circle me-2"></i>View FAQ
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <h5>Email Us</h5>
-                <p class="text-muted">support@legalformsai.com</p>
             </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon-large mb-3">
-                    <i class="fas fa-phone"></i>
+        </div>
+
+        <!-- Success Modal -->
+        <div class="modal fade" id="successModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-check-circle me-2"></i>Message Sent Successfully
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Thank you for contacting us! We have received your message and will respond within 24 hours.</p>
+                        <p class="mb-0">For urgent matters, please call us at <strong>1-800-LEGAL-AI</strong>.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
-                <h5>Call Us</h5>
-                <p class="text-muted">1-800-LEGAL-AI</p>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon-large mb-3">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h5>Business Hours</h5>
-                <p class="text-muted">Mon-Fri: 9AM-6PM EST</p>
             </div>
         </div>
     </main>
@@ -172,10 +238,48 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <script>
-        $('#contactForm').on('submit', function(e) {
-            e.preventDefault();
-            alert('Thank you for your message! We will get back to you soon.');
-            this.reset();
+        $(document).ready(function() {
+            $('#contactForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form data
+                const formData = {
+                    firstName: $('#firstName').val(),
+                    lastName: $('#lastName').val(),
+                    email: $('#email').val(),
+                    phone: $('#phone').val(),
+                    subject: $('#subject').val(),
+                    message: $('#message').val(),
+                    newsletter: $('#newsletter').is(':checked')
+                };
+                
+                // Disable submit button
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Sending...');
+                
+                // Submit form
+                $.ajax({
+                    url: '/contact',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#successModal').modal('show');
+                            $('#contactForm')[0].reset();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Error sending message. Please try again or contact us directly.');
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
         });
     </script>
 </body>
