@@ -1,5 +1,8 @@
 FROM node:24
 
+# Set environment variables for non-interactive package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /app
 
 # Install system dependencies for Puppeteer
@@ -27,19 +30,50 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
+# Copy application code
+COPY . .
+
+# Use the official PostgreSQL repository setup method
+RUN apt-get update && apt-get install -y postgresql-common && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get update && \
+    apt-get install -y postgresql postgresql-contrib && \
+    rm -rf /var/lib/apt/lists/*
+
+USER postgres
+
+RUN echo "🔄 Starting PostgreSQL initialization..." && \
+    /etc/init.d/postgresql start && \
+    echo "✅ PostgreSQL started" && \
+    psql --command "ALTER USER postgres WITH PASSWORD 'sel33man';" && \
+    echo "✅ PostgreSQL password set" && \
+    echo "📋 Current databases before setup:" && \
+    psql --command "\l" && \
+    /etc/init.d/postgresql stop && \
+    echo "✅ PostgreSQL initialization completed"
+
+# Run database setup with debug output
+RUN echo "🚀 Running database setup script..." && \
+    /etc/init.d/postgresql start && \
+    node scripts/setup-database.js && \
+    echo "📋 Final database list:" && \
+    psql --command "\l" && \
+    echo "🔍 Checking legalforms database specifically:" && \
+    psql --command "SELECT 1 FROM pg_database WHERE datname = 'legalforms';" && \
+    /etc/init.d/postgresql stop && \
+    echo "✅ Database setup verification completed"
+
+USER root
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy application code
-COPY . .
-
 # Set environment variable for Puppeteer
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "service postgresql start && npm start"]
 

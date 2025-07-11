@@ -12,6 +12,16 @@ const puppeteer = require('puppeteer');
 const officegen = require('officegen');
 const compression = require('compression');
 const { SitemapStream, streamToPromise } = require('sitemap');
+
+//add
+// Add these imports at the top
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const db = require('./config/database');
+const authRoutes = require('./routes/auth');
+const { optionalAuth } = require('./middleware/auth');
+//add
+
 require('dotenv').config();
 
 // Debug: Check if .env file is loaded
@@ -80,6 +90,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+
+//add
+// Add session configuration after existing middleware
+app.use(session({
+    store: new pgSession({
+        pool: db,
+        tableName: 'user_sessions'
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+// Add optional auth middleware to all routes
+app.use(optionalAuth);
+
+// Add auth routes
+app.use('/', authRoutes);
+//add
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, 'uploads');
