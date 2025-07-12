@@ -1426,6 +1426,7 @@ Return a JSON object with "risks" array and "suggestions" array.`;
       });
 
       let aiResponseContent = response.data.choices[0].message.content;
+      console.log (` aiResponseConten: ${aiResponseContent}`)
       
       // Remove markdown code blocks if present
       if (aiResponseContent.includes('```json')) {
