@@ -46,8 +46,13 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     expire TIMESTAMP(6) NOT NULL
 );
 
--- Create primary key and index for sessions
-ALTER TABLE user_sessions ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+-- Create primary key and index for sessions (only if not exists)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey') THEN
+        ALTER TABLE user_sessions ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+    END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS IDX_session_expire ON user_sessions(expire);
 
 -- Performance indexes
@@ -148,26 +153,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for automatic updated_at updates
-CREATE TRIGGER update_users_updated_at 
-    BEFORE UPDATE ON users 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_document_history_updated_at 
-    BEFORE UPDATE ON document_history 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_profiles_updated_at 
-    BEFORE UPDATE ON user_profiles 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_esignature_requests_updated_at 
-    BEFORE UPDATE ON esignature_requests 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+-- Create triggers for automatic updated_at updates (only if not exists)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at') THEN
+        CREATE TRIGGER update_users_updated_at 
+            BEFORE UPDATE ON users 
+            FOR EACH ROW 
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_document_history_updated_at') THEN
+        CREATE TRIGGER update_document_history_updated_at 
+            BEFORE UPDATE ON document_history 
+            FOR EACH ROW 
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_profiles_updated_at') THEN
+        CREATE TRIGGER update_user_profiles_updated_at 
+            BEFORE UPDATE ON user_profiles 
+            FOR EACH ROW 
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_esignature_requests_updated_at') THEN
+        CREATE TRIGGER update_esignature_requests_updated_at 
+            BEFORE UPDATE ON esignature_requests 
+            FOR EACH ROW 
+            EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 -- Indexes for new tables
 CREATE INDEX IF NOT EXISTS idx_compliance_rules_form_type ON compliance_rules(form_type);
