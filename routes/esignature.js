@@ -32,6 +32,32 @@ const getDocuSignClient = async () => {
         if (!privateKey) {
             throw new Error('DocuSign RSA private key not configured. Set DOCUSIGN_RSA_PRIVATE_KEY or DOCUSIGN_RSA_PRIVATE_KEY_PATH');
         }
+
+        // Ensure the private key is in proper format
+        privateKey = privateKey.trim();
+        
+        // If the key doesn't have proper headers, it might be base64 encoded or malformed
+        if (!privateKey.includes('-----BEGIN') || !privateKey.includes('-----END')) {
+            throw new Error('Invalid RSA private key format. Key must include BEGIN/END headers.');
+        }
+        
+        // Ensure proper line breaks in the key
+        if (!privateKey.includes('\n')) {
+            // If it's a single line, try to format it properly
+            privateKey = privateKey
+                .replace('-----BEGIN RSA PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----\n')
+                .replace('-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----')
+                .replace(/(.{64})/g, '$1\n')
+                .replace(/\n\n/g, '\n')
+                .trim();
+        }
+        
+        console.log('Private key format check:', {
+            hasBeginHeader: privateKey.includes('-----BEGIN'),
+            hasEndHeader: privateKey.includes('-----END'),
+            hasLineBreaks: privateKey.includes('\n'),
+            length: privateKey.length
+        });
         
         const results = await apiClient.requestJWTUserToken(
             process.env.DOCUSIGN_INTEGRATION_KEY,
