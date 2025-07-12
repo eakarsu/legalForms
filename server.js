@@ -20,6 +20,14 @@ const pgSession = require('connect-pg-simple')(session);
 const db = require('./config/database');
 const authRoutes = require('./routes/auth');
 const { optionalAuth } = require('./middleware/auth');
+
+// Import new feature modules
+const { validateCompliance, complianceChecker } = require('./middleware/compliance');
+const nlpRoutes = require('./routes/nlp');
+const esignatureRoutes = require('./routes/esignature');
+const templatesRoutes = require('./routes/templates');
+const http = require('http');
+const socketIo = require('socket.io');
 //add
 
 require('dotenv').config();
@@ -32,9 +40,19 @@ console.log('PORT loaded:', process.env.PORT || 'using default 3000');
 console.log('===================================');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
+
+// Make io available to routes
+app.set('io', io);
 
 // Security middleware with relaxed CSP for development
 // Enable compression for better performance
@@ -113,6 +131,11 @@ app.use(optionalAuth);
 
 // Add auth routes
 app.use('/', authRoutes);
+
+// Add new feature routes
+app.use('/api/nlp', nlpRoutes);
+app.use('/api/esignature', esignatureRoutes);
+app.use('/api/templates', templatesRoutes);
 //add
 
 // Ensure upload directory exists
@@ -1084,7 +1107,8 @@ async function generateWord(content, filename) {
   });
 }
 
-app.post('/generate', async (req, res) => {
+// Enhanced document generation with compliance checking and review
+app.post('/generate', validateCompliance, async (req, res) => {
   try {
     const { form_type: formType, specific_type: specificType, form_data: userData, format = 'txt' } = req.body;
 
@@ -1096,6 +1120,18 @@ app.post('/generate', async (req, res) => {
     const allowedFormats = ['txt', 'pdf', 'docx'];
     if (!allowedFormats.includes(format)) {
       return res.status(400).json({ error: 'Invalid document format' });
+    }
+
+    // Check compliance validation results
+    if (req.complianceValidation && !req.complianceValidation.isCompliant) {
+      const highSeverityIssues = req.complianceValidation.issues.filter(issue => issue.severity === 'high');
+      if (highSeverityIssues.length > 0) {
+        return res.status(400).json({ 
+          error: 'Compliance issues must be resolved before generating document',
+          complianceIssues: req.complianceValidation.issues,
+          suggestions: req.complianceValidation.suggestions
+        });
+      }
     }
 
     // Validate required fields based on specific type
@@ -1141,11 +1177,51 @@ app.post('/generate', async (req, res) => {
         break;
     }
 
+    // Save to database if user is authenticated
+    let documentId = null;
+    if (req.user) {
+      const docResult = await db.query(`
+        INSERT INTO document_history (user_id, document_type, specific_type, title, content, form_data, file_format, file_path)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id
+      `, [
+        req.user.id,
+        formType,
+        specificType,
+        `${documentType}_${timestamp}`,
+        document,
+        JSON.stringify(userData),
+        format,
+        filename
+      ]);
+      documentId = docResult.rows[0].id;
+    }
+
+    // Perform automated review
+    const reviewResults = await performDocumentReview(document, formType, userData);
+    
+    // Save review results if document was saved
+    if (documentId && reviewResults) {
+      await db.query(`
+        INSERT INTO document_reviews (document_id, review_type, issues_found, suggestions, overall_score)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [
+        documentId,
+        'automated_review',
+        JSON.stringify(reviewResults.issues),
+        JSON.stringify(reviewResults.suggestions),
+        reviewResults.score
+      ]);
+    }
+
     res.json({
       success: true,
       document: document,
       filename: filename,
-      format: format
+      format: format,
+      documentId: documentId,
+      complianceValidation: req.complianceValidation,
+      reviewResults: reviewResults
     });
   } catch (error) {
     console.error('Error generating document:', error);
@@ -1263,10 +1339,143 @@ app.use((req, res) => {
   res.status(404).render('404');
 });
 
+// Real-time compliance checking endpoint
+app.post('/api/compliance/validate', async (req, res) => {
+  try {
+    const { form_type, field_name, value, jurisdiction = 'US' } = req.body;
+    
+    const validation = complianceChecker.validateField(form_type, field_name, value, jurisdiction);
+    
+    res.json({
+      success: true,
+      ...validation
+    });
+  } catch (error) {
+    console.error('Compliance validation error:', error);
+    res.status(500).json({ error: 'Validation failed' });
+  }
+});
+
+// Automated document review function
+async function performDocumentReview(document, formType, userData) {
+  try {
+    const issues = [];
+    const suggestions = [];
+    let score = 1.0;
+
+    // Check for missing critical information
+    const criticalFields = ['client_name', 'client_address'];
+    criticalFields.forEach(field => {
+      if (!userData[field] || userData[field].trim() === '') {
+        issues.push({
+          type: 'missing_info',
+          severity: 'high',
+          field: field,
+          message: `Missing critical information: ${field}`
+        });
+        score -= 0.2;
+      }
+    });
+
+    // Check document length (too short might indicate incomplete generation)
+    if (document.length < 500) {
+      issues.push({
+        type: 'completeness',
+        severity: 'medium',
+        message: 'Document appears to be unusually short'
+      });
+      score -= 0.1;
+    }
+
+    // Check for placeholder text that wasn't replaced
+    const placeholders = document.match(/\[.*?\]/g);
+    if (placeholders && placeholders.length > 0) {
+      issues.push({
+        type: 'incomplete_generation',
+        severity: 'high',
+        message: `Document contains unreplaced placeholders: ${placeholders.join(', ')}`
+      });
+      score -= 0.3;
+    }
+
+    // AI-powered risk assessment
+    try {
+      const riskPrompt = `
+Review this legal document for potential risks or issues:
+
+${document.substring(0, 2000)}...
+
+Identify any:
+1. Ambiguous language
+2. Missing standard clauses
+3. Potential legal risks
+4. Inconsistencies
+
+Return a JSON object with "risks" array and "suggestions" array.`;
+
+      const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+        messages: [{ role: 'user', content: riskPrompt }],
+        max_tokens: 1000,
+        temperature: 0.1
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const aiReview = JSON.parse(response.data.choices[0].message.content);
+      if (aiReview.risks) {
+        issues.push(...aiReview.risks.map(risk => ({
+          type: 'ai_risk_assessment',
+          severity: 'medium',
+          message: risk
+        })));
+      }
+      if (aiReview.suggestions) {
+        suggestions.push(...aiReview.suggestions);
+      }
+    } catch (error) {
+      console.error('AI review error:', error);
+    }
+
+    return {
+      issues,
+      suggestions,
+      score: Math.max(score, 0)
+    };
+  } catch (error) {
+    console.error('Document review error:', error);
+    return null;
+  }
+}
+
+// Socket.io for real-time features
+io.on('connection', (socket) => {
+  console.log('User connected for real-time features');
+  
+  // Real-time compliance checking
+  socket.on('validate_field', async (data) => {
+    try {
+      const { form_type, field_name, value, jurisdiction } = data;
+      const validation = complianceChecker.validateField(form_type, field_name, value, jurisdiction);
+      socket.emit('validation_result', { field_name, ...validation });
+    } catch (error) {
+      socket.emit('validation_error', { field_name: data.field_name, error: 'Validation failed' });
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Legal Forms Generator server running on port ${PORT}`);
   console.log(`Visit http://localhost:${PORT} to access the application`);
+  console.log('Real-time features enabled via Socket.io');
 });
 
 module.exports = app;

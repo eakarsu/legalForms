@@ -23,6 +23,7 @@
     "compression": "^1.8.0",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
+    "docusign-esign": "^6.4.0",
     "dotenv": "^16.3.0",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
@@ -33,11 +34,13 @@
     "helmet": "^7.1.0",
     "moment": "^2.29.4",
     "multer": "^2.0.0",
+    "natural": "^6.12.0",
     "nodemailer": "^7.0.5",
     "officegen": "^0.6.5",
     "pg": "^8.16.3",
     "puppeteer": "^22.0.0",
     "sitemap": "^7.1.2",
+    "socket.io": "^4.7.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

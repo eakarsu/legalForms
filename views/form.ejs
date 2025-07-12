@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="/css/custom.css" rel="stylesheet">
+    <link href="/css/enhanced-features.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
@@ -82,6 +83,27 @@
             </div>
             <div class="card-body">
                 <form id="documentForm">
+                    <!-- Natural Language Input -->
+                    <div class="mb-4">
+                        <label for="naturalLanguageInput" class="form-label">Describe Your Legal Needs</label>
+                        <div class="input-group">
+                            <textarea class="form-control" id="naturalLanguageInput" rows="3" 
+                                placeholder="Example: I need to form an LLC for my consulting business in California..."></textarea>
+                            <button class="btn btn-outline-secondary" type="button" id="parseNLBtn">
+                                <i class="fas fa-magic"></i> Parse
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Describe what you need in plain English, and we'll help fill out the form.</small>
+                    </div>
+
+                    <!-- Template Recommendations -->
+                    <div id="templateRecommendations" class="mb-4" style="display: none;">
+                        <label class="form-label">Recommended Templates</label>
+                        <div id="recommendationsList" class="list-group">
+                            <!-- Recommendations will be loaded here -->
+                        </div>
+                    </div>
+
                     <!-- Form Type Selection -->
                     <div class="mb-4">
                         <label for="specificFormType" class="form-label">Select Specific Document Type *</label>
@@ -104,6 +126,14 @@
                     
                     <div id="formFields">
                         <!-- Dynamic form fields will be loaded here -->
+                    </div>
+
+                    <!-- Compliance Issues Display -->
+                    <div id="complianceIssues" class="mb-4" style="display: none;">
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Compliance Issues</h6>
+                            <ul id="complianceIssuesList"></ul>
+                        </div>
                     </div>
                     
                     <div class="row mt-4">
@@ -175,6 +205,21 @@
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Document Preview:</strong> This is a text preview of your document. The downloaded file will be formatted according to your selected format.
                 </div>
+                
+                <!-- Document Review Results -->
+                <div id="reviewResults" class="mb-3" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-search"></i> Automated Review</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="reviewScore" class="mb-2"></div>
+                            <div id="reviewIssues"></div>
+                            <div id="reviewSuggestions"></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="documentContent" class="generated-document"></div>
             </div>
             <div class="modal-footer">
@@ -185,6 +230,9 @@
                     </button>
                     <button type="button" class="btn btn-outline-primary" id="regenerateBtn">
                         <i class="fas fa-redo me-2"></i>Generate Different Format
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="esignBtn" style="display: none;">
+                        <i class="fas fa-signature me-2"></i>Send for E-Signature
                     </button>
                 </div>
             </div>
@@ -225,17 +273,36 @@
     
     <script>
     let currentFilename = null;
+    let currentDocumentId = null;
+    let socket = null;
+
+    // Initialize Socket.io for real-time features
+    function initializeSocket() {
+        socket = io();
+        
+        socket.on('validation_result', function(data) {
+            displayFieldValidation(data.field_name, data.issues, data.suggestions);
+        });
+        
+        socket.on('validation_error', function(data) {
+            console.error('Validation error for field:', data.field_name, data.error);
+        });
+    }
 
     // Load form types when page loads
     $(document).ready(function() {
         console.log('Document ready, jQuery version:', $.fn.jquery);
         console.log('Page loaded, loading form types...');
         
+        // Initialize real-time features
+        initializeSocket();
+        
         // Test API connectivity first
         $.get('/api/test')
             .done(function(response) {
                 console.log('API test successful:', response);
                 loadSpecificFormTypes();
+                loadTemplateRecommendations();
             })
             .fail(function(xhr, status, error) {
                 console.error('API test failed:', error);
@@ -427,6 +494,362 @@
         $('#documentFormat')[0].scrollIntoView({ behavior: 'smooth' });
         $('#documentFormat').focus();
     });
+
+    // Natural Language Processing
+    $(document).on('click', '#parseNLBtn', function() {
+        const text = $('#naturalLanguageInput').val();
+        if (!text.trim()) {
+            alert('Please enter a description of your legal needs');
+            return;
+        }
+
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Parsing...');
+
+        if (window.nlpProcessor) {
+            window.nlpProcessor.parseInput(text)
+                .then(result => {
+                    window.nlpProcessor.applyParsedData(result);
+                    // Load form types for detected intent
+                    if (result.intent && result.intent !== '<%= formType %>') {
+                        window.location.href = `/form/${result.intent}`;
+                    }
+                })
+                .catch(error => {
+                    alert('Error parsing input: ' + error.message);
+                })
+                .finally(() => {
+                    $('#parseNLBtn').prop('disabled', false).html('<i class="fas fa-magic"></i> Parse');
+                });
+        }
+    });
+
+    // Load template recommendations
+    function loadTemplateRecommendations() {
+        $.get(`/api/templates/recommendations/<%= formType %>`)
+            .done(function(response) {
+                if (response.success && response.recommendations.length > 0) {
+                    displayTemplateRecommendations(response.recommendations);
+                }
+            })
+            .catch(function(error) {
+                console.error('Failed to load recommendations:', error);
+            });
+    }
+
+    // Display template recommendations
+    function displayTemplateRecommendations(recommendations) {
+        const container = $('#recommendationsList');
+        const recommendationsDiv = $('#templateRecommendations');
+        
+        container.empty();
+        
+        recommendations.forEach(function(rec, index) {
+            const item = $(`
+                <div class="list-group-item recommendation-item" data-specific-type="${rec.specific_type}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${getSpecificTypeLabel(rec.specific_type)}</h6>
+                            <p class="mb-1 recommendation-reason">${rec.reason}</p>
+                        </div>
+                        <span class="badge bg-primary recommendation-score">${Math.round(rec.score * 100)}%</span>
+                    </div>
+                </div>
+            `);
+            container.append(item);
+        });
+        
+        recommendationsDiv.show();
+        
+        // Handle recommendation clicks
+        $('.recommendation-item').on('click', function() {
+            const specificType = $(this).data('specific-type');
+            $('#specificFormType').val(specificType).trigger('change');
+            $(this).addClass('active').siblings().removeClass('active');
+        });
+    }
+
+    // Helper function to get specific type label
+    function getSpecificTypeLabel(specificType) {
+        // This would ideally come from the server, but for now we'll use a simple mapping
+        const labels = {
+            'llc_articles': 'LLC Articles of Organization',
+            'corp_articles': 'Corporation Articles of Incorporation',
+            'purchase_agreement': 'Real Estate Purchase Agreement',
+            'lease_agreement': 'Residential Lease Agreement',
+            'divorce_petition': 'Divorce Petition',
+            'last_will': 'Last Will and Testament',
+            'employment_agreement': 'Employment Agreement',
+            'civil_complaint': 'Civil Complaint',
+            'service_agreement': 'Service Agreement'
+        };
+        return labels[specificType] || specificType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Setup compliance validation when form fields are loaded
+    function setupComplianceValidation() {
+        if (window.complianceValidator) {
+            window.complianceValidator.setupFieldListeners('<%= formType %>');
+        }
+    }
+
+    // Enhanced form submission with review results
+    function handleGenerationSuccess(response) {
+        $('#loadingModal').modal('hide');
+        
+        if (response.success) {
+            $('#documentContent').text(response.document);
+            currentFilename = response.filename;
+            currentDocumentId = response.documentId;
+            
+            // Update download button text based on format
+            const formatText = response.format.toUpperCase();
+            $('#downloadBtn').html(`<i class="fas fa-download me-2"></i>Download ${formatText} Document`);
+            
+            // Show e-signature button if document was saved
+            if (currentDocumentId) {
+                $('#esignBtn').show();
+            }
+            
+            // Display review results if available
+            if (response.reviewResults) {
+                displayReviewResults(response.reviewResults);
+            }
+            
+            // Display compliance validation if available
+            if (response.complianceValidation && response.complianceValidation.issues.length > 0) {
+                displayComplianceResults(response.complianceValidation);
+            }
+            
+            $('#resultsModal').modal('show');
+        } else {
+            alert('Error generating document: ' + response.error);
+        }
+    }
+
+    // Display document review results
+    function displayReviewResults(reviewResults) {
+        const reviewDiv = $('#reviewResults');
+        const scoreDiv = $('#reviewScore');
+        const issuesDiv = $('#reviewIssues');
+        const suggestionsDiv = $('#reviewSuggestions');
+        
+        // Display score
+        const score = Math.round(reviewResults.score * 100);
+        const scoreClass = score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'poor';
+        scoreDiv.html(`
+            <div class="review-score">
+                <span>Document Quality Score:</span>
+                <div class="score-bar">
+                    <div class="score-fill ${scoreClass}" style="width: ${score}%"></div>
+                </div>
+                <span>${score}%</span>
+            </div>
+        `);
+        
+        // Display issues
+        if (reviewResults.issues && reviewResults.issues.length > 0) {
+            const issuesHtml = reviewResults.issues.map(issue => `
+                <div class="review-issue ${issue.severity}">
+                    <strong>${issue.type.replace(/_/g, ' ').toUpperCase()}:</strong> ${issue.message}
+                </div>
+            `).join('');
+            issuesDiv.html('<h6>Issues Found:</h6>' + issuesHtml);
+        }
+        
+        // Display suggestions
+        if (reviewResults.suggestions && reviewResults.suggestions.length > 0) {
+            const suggestionsHtml = reviewResults.suggestions.map(suggestion => `
+                <li>${suggestion}</li>
+            `).join('');
+            suggestionsDiv.html(`
+                <div class="review-suggestions">
+                    <h6><i class="fas fa-lightbulb"></i> Suggestions:</h6>
+                    <ul>${suggestionsHtml}</ul>
+                </div>
+            `);
+        }
+        
+        reviewDiv.show();
+    }
+
+    // Display compliance validation results
+    function displayComplianceResults(complianceValidation) {
+        // This would show compliance issues in the modal
+        // Implementation depends on your specific UI requirements
+        console.log('Compliance validation:', complianceValidation);
+    }
+
+    // E-signature functionality
+    $(document).on('click', '#esignBtn', function() {
+        if (!currentDocumentId) {
+            alert('Document must be saved before sending for e-signature');
+            return;
+        }
+        
+        // Show e-signature modal (you'd need to create this modal)
+        showEsignatureModal();
+    });
+
+    function showEsignatureModal() {
+        // Create and show e-signature modal
+        const modal = $(`
+            <div class="modal fade" id="esignatureModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Send for E-Signature</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="esignatureForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Signers</label>
+                                    <div id="signersContainer">
+                                        <div class="signer-input">
+                                            <input type="text" class="form-control mb-2" placeholder="Signer Name" name="signerName[]" required>
+                                            <input type="email" class="form-control" placeholder="Signer Email" name="signerEmail[]" required>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addSignerBtn">
+                                        <i class="fas fa-plus"></i> Add Another Signer
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="sendEsignBtn">Send for Signature</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+        
+        $('body').append(modal);
+        $('#esignatureModal').modal('show');
+        
+        // Handle adding signers
+        $('#addSignerBtn').on('click', function() {
+            const signerInput = $(`
+                <div class="signer-input">
+                    <input type="text" class="form-control mb-2" placeholder="Signer Name" name="signerName[]" required>
+                    <input type="email" class="form-control" placeholder="Signer Email" name="signerEmail[]" required>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-signer">Remove</button>
+                </div>
+            `);
+            $('#signersContainer').append(signerInput);
+        });
+        
+        // Handle removing signers
+        $(document).on('click', '.remove-signer', function() {
+            $(this).closest('.signer-input').remove();
+        });
+        
+        // Handle sending for signature
+        $('#sendEsignBtn').on('click', function() {
+            const signers = [];
+            $('#signersContainer .signer-input').each(function() {
+                const name = $(this).find('input[name="signerName[]"]').val();
+                const email = $(this).find('input[name="signerEmail[]"]').val();
+                if (name && email) {
+                    signers.push({ name, email });
+                }
+            });
+            
+            if (signers.length === 0) {
+                alert('Please add at least one signer');
+                return;
+            }
+            
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+            
+            $.post('/api/esignature/send', {
+                documentId: currentDocumentId,
+                signers: signers
+            })
+            .done(function(response) {
+                if (response.success) {
+                    alert('Document sent for e-signature successfully!');
+                    $('#esignatureModal').modal('hide');
+                } else {
+                    alert('Error: ' + response.error);
+                }
+            })
+            .fail(function() {
+                alert('Failed to send document for e-signature');
+            })
+            .always(function() {
+                $('#sendEsignBtn').prop('disabled', false).html('Send for Signature');
+            });
+        });
+        
+        // Clean up modal when hidden
+        $('#esignatureModal').on('hidden.bs.modal', function() {
+            $(this).remove();
+        });
+    }
+
+    // Override the original form submission to include new features
+    $(document).off('submit', '#documentForm').on('submit', '#documentForm', function(e) {
+        e.preventDefault();
+        
+        // Check if specific form type is selected
+        const specificType = $('#specificFormType').val();
+        if (!specificType) {
+            alert('Please select a specific document type first.');
+            return;
+        }
+        
+        // Get selected format
+        const format = $('#documentFormat').val() || 'pdf';
+        
+        // Collect form data
+        const formData = {};
+        $(this).find('input, select, textarea').each(function() {
+            if (this.name) {
+                formData[this.name] = this.value;
+            }
+        });
+        
+        // Add specific form type to form data
+        formData.specific_form_type = specificType;
+        
+        // Show loading modal with format info
+        $('#loadingModal .modal-body p').text(`Please wait while we create your ${format.toUpperCase()} legal document.`);
+        $('#loadingModal').modal('show');
+        
+        // Submit to backend
+        $.ajax({
+            url: '/generate',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                form_type: '<%= formType %>',
+                specific_type: specificType,
+                form_data: formData,
+                format: format
+            }),
+            success: handleGenerationSuccess,
+            error: function(xhr) {
+                $('#loadingModal').modal('hide');
+                const response = xhr.responseJSON;
+                if (response && response.complianceIssues) {
+                    alert('Compliance issues found:\n' + response.complianceIssues.map(issue => issue.message).join('\n'));
+                } else {
+                    alert('Error generating document. Please try again.');
+                }
+            }
+        });
+    });
+
+    // Setup compliance validation when form fields are loaded
+    $(document).on('DOMSubtreeModified', '#formFields', function() {
+        setupComplianceValidation();
+    });
     </script>
+
+    <!-- Include enhanced feature scripts -->
+    <script src="/js/compliance.js"></script>
+    <script src="/js/nlp.js"></script>
 </body>
 </html>

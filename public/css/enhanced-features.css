@@ -1,0 +1,276 @@
+/* Enhanced Features CSS */
+
+/* Natural Language Input */
+.nlp-input-container {
+    position: relative;
+}
+
+.nlp-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nlp-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.nlp-suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.nlp-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+/* Template Recommendations */
+.recommendation-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.recommendation-item:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.recommendation-score {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.recommendation-reason {
+    font-size: 0.9em;
+    color: #495057;
+    margin-top: 4px;
+}
+
+/* Compliance Validation */
+.field-validation {
+    margin-top: 4px;
+    font-size: 0.875em;
+}
+
+.validation-issue {
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.validation-issue.high {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.validation-issue.medium {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.validation-issue.low {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.validation-suggestion {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+/* Real-time validation indicators */
+.form-control.validating {
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.form-control.valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-control.invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Document Review Results */
+.review-score {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.score-bar {
+    flex: 1;
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    margin: 0 10px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.score-fill.excellent {
+    background-color: #28a745;
+}
+
+.score-fill.good {
+    background-color: #ffc107;
+}
+
+.score-fill.poor {
+    background-color: #dc3545;
+}
+
+.review-issue {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border-left: 4px solid;
+}
+
+.review-issue.high {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
+}
+
+.review-issue.medium {
+    background-color: #fff3cd;
+    border-left-color: #ffc107;
+}
+
+.review-issue.low {
+    background-color: #d1ecf1;
+    border-left-color: #17a2b8;
+}
+
+.review-suggestions {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 10px;
+}
+
+/* E-signature Integration */
+.esignature-modal .signer-input {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.esignature-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.esignature-status.sent {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.esignature-status.signed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.esignature-status.completed {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.esignature-status.declined {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Loading states */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 0.25em solid #f3f3f3;
+    border-top: 0.25em solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .recommendation-item {
+        padding: 12px;
+    }
+    
+    .validation-issue,
+    .validation-suggestion {
+        font-size: 0.8em;
+    }
+    
+    .review-issue {
+        padding: 6px 10px;
+    }
+}
+
+/* Animation for new features */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
