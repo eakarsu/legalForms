@@ -18,12 +18,30 @@ const getDocuSignClient = async () => {
         
         // Get private key from environment or file
         let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
+        
+        // If private key is provided as joined lines, restore proper format
+        if (privateKey && !privateKey.includes('\n')) {
+            // Restore line breaks for RSA key format
+            privateKey = privateKey
+                .replace(/-----BEGIN RSA PRIVATE KEY-----/, '-----BEGIN RSA PRIVATE KEY-----\n')
+                .replace(/-----END RSA PRIVATE KEY-----/, '\n-----END RSA PRIVATE KEY-----')
+                .replace(/(.{64})/g, '$1\n') // Add line breaks every 64 characters
+                .replace(/\n\n/g, '\n') // Remove double line breaks
+                .trim();
+        }
+        
+        // If no private key in environment, try file path
         if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
-            privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
+            try {
+                privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
+            } catch (error) {
+                console.error('Error reading private key file:', error);
+                throw new Error('Could not read DocuSign private key file');
+            }
         }
         
         if (!privateKey) {
-            throw new Error('DocuSign RSA private key not configured');
+            throw new Error('DocuSign RSA private key not configured. Set DOCUSIGN_RSA_PRIVATE_KEY or DOCUSIGN_RSA_PRIVATE_KEY_PATH');
         }
         
         const results = await apiClient.requestJWTUserToken(
