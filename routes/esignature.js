@@ -19,12 +19,23 @@ const getDocuSignClient = async () => {
         // Get private key from environment or file
         let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
         
-        // If no private key in environment, try file path
+        // Check if DOCUSIGN_RSA_PRIVATE_KEY contains a file path
+        if (privateKey && !privateKey.includes('-----BEGIN')) {
+            // It's a file path, read the file
+            try {
+                privateKey = await fs.readFile(privateKey, 'utf8');
+            } catch (error) {
+                console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY:', error);
+                privateKey = null;
+            }
+        }
+        
+        // If no private key yet, try DOCUSIGN_RSA_PRIVATE_KEY_PATH
         if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
             try {
                 privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
             } catch (error) {
-                console.error('Error reading private key file:', error);
+                console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY_PATH:', error);
                 throw new Error('Could not read DocuSign private key file');
             }
         }
