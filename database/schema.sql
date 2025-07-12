@@ -41,13 +41,13 @@ CREATE TABLE IF NOT EXISTS document_history (
 
 -- User sessions table (for connect-pg-simple)
 CREATE TABLE IF NOT EXISTS user_sessions (
-    sid VARCHAR NOT NULL COLLATE "default",
+    sid VARCHAR NOT NULL,
     sess JSON NOT NULL,
     expire TIMESTAMP(6) NOT NULL
 );
 
 -- Create primary key and index for sessions
-ALTER TABLE user_sessions ADD CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE user_sessions ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
 CREATE INDEX IF NOT EXISTS IDX_session_expire ON user_sessions(expire);
 
 -- Performance indexes
@@ -146,7 +146,7 @@ BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE 'plpgsql';
 
 -- Create triggers for automatic updated_at updates
 CREATE TRIGGER update_users_updated_at 
