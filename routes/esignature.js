@@ -19,17 +19,6 @@ const getDocuSignClient = async () => {
         // Get private key from environment or file
         let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
         
-        // If private key is provided as joined lines, restore proper format
-        if (privateKey && !privateKey.includes('\n')) {
-            // Restore line breaks for RSA key format
-            privateKey = privateKey
-                .replace(/-----BEGIN RSA PRIVATE KEY-----/, '-----BEGIN RSA PRIVATE KEY-----\n')
-                .replace(/-----END RSA PRIVATE KEY-----/, '\n-----END RSA PRIVATE KEY-----')
-                .replace(/(.{64})/g, '$1\n') // Add line breaks every 64 characters
-                .replace(/\n\n/g, '\n') // Remove double line breaks
-                .trim();
-        }
-        
         // If no private key in environment, try file path
         if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
             try {
