@@ -7,25 +7,45 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 // DocuSign configuration
-const getDocuSignClient = () => {
+const getDocuSignClient = async () => {
     const apiClient = new docusign.ApiClient();
     apiClient.setBasePath(process.env.DOCUSIGN_BASE_PATH || 'https://demo.docusign.net/restapi');
     
-    // Configure OAuth
-    apiClient.configureJWTAuthorizationFlow(
-        process.env.DOCUSIGN_INTEGRATION_KEY,
-        process.env.DOCUSIGN_USER_ID,
-        process.env.DOCUSIGN_RSA_PRIVATE_KEY,
-        3600 // 1 hour
-    );
-    
-    return apiClient;
+    // Use the new JWT authentication method
+    try {
+        const jwtLifeSec = 3600; // 1 hour
+        const scopes = ['signature', 'impersonation'];
+        
+        // Get private key from environment or file
+        let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
+        if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
+            privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
+        }
+        
+        if (!privateKey) {
+            throw new Error('DocuSign RSA private key not configured');
+        }
+        
+        const results = await apiClient.requestJWTUserToken(
+            process.env.DOCUSIGN_INTEGRATION_KEY,
+            process.env.DOCUSIGN_USER_ID,
+            scopes,
+            privateKey,
+            jwtLifeSec
+        );
+        
+        apiClient.setAccessToken(results.body.access_token);
+        return apiClient;
+    } catch (error) {
+        console.error('DocuSign JWT authentication failed:', error);
+        throw new Error('DocuSign authentication failed. Please check your credentials.');
+    }
 };
 
 // Create envelope for signing
 async function createDocuSignEnvelope(documentPath, signers, documentName) {
     try {
-        const apiClient = getDocuSignClient();
+        const apiClient = await getDocuSignClient();
         const envelopesApi = new docusign.EnvelopesApi(apiClient);
         
         // Read document
@@ -109,7 +129,28 @@ router.post('/send', requireAuth, async (req, res) => {
         }
         
         const document = docResult.rows[0];
-        const documentPath = path.join(__dirname, '../uploads', document.file_path || `${document.title}.pdf`);
+        
+        // Construct proper file path
+        let documentPath;
+        if (document.file_path) {
+            // If file_path is just a filename, join with uploads directory
+            if (!path.isAbsolute(document.file_path)) {
+                documentPath = path.join(__dirname, '../uploads', document.file_path);
+            } else {
+                documentPath = document.file_path;
+            }
+        } else {
+            // Fallback to title-based filename
+            documentPath = path.join(__dirname, '../uploads', `${document.title}.pdf`);
+        }
+        
+        // Check if file exists
+        try {
+            await fs.access(documentPath);
+        } catch (error) {
+            console.error('Document file not found:', documentPath);
+            return res.status(404).json({ error: 'Document file not found. Please regenerate the document.' });
+        }
         
         let providerEnvelopeId;
         
@@ -176,7 +217,7 @@ router.get('/status/:esignatureId', requireAuth, async (req, res) => {
         // Get updated status from provider
         if (esignRequest.provider === 'docusign') {
             try {
-                const apiClient = getDocuSignClient();
+                const apiClient = await getDocuSignClient();
                 const envelopesApi = new docusign.EnvelopesApi(apiClient);
                 
                 const envelope = await envelopesApi.getEnvelope(
