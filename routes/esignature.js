@@ -16,6 +16,17 @@ const getDocuSignClient = async () => {
         const jwtLifeSec = 3600; // 1 hour
         const scopes = ['signature', 'impersonation'];
         
+        // Validate required environment variables
+        if (!process.env.DOCUSIGN_INTEGRATION_KEY) {
+            throw new Error('DOCUSIGN_INTEGRATION_KEY is not configured');
+        }
+        if (!process.env.DOCUSIGN_USER_ID) {
+            throw new Error('DOCUSIGN_USER_ID is not configured');
+        }
+        if (!process.env.DOCUSIGN_ACCOUNT_ID) {
+            throw new Error('DOCUSIGN_ACCOUNT_ID is not configured');
+        }
+        
         // Get private key from environment or file
         let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
         
@@ -52,22 +63,17 @@ const getDocuSignClient = async () => {
             throw new Error('Invalid RSA private key format. Key must include BEGIN/END headers.');
         }
         
-        // Ensure proper line breaks in the key
-        if (!privateKey.includes('\n')) {
-            // If it's a single line, try to format it properly
-            privateKey = privateKey
-                .replace('-----BEGIN RSA PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----\n')
-                .replace('-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----')
-                .replace(/(.{64})/g, '$1\n')
-                .replace(/\n\n/g, '\n')
-                .trim();
-        }
-        
-        console.log('Private key format check:', {
-            hasBeginHeader: privateKey.includes('-----BEGIN'),
-            hasEndHeader: privateKey.includes('-----END'),
-            hasLineBreaks: privateKey.includes('\n'),
-            length: privateKey.length
+        console.log('DocuSign Configuration Check:', {
+            integrationKey: process.env.DOCUSIGN_INTEGRATION_KEY?.substring(0, 8) + '...',
+            userId: process.env.DOCUSIGN_USER_ID?.substring(0, 8) + '...',
+            accountId: process.env.DOCUSIGN_ACCOUNT_ID?.substring(0, 8) + '...',
+            basePath: process.env.DOCUSIGN_BASE_PATH,
+            privateKeyLength: privateKey.length,
+            privateKeyFormat: {
+                hasBeginHeader: privateKey.includes('-----BEGIN'),
+                hasEndHeader: privateKey.includes('-----END'),
+                hasLineBreaks: privateKey.includes('\n')
+            }
         });
         
         const results = await apiClient.requestJWTUserToken(
@@ -82,7 +88,15 @@ const getDocuSignClient = async () => {
         return apiClient;
     } catch (error) {
         console.error('DocuSign JWT authentication failed:', error);
-        throw new Error('DocuSign authentication failed. Please check your credentials.');
+        
+        // Provide more specific error messages
+        if (error.message?.includes('no_valid_keys_or_signatures')) {
+            throw new Error('DocuSign authentication failed: Invalid RSA private key or application not properly configured. Please check:\n1. RSA private key is correct\n2. Application has JWT enabled\n3. User consent has been granted\n4. Integration key matches the application');
+        } else if (error.message?.includes('invalid_grant')) {
+            throw new Error('DocuSign authentication failed: Invalid grant. Please check your Integration Key and User ID.');
+        } else {
+            throw new Error(`DocuSign authentication failed: ${error.message}`);
+        }
     }
 };
 
@@ -360,6 +374,31 @@ router.post('/webhook/:provider', async (req, res) => {
     } catch (error) {
         console.error('Webhook error:', error);
         res.status(500).json({ error: 'Webhook processing failed' });
+    }
+});
+
+// Test endpoint for DocuSign configuration
+router.get('/test-config', async (req, res) => {
+    try {
+        const config = {
+            integrationKey: process.env.DOCUSIGN_INTEGRATION_KEY ? 'Set' : 'Missing',
+            userId: process.env.DOCUSIGN_USER_ID ? 'Set' : 'Missing',
+            accountId: process.env.DOCUSIGN_ACCOUNT_ID ? 'Set' : 'Missing',
+            basePath: process.env.DOCUSIGN_BASE_PATH || 'Not set',
+            privateKeySource: process.env.DOCUSIGN_RSA_PRIVATE_KEY ? 'Environment variable' : 
+                             process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH ? 'File path' : 'Missing'
+        };
+        
+        res.json({
+            success: true,
+            config,
+            message: 'DocuSign configuration check completed'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
 });
 
