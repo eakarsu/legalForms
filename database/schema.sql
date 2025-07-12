@@ -146,7 +146,7 @@ BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ LANGUAGE 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 -- Create triggers for automatic updated_at updates
 CREATE TRIGGER update_users_updated_at 
