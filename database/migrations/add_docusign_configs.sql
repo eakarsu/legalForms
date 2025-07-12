@@ -36,7 +36,20 @@ CREATE TABLE IF NOT EXISTS platform_config (
 );
 
 -- Insert default platform limits (only if they don't exist)
-INSERT INTO platform_config (config_key, config_value, description) VALUES
-('free_tier_monthly_limit', '5', 'Number of documents free users can send per month'),
-('free_tier_envelope_limit', '10', 'Number of envelopes free users can send per month'),
-('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM platform_config WHERE config_key = 'free_tier_monthly_limit') THEN
+        INSERT INTO platform_config (config_key, config_value, description) VALUES
+        ('free_tier_monthly_limit', '5', 'Number of documents free users can send per month');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM platform_config WHERE config_key = 'free_tier_envelope_limit') THEN
+        INSERT INTO platform_config (config_key, config_value, description) VALUES
+        ('free_tier_envelope_limit', '10', 'Number of envelopes free users can send per month');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM platform_config WHERE config_key = 'platform_docusign_enabled') THEN
+        INSERT INTO platform_config (config_key, config_value, description) VALUES
+        ('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available');
+    END IF;
+END $$;

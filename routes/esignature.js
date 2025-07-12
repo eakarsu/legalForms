@@ -730,6 +730,25 @@ router.get('/usage', requireAuth, async (req, res) => {
     }
 });
 
+// Test endpoint to check if API routes are working (no auth required)
+router.get('/test', async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            message: 'E-signature API is working',
+            timestamp: new Date().toISOString(),
+            endpoints: {
+                config: '/api/esignature/config (requires auth)',
+                usage: '/api/esignature/usage (requires auth)',
+                testConfig: '/api/esignature/test-config (no auth)',
+                testAuth: '/api/esignature/test-auth (no auth)'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'API test failed' });
+    }
+});
+
 // Simplified e-signature test (mock implementation)
 router.post('/send-mock', async (req, res) => {
     try {
