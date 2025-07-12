@@ -881,8 +881,9 @@
         });
     }
 
-    // Show DocuSign setup modal
-    function showDocuSignSetup() {
+    // Show DocuSign setup modal - make it globally accessible
+    window.showDocuSignSetup = function() {
+        console.log('showDocuSignSetup called');
         const setupModal = $(`
             <div class="modal fade" id="docusignSetupModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
