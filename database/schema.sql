@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS compliance_rules (
     rule_type VARCHAR(50) NOT NULL, -- 'validation', 'format', 'required', 'range'
     rule_data JSONB NOT NULL, -- Contains validation logic, regex patterns, etc.
     jurisdiction VARCHAR(10) DEFAULT 'US',
-    effective_date DATE DEFAULT CURRENT_DATE,
+    effective_date DATE DEFAULT NOW()::DATE,
     expiry_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS document_reviews (
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
