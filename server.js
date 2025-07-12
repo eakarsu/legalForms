@@ -1425,7 +1425,16 @@ Return a JSON object with "risks" array and "suggestions" array.`;
         }
       });
 
-      const aiReview = JSON.parse(response.data.choices[0].message.content);
+      let aiResponseContent = response.data.choices[0].message.content;
+      
+      // Remove markdown code blocks if present
+      if (aiResponseContent.includes('```json')) {
+        aiResponseContent = aiResponseContent.replace(/```json\s*/, '').replace(/\s*```$/, '');
+      } else if (aiResponseContent.includes('```')) {
+        aiResponseContent = aiResponseContent.replace(/```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const aiReview = JSON.parse(aiResponseContent.trim());
       if (aiReview.risks) {
         issues.push(...aiReview.risks.map(risk => ({
           type: 'ai_risk_assessment',
