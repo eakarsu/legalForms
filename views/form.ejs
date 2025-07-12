@@ -786,7 +786,7 @@
                                         <div class="card-body">
                                             <h6 class="card-title">Want unlimited e-signatures?</h6>
                                             <p class="card-text small">Configure your own DocuSign account to remove monthly limits.</p>
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="showDocuSignSetup()">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="setupPersonalAccountBtn">
                                                 <i class="fas fa-cog"></i> Setup Personal Account
                                             </button>
                                         </div>
@@ -875,14 +875,19 @@
             });
         });
         
+        // Handle setup personal account button click
+        $(document).on('click', '#setupPersonalAccountBtn', function() {
+            showDocuSignSetup();
+        });
+        
         // Clean up modal when hidden
         $('#esignatureModal').on('hidden.bs.modal', function() {
             $(this).remove();
         });
     }
 
-    // Show DocuSign setup modal - make it globally accessible
-    window.showDocuSignSetup = function() {
+    // Show DocuSign setup modal
+    function showDocuSignSetup() {
         console.log('showDocuSignSetup called');
         const setupModal = $(`
             <div class="modal fade" id="docusignSetupModal" tabindex="-1">
