@@ -6,96 +6,121 @@ const db = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
-// DocuSign configuration
-const getDocuSignClient = async () => {
+// Get DocuSign client with hybrid approach (user config or platform config)
+const getDocuSignClient = async (userId = null, useUserConfig = false) => {
     const apiClient = new docusign.ApiClient();
-    apiClient.setBasePath(process.env.DOCUSIGN_BASE_PATH || 'https://demo.docusign.net/restapi');
+    let config = {};
     
-    // Use the new JWT authentication method
     try {
-        const jwtLifeSec = 3600; // 1 hour
-        const scopes = ['signature', 'impersonation'];
-        
-        // Validate required environment variables
-        if (!process.env.DOCUSIGN_INTEGRATION_KEY) {
-            throw new Error('DOCUSIGN_INTEGRATION_KEY is not configured');
-        }
-        if (!process.env.DOCUSIGN_USER_ID) {
-            throw new Error('DOCUSIGN_USER_ID is not configured');
-        }
-        if (!process.env.DOCUSIGN_ACCOUNT_ID) {
-            throw new Error('DOCUSIGN_ACCOUNT_ID is not configured');
-        }
-        
-        // Get private key from environment or file
-        let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
-        
-        // Check if DOCUSIGN_RSA_PRIVATE_KEY contains a file path
-        if (privateKey && !privateKey.includes('-----BEGIN')) {
-            // It's a file path, read the file
-            try {
-                privateKey = await fs.readFile(privateKey, 'utf8');
-            } catch (error) {
-                console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY:', error);
-                privateKey = null;
+        // Try to get user's DocuSign configuration first if requested
+        if (useUserConfig && userId) {
+            const userConfigResult = await db.query(
+                'SELECT * FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
+                [userId]
+            );
+            
+            if (userConfigResult.rows.length > 0) {
+                const userConfig = userConfigResult.rows[0];
+                config = {
+                    integrationKey: userConfig.integration_key,
+                    userId: userConfig.user_guid,
+                    accountId: userConfig.account_id,
+                    basePath: userConfig.base_path,
+                    privateKey: userConfig.rsa_private_key,
+                    source: 'user'
+                };
             }
         }
         
-        // If no private key yet, try DOCUSIGN_RSA_PRIVATE_KEY_PATH
-        if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
-            try {
-                privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
-            } catch (error) {
-                console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY_PATH:', error);
-                throw new Error('Could not read DocuSign private key file');
+        // Fallback to platform configuration if no user config
+        if (!config.integrationKey) {
+            // Check if platform DocuSign is enabled
+            const platformEnabledResult = await db.query(
+                "SELECT config_value FROM platform_config WHERE config_key = 'platform_docusign_enabled'"
+            );
+            
+            const platformEnabled = platformEnabledResult.rows[0]?.config_value === 'true';
+            
+            if (!platformEnabled) {
+                throw new Error('Platform DocuSign is disabled. Please configure your own DocuSign account.');
             }
+            
+            // Use platform configuration
+            let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
+            
+            // Handle private key file reading
+            if (privateKey && !privateKey.includes('-----BEGIN')) {
+                try {
+                    privateKey = await fs.readFile(privateKey, 'utf8');
+                } catch (error) {
+                    console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY:', error);
+                    privateKey = null;
+                }
+            }
+            
+            if (!privateKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
+                try {
+                    privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
+                } catch (error) {
+                    console.error('Error reading private key file from DOCUSIGN_RSA_PRIVATE_KEY_PATH:', error);
+                    throw new Error('Could not read DocuSign private key file');
+                }
+            }
+            
+            config = {
+                integrationKey: process.env.DOCUSIGN_INTEGRATION_KEY,
+                userId: process.env.DOCUSIGN_USER_ID,
+                accountId: process.env.DOCUSIGN_ACCOUNT_ID,
+                basePath: process.env.DOCUSIGN_BASE_PATH || 'https://demo.docusign.net/restapi',
+                privateKey: privateKey,
+                source: 'platform'
+            };
         }
         
-        if (!privateKey) {
-            throw new Error('DocuSign RSA private key not configured. Set DOCUSIGN_RSA_PRIVATE_KEY or DOCUSIGN_RSA_PRIVATE_KEY_PATH');
+        // Validate configuration
+        if (!config.integrationKey || !config.userId || !config.accountId || !config.privateKey) {
+            throw new Error('DocuSign configuration incomplete');
         }
-
+        
+        apiClient.setBasePath(config.basePath);
+        
         // Ensure the private key is in proper format
-        privateKey = privateKey.trim();
-        
-        // If the key doesn't have proper headers, it might be base64 encoded or malformed
-        if (!privateKey.includes('-----BEGIN') || !privateKey.includes('-----END')) {
+        config.privateKey = config.privateKey.trim();
+        if (!config.privateKey.includes('-----BEGIN') || !config.privateKey.includes('-----END')) {
             throw new Error('Invalid RSA private key format. Key must include BEGIN/END headers.');
         }
         
-        console.log('DocuSign Configuration Check:', {
-            integrationKey: process.env.DOCUSIGN_INTEGRATION_KEY?.substring(0, 8) + '...',
-            userId: process.env.DOCUSIGN_USER_ID?.substring(0, 8) + '...',
-            accountId: process.env.DOCUSIGN_ACCOUNT_ID?.substring(0, 8) + '...',
-            basePath: process.env.DOCUSIGN_BASE_PATH,
-            privateKeyLength: privateKey.length,
-            privateKeyFormat: {
-                hasBeginHeader: privateKey.includes('-----BEGIN'),
-                hasEndHeader: privateKey.includes('-----END'),
-                hasLineBreaks: privateKey.includes('\n')
-            }
+        const jwtLifeSec = 3600; // 1 hour
+        const scopes = ['signature', 'impersonation'];
+        
+        console.log(`DocuSign Configuration Check (${config.source}):`, {
+            integrationKey: config.integrationKey?.substring(0, 8) + '...',
+            userId: config.userId?.substring(0, 8) + '...',
+            accountId: config.accountId?.substring(0, 8) + '...',
+            basePath: config.basePath,
+            privateKeyLength: config.privateKey.length,
+            source: config.source
         });
         
         const results = await apiClient.requestJWTUserToken(
-            process.env.DOCUSIGN_INTEGRATION_KEY,
-            process.env.DOCUSIGN_USER_ID,
+            config.integrationKey,
+            config.userId,
             scopes,
-            privateKey,
+            config.privateKey,
             jwtLifeSec
         );
         
         apiClient.setAccessToken(results.body.access_token);
-        return apiClient;
+        return { apiClient, config };
+        
     } catch (error) {
         console.error('DocuSign JWT authentication failed:', error);
         
-        // Check for specific error types from the response body
         const errorBody = error.response?.body || {};
         const errorDescription = errorBody.error_description || '';
         
-        // Provide more specific error messages
         if (errorDescription.includes('no_valid_keys_or_signatures') || errorBody.error === 'invalid_grant') {
-            const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${process.env.DOCUSIGN_INTEGRATION_KEY}&redirect_uri=https://www.docusign.com`;
+            const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${config.integrationKey}&redirect_uri=https://www.docusign.com`;
             
             throw new Error(`DocuSign authentication failed: User consent required or invalid configuration.
 
@@ -107,19 +132,67 @@ REQUIRED STEPS:
 
 Error details: ${errorDescription}`);
         } else if (errorDescription.includes('invalid_client')) {
-            throw new Error('DocuSign authentication failed: Invalid Integration Key. Please verify your DOCUSIGN_INTEGRATION_KEY environment variable.');
+            throw new Error('DocuSign authentication failed: Invalid Integration Key.');
         } else if (errorDescription.includes('invalid_scope')) {
-            throw new Error('DocuSign authentication failed: Invalid scopes. Please ensure your application has signature and impersonation scopes enabled.');
+            throw new Error('DocuSign authentication failed: Invalid scopes.');
         } else {
             throw new Error(`DocuSign authentication failed: ${errorDescription || error.message}`);
         }
     }
 };
 
+// Check if user can use platform DocuSign (within limits)
+const checkPlatformUsageLimits = async (userId) => {
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    
+    // Get current usage
+    const usageResult = await db.query(
+        'SELECT * FROM platform_usage WHERE user_id = $1 AND month_year = $2',
+        [userId, currentMonth]
+    );
+    
+    // Get limits from config
+    const limitsResult = await db.query(
+        "SELECT config_key, config_value FROM platform_config WHERE config_key IN ('free_tier_monthly_limit', 'free_tier_envelope_limit')"
+    );
+    
+    const limits = {};
+    limitsResult.rows.forEach(row => {
+        limits[row.config_key] = parseInt(row.config_value);
+    });
+    
+    const currentUsage = usageResult.rows[0] || { documents_sent: 0, envelopes_sent: 0 };
+    
+    return {
+        canUse: currentUsage.documents_sent < limits.free_tier_monthly_limit,
+        usage: currentUsage,
+        limits: limits,
+        remaining: {
+            documents: Math.max(0, limits.free_tier_monthly_limit - currentUsage.documents_sent),
+            envelopes: Math.max(0, limits.free_tier_envelope_limit - currentUsage.envelopes_sent)
+        }
+    };
+};
+
+// Update platform usage
+const updatePlatformUsage = async (userId) => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    await db.query(`
+        INSERT INTO platform_usage (user_id, month_year, documents_sent, envelopes_sent)
+        VALUES ($1, $2, 1, 1)
+        ON CONFLICT (user_id, month_year)
+        DO UPDATE SET 
+            documents_sent = platform_usage.documents_sent + 1,
+            envelopes_sent = platform_usage.envelopes_sent + 1,
+            updated_at = CURRENT_TIMESTAMP
+    `, [userId, currentMonth]);
+};
+
 // Create envelope for signing
-async function createDocuSignEnvelope(documentPath, signers, documentName) {
+async function createDocuSignEnvelope(documentPath, signers, documentName, userId = null, useUserConfig = false) {
     try {
-        const apiClient = await getDocuSignClient();
+        const { apiClient, config } = await getDocuSignClient(userId, useUserConfig);
         const envelopesApi = new docusign.EnvelopesApi(apiClient);
         
         // Read document
@@ -170,11 +243,11 @@ async function createDocuSignEnvelope(documentPath, signers, documentName) {
         
         // Create envelope
         const result = await envelopesApi.createEnvelope(
-            process.env.DOCUSIGN_ACCOUNT_ID,
+            config.accountId,
             { envelopeDefinition }
         );
         
-        return result.envelopeId;
+        return { envelopeId: result.envelopeId, configSource: config.source };
         
     } catch (error) {
         console.error('DocuSign envelope creation error:', error);
@@ -231,11 +304,45 @@ router.post('/send', requireAuth, async (req, res) => {
         switch (provider) {
             case 'docusign':
                 try {
-                    providerEnvelopeId = await createDocuSignEnvelope(
+                    // Check if user has their own DocuSign config
+                    const hasUserConfig = await db.query(
+                        'SELECT id FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
+                        [req.user.id]
+                    );
+                    
+                    let useUserConfig = hasUserConfig.rows.length > 0;
+                    let configSource = 'platform';
+                    
+                    // If no user config, check platform limits
+                    if (!useUserConfig) {
+                        const usageCheck = await checkPlatformUsageLimits(req.user.id);
+                        if (!usageCheck.canUse) {
+                            return res.status(429).json({
+                                error: 'Monthly limit exceeded',
+                                message: `You've reached your free tier limit of ${usageCheck.limits.free_tier_monthly_limit} documents per month.`,
+                                suggestion: 'Configure your own DocuSign account for unlimited usage.',
+                                usage: usageCheck.usage,
+                                limits: usageCheck.limits
+                            });
+                        }
+                    }
+                    
+                    const result = await createDocuSignEnvelope(
                         documentPath,
                         signers,
-                        document.title
+                        document.title,
+                        req.user.id,
+                        useUserConfig
                     );
+                    
+                    providerEnvelopeId = result.envelopeId;
+                    configSource = result.configSource;
+                    
+                    // Update platform usage if using platform config
+                    if (configSource === 'platform') {
+                        await updatePlatformUsage(req.user.id);
+                    }
+                    
                 } catch (docusignError) {
                     console.error('DocuSign error, falling back to mock:', docusignError.message);
                     
@@ -488,7 +595,7 @@ router.get('/test-config', async (req, res) => {
 // Test JWT authentication without creating envelope
 router.get('/test-auth', async (req, res) => {
     try {
-        const apiClient = await getDocuSignClient();
+        const { apiClient } = await getDocuSignClient();
         
         // If we get here, authentication worked
         res.json({
@@ -502,6 +609,124 @@ router.get('/test-auth', async (req, res) => {
             error: error.message,
             details: error.response?.body || 'No additional details'
         });
+    }
+});
+
+// Get user's DocuSign configuration status
+router.get('/config', requireAuth, async (req, res) => {
+    try {
+        const userConfigResult = await db.query(
+            'SELECT id, integration_key, user_guid, account_id, base_path, is_active, created_at FROM user_docusign_configs WHERE user_id = $1',
+            [req.user.id]
+        );
+        
+        const usageCheck = await checkPlatformUsageLimits(req.user.id);
+        
+        res.json({
+            success: true,
+            hasUserConfig: userConfigResult.rows.length > 0,
+            userConfig: userConfigResult.rows[0] || null,
+            platformUsage: usageCheck
+        });
+    } catch (error) {
+        console.error('Get DocuSign config error:', error);
+        res.status(500).json({ error: 'Failed to get DocuSign configuration' });
+    }
+});
+
+// Save user's DocuSign configuration
+router.post('/config', requireAuth, async (req, res) => {
+    try {
+        const { integrationKey, userGuid, accountId, basePath, rsaPrivateKey } = req.body;
+        
+        // Validate required fields
+        if (!integrationKey || !userGuid || !accountId || !rsaPrivateKey) {
+            return res.status(400).json({ error: 'All DocuSign configuration fields are required' });
+        }
+        
+        // Validate private key format
+        if (!rsaPrivateKey.includes('-----BEGIN') || !rsaPrivateKey.includes('-----END')) {
+            return res.status(400).json({ error: 'Invalid RSA private key format' });
+        }
+        
+        // Test the configuration before saving
+        try {
+            const testApiClient = new docusign.ApiClient();
+            testApiClient.setBasePath(basePath || 'https://demo.docusign.net/restapi');
+            
+            await testApiClient.requestJWTUserToken(
+                integrationKey,
+                userGuid,
+                ['signature', 'impersonation'],
+                rsaPrivateKey.trim(),
+                3600
+            );
+        } catch (testError) {
+            return res.status(400).json({ 
+                error: 'DocuSign configuration test failed',
+                details: testError.message 
+            });
+        }
+        
+        // Save or update configuration
+        await db.query(`
+            INSERT INTO user_docusign_configs 
+            (user_id, integration_key, user_guid, account_id, base_path, rsa_private_key, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, true)
+            ON CONFLICT (user_id)
+            DO UPDATE SET 
+                integration_key = $2,
+                user_guid = $3,
+                account_id = $4,
+                base_path = $5,
+                rsa_private_key = $6,
+                is_active = true,
+                updated_at = CURRENT_TIMESTAMP
+        `, [req.user.id, integrationKey, userGuid, accountId, basePath || 'https://demo.docusign.net/restapi', rsaPrivateKey]);
+        
+        res.json({
+            success: true,
+            message: 'DocuSign configuration saved successfully'
+        });
+        
+    } catch (error) {
+        console.error('Save DocuSign config error:', error);
+        res.status(500).json({ error: 'Failed to save DocuSign configuration' });
+    }
+});
+
+// Delete user's DocuSign configuration
+router.delete('/config', requireAuth, async (req, res) => {
+    try {
+        await db.query(
+            'UPDATE user_docusign_configs SET is_active = false WHERE user_id = $1',
+            [req.user.id]
+        );
+        
+        res.json({
+            success: true,
+            message: 'DocuSign configuration removed successfully'
+        });
+        
+    } catch (error) {
+        console.error('Delete DocuSign config error:', error);
+        res.status(500).json({ error: 'Failed to remove DocuSign configuration' });
+    }
+});
+
+// Get platform usage statistics
+router.get('/usage', requireAuth, async (req, res) => {
+    try {
+        const usageCheck = await checkPlatformUsageLimits(req.user.id);
+        
+        res.json({
+            success: true,
+            usage: usageCheck
+        });
+        
+    } catch (error) {
+        console.error('Get usage error:', error);
+        res.status(500).json({ error: 'Failed to get usage statistics' });
     }
 });
 
