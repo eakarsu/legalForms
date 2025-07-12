@@ -173,7 +173,8 @@ class ComplianceValidator {
 
 // Initialize compliance validator when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof io !== 'undefined' && typeof socket !== 'undefined') {
+    if (typeof io !== 'undefined') {
+        const socket = io();
         window.complianceValidator = new ComplianceValidator(socket);
     }
 });

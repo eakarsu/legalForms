@@ -153,12 +153,12 @@ class TemplateRecommendationEngine {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (user_id) 
             DO UPDATE SET 
-                business_type = $2,
-                industry = $3,
-                state_jurisdiction = $4,
-                experience_level = $5,
-                preferred_templates = $6,
-                usage_patterns = $7,
+                business_type = EXCLUDED.business_type,
+                industry = EXCLUDED.industry,
+                state_jurisdiction = EXCLUDED.state_jurisdiction,
+                experience_level = EXCLUDED.experience_level,
+                preferred_templates = EXCLUDED.preferred_templates,
+                usage_patterns = EXCLUDED.usage_patterns,
                 updated_at = CURRENT_TIMESTAMP
         `, [
             userId,
