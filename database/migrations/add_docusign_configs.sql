@@ -1,7 +1,7 @@
 -- Add table for storing user DocuSign configurations
 CREATE TABLE IF NOT EXISTS user_docusign_configs (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     integration_key VARCHAR(255) NOT NULL,
     user_guid VARCHAR(255) NOT NULL,
     account_id VARCHAR(255) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS user_docusign_configs (
 -- Add table for tracking platform usage limits
 CREATE TABLE IF NOT EXISTS platform_usage (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     month_year VARCHAR(7) NOT NULL, -- Format: YYYY-MM
     documents_sent INTEGER DEFAULT 0,
     envelopes_sent INTEGER DEFAULT 0,
@@ -35,8 +35,9 @@ CREATE TABLE IF NOT EXISTS platform_config (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert default platform limits
+-- Insert default platform limits (only if they don't exist)
 INSERT INTO platform_config (config_key, config_value, description) VALUES
 ('free_tier_monthly_limit', '5', 'Number of documents free users can send per month'),
 ('free_tier_envelope_limit', '10', 'Number of envelopes free users can send per month'),
-('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available');
+('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available')
+ON CONFLICT (config_key) DO NOTHING;
