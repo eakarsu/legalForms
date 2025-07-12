@@ -89,13 +89,29 @@ const getDocuSignClient = async () => {
     } catch (error) {
         console.error('DocuSign JWT authentication failed:', error);
         
+        // Check for specific error types from the response body
+        const errorBody = error.response?.body || {};
+        const errorDescription = errorBody.error_description || '';
+        
         // Provide more specific error messages
-        if (error.message?.includes('no_valid_keys_or_signatures')) {
-            throw new Error('DocuSign authentication failed: Invalid RSA private key or application not properly configured. Please check:\n1. RSA private key is correct\n2. Application has JWT enabled\n3. User consent has been granted\n4. Integration key matches the application');
-        } else if (error.message?.includes('invalid_grant')) {
-            throw new Error('DocuSign authentication failed: Invalid grant. Please check your Integration Key and User ID.');
+        if (errorDescription.includes('no_valid_keys_or_signatures') || errorBody.error === 'invalid_grant') {
+            const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${process.env.DOCUSIGN_INTEGRATION_KEY}&redirect_uri=https://www.docusign.com`;
+            
+            throw new Error(`DocuSign authentication failed: User consent required or invalid configuration.
+
+REQUIRED STEPS:
+1. Grant user consent by visiting: ${consentUrl}
+2. Verify your RSA public key is uploaded to DocuSign Admin Console
+3. Ensure JWT is enabled for your application
+4. Verify Integration Key matches your DocuSign app
+
+Error details: ${errorDescription}`);
+        } else if (errorDescription.includes('invalid_client')) {
+            throw new Error('DocuSign authentication failed: Invalid Integration Key. Please verify your DOCUSIGN_INTEGRATION_KEY environment variable.');
+        } else if (errorDescription.includes('invalid_scope')) {
+            throw new Error('DocuSign authentication failed: Invalid scopes. Please ensure your application has signature and impersonation scopes enabled.');
         } else {
-            throw new Error(`DocuSign authentication failed: ${error.message}`);
+            throw new Error(`DocuSign authentication failed: ${errorDescription || error.message}`);
         }
     }
 };
@@ -397,26 +413,67 @@ router.post('/webhook/:provider', async (req, res) => {
 // Test endpoint for DocuSign configuration
 router.get('/test-config', async (req, res) => {
     try {
+        let privateKeyStatus = 'Missing';
+        let privateKeyLength = 0;
+        
+        // Check private key
+        let privateKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
+        if (privateKey && !privateKey.includes('-----BEGIN')) {
+            try {
+                privateKey = await fs.readFile(privateKey, 'utf8');
+                privateKeyStatus = 'File path (loaded)';
+            } catch (error) {
+                privateKeyStatus = 'File path (error reading)';
+            }
+        } else if (privateKey) {
+            privateKeyStatus = 'Environment variable';
+        } else if (process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH) {
+            try {
+                privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
+                privateKeyStatus = 'File path (loaded)';
+            } catch (error) {
+                privateKeyStatus = 'File path (error reading)';
+            }
+        }
+        
+        if (privateKey) {
+            privateKeyLength = privateKey.length;
+        }
+        
         const config = {
             integrationKey: process.env.DOCUSIGN_INTEGRATION_KEY ? 'Set' : 'Missing',
             userId: process.env.DOCUSIGN_USER_ID ? 'Set' : 'Missing',
             accountId: process.env.DOCUSIGN_ACCOUNT_ID ? 'Set' : 'Missing',
-            basePath: process.env.DOCUSIGN_BASE_PATH || 'Not set',
-            privateKeySource: process.env.DOCUSIGN_RSA_PRIVATE_KEY ? 'Environment variable' : 
-                             process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH ? 'File path' : 'Missing'
+            basePath: process.env.DOCUSIGN_BASE_PATH || 'https://demo.docusign.net/restapi',
+            privateKeyStatus,
+            privateKeyLength,
+            privateKeyFormat: privateKey ? {
+                hasBeginHeader: privateKey.includes('-----BEGIN'),
+                hasEndHeader: privateKey.includes('-----END'),
+                hasLineBreaks: privateKey.includes('\n')
+            } : null
         };
+        
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${process.env.DOCUSIGN_INTEGRATION_KEY}&redirect_uri=https://www.docusign.com`;
         
         res.json({
             success: true,
             config,
             message: 'DocuSign configuration check completed',
             troubleshooting: {
-                consentUrl: `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${process.env.DOCUSIGN_INTEGRATION_KEY}&redirect_uri=https://www.docusign.com`,
+                consentUrl,
                 steps: [
-                    '1. Visit the consent URL above to grant user consent',
-                    '2. Verify your RSA public key is uploaded to DocuSign',
-                    '3. Ensure JWT is enabled for your application',
-                    '4. Check that Integration Key matches your DocuSign app'
+                    '1. FIRST: Visit the consent URL above to grant user consent (this is usually the issue)',
+                    '2. Verify your RSA public key is uploaded to DocuSign Admin Console',
+                    '3. Ensure JWT is enabled for your application in DocuSign Admin',
+                    '4. Check that Integration Key matches your DocuSign app',
+                    '5. Verify User ID is correct (found in DocuSign Admin under Users)'
+                ],
+                commonIssues: [
+                    'User consent not granted - visit consent URL',
+                    'RSA key pair mismatch - ensure public key uploaded to DocuSign matches private key',
+                    'JWT not enabled in DocuSign application settings',
+                    'Wrong environment - demo vs production'
                 ]
             }
         });
