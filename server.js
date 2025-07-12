@@ -126,16 +126,22 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+// Add new feature routes BEFORE other routes
+app.use('/api/nlp', nlpRoutes);
+app.use('/api/esignature', esignatureRoutes);
+app.use('/api/templates', templatesRoutes);
+
+// Debug: Log registered routes
+console.log('Registered API routes:');
+console.log('- /api/nlp/*');
+console.log('- /api/esignature/*');
+console.log('- /api/templates/*');
+
 // Add optional auth middleware to all routes
 app.use(optionalAuth);
 
 // Add auth routes
 app.use('/', authRoutes);
-
-// Add new feature routes
-app.use('/api/nlp', nlpRoutes);
-app.use('/api/esignature', esignatureRoutes);
-app.use('/api/templates', templatesRoutes);
 //add
 
 // Ensure upload directory exists
