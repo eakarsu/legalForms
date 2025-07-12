@@ -432,7 +432,7 @@ router.get('/test-config', async (req, res) => {
                 privateKey = await fs.readFile(process.env.DOCUSIGN_RSA_PRIVATE_KEY_PATH, 'utf8');
                 privateKeyStatus = 'File path (loaded)';
             } catch (error) {
-                privateKeyStatus = 'File path (error reading)';
+                privateKeyStatus = `File path (error reading: ${error.message})`;
             }
         }
         
