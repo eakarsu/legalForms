@@ -102,24 +102,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(fileUpload());
 
-// Add new feature routes IMMEDIATELY after body parsing, before everything else
-app.use('/api/nlp', nlpRoutes);
-app.use('/api/esignature', esignatureRoutes);
-app.use('/api/templates', templatesRoutes);
-
-// Debug: Log registered routes
-console.log('Registered API routes:');
-console.log('- /api/nlp/*');
-console.log('- /api/esignature/*');
-console.log('- /api/templates/*');
-
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
 
 //add
 // Add session configuration after existing middleware
@@ -143,6 +131,17 @@ app.use(optionalAuth);
 
 // Add auth routes
 app.use('/', authRoutes);
+
+// Add new feature routes AFTER session and auth setup
+app.use('/api/nlp', nlpRoutes);
+app.use('/api/esignature', esignatureRoutes);
+app.use('/api/templates', templatesRoutes);
+
+// Debug: Log registered routes
+console.log('Registered API routes:');
+console.log('- /api/nlp/*');
+console.log('- /api/esignature/*');
+console.log('- /api/templates/*');
 //add
 
 // Ensure upload directory exists
