@@ -39,5 +39,4 @@ CREATE TABLE IF NOT EXISTS platform_config (
 INSERT INTO platform_config (config_key, config_value, description) VALUES
 ('free_tier_monthly_limit', '5', 'Number of documents free users can send per month'),
 ('free_tier_envelope_limit', '10', 'Number of envelopes free users can send per month'),
-('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available')
-ON CONFLICT (config_key) DO NOTHING;
+('platform_docusign_enabled', 'true', 'Whether platform DocuSign account is available');
