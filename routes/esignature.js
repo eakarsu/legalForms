@@ -110,7 +110,7 @@ const getDocuSignClient = async (userId = null, useUserConfig = false) => {
             jwtLifeSec
         );
         
-        apiClient.setAccessToken(results.body.access_token);
+        apiClient.addDefaultHeader('Authorization', 'Bearer ' + results.body.access_token);
         return { apiClient, config };
         
     } catch (error) {
@@ -348,11 +348,27 @@ router.post('/send', requireAuth, async (req, res) => {
                     
                     // Fallback to mock implementation
                     providerEnvelopeId = `mock_fallback_${Date.now()}`;
-                    provider = 'mock';
+                    let fallbackProvider = 'mock';
+                    
+                    // Save mock e-signature request
+                    const esignResult = await db.query(`
+                        INSERT INTO esignature_requests 
+                        (document_id, user_id, provider, provider_envelope_id, status, signers, expires_at)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        RETURNING id
+                    `, [
+                        documentId,
+                        req.user.id,
+                        fallbackProvider,
+                        providerEnvelopeId,
+                        'sent',
+                        JSON.stringify(signers),
+                        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+                    ]);
                     
                     return res.json({
                         success: true,
-                        esignatureId: 'mock-id',
+                        esignatureId: esignResult.rows[0].id,
                         providerEnvelopeId,
                         message: 'DocuSign authentication failed. Mock e-signature created for testing.',
                         warning: 'Please configure DocuSign properly for production use.',
@@ -365,28 +381,31 @@ router.post('/send', requireAuth, async (req, res) => {
                 return res.status(400).json({ error: 'Unsupported e-signature provider' });
         }
         
-        // Save e-signature request
-        const esignResult = await db.query(`
-            INSERT INTO esignature_requests 
-            (document_id, user_id, provider, provider_envelope_id, status, signers, expires_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id
-        `, [
-            documentId,
-            req.user.id,
-            provider,
-            providerEnvelopeId,
-            'sent',
-            JSON.stringify(signers),
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-        ]);
+        // Save e-signature request (only if not already saved in fallback)
+        if (provider === 'docusign') {
+            const esignResult = await db.query(`
+                INSERT INTO esignature_requests 
+                (document_id, user_id, provider, provider_envelope_id, status, signers, expires_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING id
+            `, [
+                documentId,
+                req.user.id,
+                provider,
+                providerEnvelopeId,
+                'sent',
+                JSON.stringify(signers),
+                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+            ]);
+            
+            res.json({
+                success: true,
+                esignatureId: esignResult.rows[0].id,
+                providerEnvelopeId,
+                message: 'Document sent for e-signature successfully'
+            });
+        }
         
-        res.json({
-            success: true,
-            esignatureId: esignResult.rows[0].id,
-            providerEnvelopeId,
-            message: 'Document sent for e-signature successfully'
-        });
         
     } catch (error) {
         console.error('E-signature send error:', error);
