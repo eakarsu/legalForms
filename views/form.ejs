@@ -112,6 +112,35 @@
                         </select>
                         <small class="form-text text-muted">Select the exact type of document you need to generate.</small>
                     </div>
+
+                    <!-- Template vs AI Choice -->
+                    <div class="mb-4" id="generationMethodChoice" style="display: none;">
+                        <label class="form-label">Generation Method *</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card h-100 generation-option" data-method="template">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-contract fa-2x text-primary mb-2"></i>
+                                        <h6>Professional Template</h6>
+                                        <p class="small text-muted">Use professionally drafted legal templates with your data</p>
+                                        <div class="badge bg-success">Recommended</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 generation-option" data-method="ai">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-robot fa-2x text-info mb-2"></i>
+                                        <h6>AI Generated</h6>
+                                        <p class="small text-muted">Generate custom documents using AI based on your specific needs</p>
+                                        <div class="badge bg-info">Custom</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="generationMethod" name="generationMethod" required>
+                        <small class="form-text text-muted">Choose how you want your document to be created.</small>
+                    </div>
                     
                     <!-- Document Format Selection -->
                     <div class="mb-4">
@@ -358,9 +387,25 @@
     $(document).on('change', '#specificFormType', function() {
         const specificType = $(this).val();
         if (specificType) {
-            loadFormFields(specificType);
+            $('#generationMethodChoice').show();
+            // Don't load form fields yet - wait for generation method selection
         } else {
             $('#formFields').html('');
+            $('#generationMethodChoice').hide();
+        }
+    });
+
+    // Handle generation method selection
+    $(document).on('click', '.generation-option', function() {
+        $('.generation-option').removeClass('border-primary bg-light');
+        $(this).addClass('border-primary bg-light');
+        
+        const method = $(this).data('method');
+        $('#generationMethod').val(method);
+        
+        const specificType = $('#specificFormType').val();
+        if (specificType) {
+            loadFormFields(specificType, method);
         }
     });
 
@@ -1049,6 +1094,10 @@
         $('#loadingModal .modal-body p').text(`Please wait while we create your ${format.toUpperCase()} legal document.`);
         $('#loadingModal').modal('show');
         
+        // Get generation method
+        const generationMethod = $('#generationMethod').val();
+        const generationMode = generationMethod === 'template' ? 'professional_template' : 'ai_summary';
+        
         // Submit to backend
         $.ajax({
             url: '/generate',
@@ -1058,7 +1107,8 @@
                 form_type: '<%= formType %>',
                 specific_type: specificType,
                 form_data: formData,
-                format: format
+                format: format,
+                generation_mode: generationMode
             }),
             success: handleGenerationSuccess,
             error: function(xhr) {

@@ -1,0 +1,70 @@
+<%# Employment Agreement Template %>
+<%- include('../base/document_header', {
+  documentTitle: documentTitle,
+  documentType: documentType,
+  jurisdiction: jurisdiction,
+  caseNumber: caseNumber
+}) %>
+
+<div class="document-body">
+  <div class="parties-section">
+    <h2>EMPLOYMENT AGREEMENT</h2>
+    <p>This Employment Agreement ("Agreement") is entered into on <strong><%= new Date().toLocaleDateString() %></strong>, between:</p>
+    
+    <div class="employer-info">
+      <p><strong>EMPLOYER:</strong> <%= data.employer_name || '[EMPLOYER NAME]' %></p>
+      <p><strong>Address:</strong> <%= (data.client_address || '[EMPLOYER ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+    
+    <div class="employee-info">
+      <p><strong>EMPLOYEE:</strong> <%= data.employee_name || '[EMPLOYEE NAME]' %></p>
+      <p><strong>Address:</strong> <%= (data.client_address || '[EMPLOYEE ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <div class="position-section">
+    <h2>POSITION AND DUTIES</h2>
+    <p>The Employee is hereby employed in the position of <strong><%= data.position_title || '[POSITION TITLE]' %></strong>.</p>
+    
+    <div class="duties">
+      <p><strong>Job Duties and Responsibilities:</strong></p>
+      <p><%= (data.job_duties || '[JOB DUTIES AND RESPONSIBILITIES]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <div class="compensation-section">
+    <h2>COMPENSATION</h2>
+    <p>The Employee shall receive an annual salary of <strong>$<%= data.salary || '[ANNUAL SALARY]' %></strong>, payable in accordance with the Employer's standard payroll practices.</p>
+    
+    <p>The Employee may be eligible for bonuses, benefits, and other compensation as determined by the Employer in its sole discretion.</p>
+  </div>
+
+  <div class="term-section">
+    <h2>TERM OF EMPLOYMENT</h2>
+    <p>Employment shall commence on <strong><%= data.start_date || '[START DATE]' %></strong>.</p>
+    
+    <p>This is an at-will employment relationship, and either party may terminate the employment relationship at any time, with or without cause, and with or without notice.</p>
+  </div>
+
+  <div class="benefits-section">
+    <h2>BENEFITS</h2>
+    <p>The Employee shall be entitled to participate in benefit programs made available by the Employer to employees generally, subject to the terms and conditions of such programs.</p>
+  </div>
+
+  <div class="confidentiality-section">
+    <h2>CONFIDENTIALITY</h2>
+    <p>The Employee acknowledges that during employment, the Employee may have access to confidential and proprietary information of the Employer.</p>
+    
+    <p>The Employee agrees to maintain the confidentiality of such information and not to disclose it to any third party without the prior written consent of the Employer.</p>
+  </div>
+
+  <div class="governing-law-section">
+    <h2>GOVERNING LAW</h2>
+    <p>This Agreement shall be governed by the laws of <%= data.state_jurisdiction || jurisdiction || '[STATE]' %>.</p>
+  </div>
+</div>
+
+<%- include('../base/document_footer', {
+  signatures: signatures,
+  notarization: notarization
+}) %>

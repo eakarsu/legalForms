@@ -1,0 +1,96 @@
+<%# Last Will and Testament Template %>
+<%- include('../base/document_header', {
+  documentTitle: documentTitle,
+  documentType: documentType,
+  jurisdiction: jurisdiction,
+  caseNumber: caseNumber
+}) %>
+
+<div class="document-body">
+  <div class="testator-section">
+    <h2>ARTICLE I - DECLARATION</h2>
+    <p>I, <strong><%= data.testator_name || '[TESTATOR NAME]' %></strong>, a resident of <%= data.testator_city || '[CITY]' %>, <%= data.testator_state || '[STATE]' %>, being of sound mind and disposing memory, do hereby make, publish, and declare this to be my Last Will and Testament, hereby revoking all former wills and codicils by me made.</p>
+  </div>
+
+  <div class="family-section">
+    <h2>ARTICLE II - FAMILY</h2>
+    <% if (data.marital_status === 'married') { %>
+    <p>I am married to <strong><%= data.spouse_name || '[SPOUSE NAME]' %></strong>.</p>
+    <% } else { %>
+    <p>I am not married.</p>
+    <% } %>
+    
+    <% if (data.children && data.children.length > 0) { %>
+    <p>I have the following children:</p>
+    <ul>
+      <% data.children.forEach(function(child) { %>
+        <li><%= child.name %>, born <%= child.birth_date || '[DATE]' %></li>
+      <% }); %>
+    </ul>
+    <% } else { %>
+    <p>I have no children.</p>
+    <% } %>
+  </div>
+
+  <div class="executor-section">
+    <h2>ARTICLE III - APPOINTMENT OF EXECUTOR</h2>
+    <p>I hereby nominate and appoint <strong><%= data.executor_name || '[EXECUTOR NAME]' %></strong> as the Executor of this Will. If <%= data.executor_name || '[EXECUTOR NAME]' %> is unable or unwilling to serve, I nominate <strong><%= data.alternate_executor || '[ALTERNATE EXECUTOR]' %></strong> as alternate Executor.</p>
+    
+    <p>I direct that no bond or other security be required of any Executor appointed hereunder.</p>
+  </div>
+
+  <div class="bequests-section">
+    <h2>ARTICLE IV - SPECIFIC BEQUESTS</h2>
+    <% if (data.specific_bequests && data.specific_bequests.length > 0) { %>
+      <% data.specific_bequests.forEach(function(bequest, index) { %>
+        <p><strong><%= index + 1 %>.</strong> I give and bequeath <%= bequest.description %> to <strong><%= bequest.beneficiary %></strong>.</p>
+      <% }); %>
+    <% } else { %>
+    <p>I make no specific bequests at this time.</p>
+    <% } %>
+  </div>
+
+  <div class="residuary-section">
+    <h2>ARTICLE V - RESIDUARY ESTATE</h2>
+    <p>I give, devise, and bequeath all the rest, residue, and remainder of my estate, both real and personal, of whatever kind and wherever situated, to <strong><%= data.residuary_beneficiary || '[RESIDUARY BENEFICIARY]' %></strong>.</p>
+    
+    <% if (data.alternate_residuary) { %>
+    <p>If <%= data.residuary_beneficiary || '[RESIDUARY BENEFICIARY]' %> does not survive me, then I give my residuary estate to <strong><%= data.alternate_residuary %></strong>.</p>
+    <% } %>
+  </div>
+
+  <% if (data.children && data.children.length > 0) { %>
+  <div class="guardian-section">
+    <h2>ARTICLE VI - GUARDIAN FOR MINOR CHILDREN</h2>
+    <p>If at the time of my death any of my children are minors, I nominate and appoint <strong><%= data.guardian_name || '[GUARDIAN NAME]' %></strong> as guardian of the person and property of such minor children.</p>
+    
+    <% if (data.alternate_guardian) { %>
+    <p>If <%= data.guardian_name || '[GUARDIAN NAME]' %> is unable or unwilling to serve, I nominate <strong><%= data.alternate_guardian %></strong> as alternate guardian.</p>
+    <% } %>
+  </div>
+  <% } %>
+
+  <div class="powers-section">
+    <h2>ARTICLE VII - POWERS OF EXECUTOR</h2>
+    <p>I grant to my Executor full power and authority to do all acts necessary for the proper administration of my estate, including but not limited to:</p>
+    <ul>
+      <li>To sell, mortgage, lease, or otherwise dispose of any real or personal property;</li>
+      <li>To invest and reinvest the assets of my estate;</li>
+      <li>To pay all debts, taxes, and expenses of administration;</li>
+      <li>To distribute assets to beneficiaries;</li>
+      <li>To execute all necessary documents and instruments.</li>
+    </ul>
+  </div>
+
+  <div class="miscellaneous-section">
+    <h2>ARTICLE VIII - MISCELLANEOUS PROVISIONS</h2>
+    <p>If any beneficiary named in this Will contests this Will or any of its provisions, such beneficiary shall forfeit any interest in my estate.</p>
+    
+    <p>This Will shall be governed by the laws of <%= data.testator_state || '[STATE]' %>.</p>
+  </div>
+</div>
+
+<%- include('../base/document_footer', {
+  signatures: signatures,
+  notarization: notarization
+}) %>

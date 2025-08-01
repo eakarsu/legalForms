@@ -1,0 +1,93 @@
+<%- include('../base/document_header', {title: 'Non-Disclosure Agreement'}) %>
+
+<div class="document-title">
+    <h1>NON-DISCLOSURE AGREEMENT</h1>
+</div>
+
+<div class="document-body">
+    <p>This Non-Disclosure Agreement ("Agreement") is entered into on _____________, 20__, between <strong><%= data.disclosing_party || '[DISCLOSING PARTY NAME]' %></strong> ("Disclosing Party") and <strong><%= data.receiving_party || '[RECEIVING PARTY NAME]' %></strong> ("Receiving Party").</p>
+
+    <div class="section">
+        <h3>1. CONFIDENTIAL INFORMATION</h3>
+        <p><strong>1.1 Definition.</strong> "Confidential Information" means any and all information disclosed by Disclosing Party to Receiving Party, including but not limited to:</p>
+        <div class="confidential-info">
+            <%= data.confidential_info || '[DESCRIPTION OF CONFIDENTIAL INFORMATION - e.g., technical data, trade secrets, business plans, customer lists, financial information, etc.]' %>
+        </div>
+        
+        <p><strong>1.2 Exclusions.</strong> Confidential Information does not include information that:</p>
+        <ul>
+            <li>Is or becomes publicly available through no breach of this Agreement;</li>
+            <li>Was known to Receiving Party prior to disclosure;</li>
+            <li>Is independently developed by Receiving Party without use of Confidential Information;</li>
+            <li>Is required to be disclosed by law or court order.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>2. OBLIGATIONS OF RECEIVING PARTY</h3>
+        <p><strong>2.1 Non-Disclosure.</strong> Receiving Party agrees to hold all Confidential Information in strict confidence and not to disclose such information to any third party without the prior written consent of Disclosing Party.</p>
+        
+        <p><strong>2.2 Use Restrictions.</strong> Receiving Party agrees to use Confidential Information solely for the following purposes:</p>
+        <div class="permitted-use">
+            <%= data.permitted_use || '[DESCRIPTION OF PERMITTED USE]' %>
+        </div>
+        
+        <p><strong>2.3 Standard of Care.</strong> Receiving Party shall exercise the same degree of care to protect Confidential Information as it uses to protect its own confidential information, but in no event less than reasonable care.</p>
+    </div>
+
+    <div class="section">
+        <h3>3. TERM</h3>
+        <p><strong>3.1 Duration.</strong> This Agreement shall remain in effect for a period of <strong><%= data.agreement_term || '[NUMBER]' %> years</strong> from the date first written above, unless earlier terminated by mutual written consent.</p>
+        
+        <p><strong>3.2 Survival.</strong> The obligations of confidentiality shall survive termination of this Agreement and continue indefinitely.</p>
+    </div>
+
+    <div class="section">
+        <h3>4. RETURN OF MATERIALS</h3>
+        <p><strong>4.1 Return or Destruction.</strong> Upon termination of this Agreement or upon request by Disclosing Party, Receiving Party shall promptly return or destroy all documents, materials, and other tangible manifestations of Confidential Information.</p>
+    </div>
+
+    <div class="section">
+        <h3>5. REMEDIES</h3>
+        <p><strong>5.1 Injunctive Relief.</strong> Receiving Party acknowledges that any breach of this Agreement may cause irreparable harm to Disclosing Party, and that monetary damages may be inadequate. Therefore, Disclosing Party shall be entitled to seek injunctive relief and other equitable remedies.</p>
+        
+        <p><strong>5.2 Damages.</strong> In addition to injunctive relief, Disclosing Party may seek monetary damages for any breach of this Agreement.</p>
+    </div>
+
+    <div class="section">
+        <h3>6. GENERAL PROVISIONS</h3>
+        <p><strong>6.1 Governing Law.</strong> This Agreement shall be governed by the laws of [STATE/JURISDICTION].</p>
+        
+        <p><strong>6.2 Entire Agreement.</strong> This Agreement constitutes the entire agreement between the parties regarding the subject matter hereof and supersedes all prior agreements and understandings.</p>
+        
+        <p><strong>6.3 Amendment.</strong> This Agreement may only be amended in writing signed by both parties.</p>
+        
+        <p><strong>6.4 Severability.</strong> If any provision of this Agreement is held invalid or unenforceable, the remainder shall continue in full force and effect.</p>
+        
+        <p><strong>6.5 No License.</strong> Nothing in this Agreement grants any license or right to Confidential Information except as expressly set forth herein.</p>
+    </div>
+
+    <div class="signature-section">
+        <p>IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.</p>
+        
+        <div class="signature-blocks">
+            <div class="signature-block">
+                <p><strong>DISCLOSING PARTY:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.disclosing_party || '[DISCLOSING PARTY NAME]' %></p>
+                <p>Date: _______________</p>
+            </div>
+            
+            <div class="signature-block">
+                <p><strong>RECEIVING PARTY:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.receiving_party || '[RECEIVING PARTY NAME]' %></p>
+                <p>Date: _______________</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

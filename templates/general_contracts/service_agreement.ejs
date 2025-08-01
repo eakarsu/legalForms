@@ -1,0 +1,115 @@
+<%- include('../base/document_header', {title: 'Service Agreement'}) %>
+
+<div class="document-title">
+    <h1>SERVICE AGREEMENT</h1>
+</div>
+
+<div class="document-body">
+    <p>This Service Agreement ("Agreement") is entered into on _____________, 20__, between <strong><%= data.service_provider || '[SERVICE PROVIDER NAME]' %></strong> ("Provider") and <strong><%= data.client_company || '[CLIENT NAME]' %></strong> ("Client").</p>
+
+    <div class="section">
+        <h3>1. SERVICES</h3>
+        <p><strong>1.1 Description of Services.</strong> Provider agrees to provide the following services to Client:</p>
+        <div class="service-description">
+            <%= data.service_description || '[DETAILED DESCRIPTION OF SERVICES TO BE PROVIDED]' %>
+        </div>
+        
+        <p><strong>1.2 Performance Standards.</strong> Provider shall perform all services in a professional and workmanlike manner in accordance with industry standards.</p>
+    </div>
+
+    <div class="section">
+        <h3>2. TERM</h3>
+        <p><strong>2.1 Commencement.</strong> This Agreement shall commence on <strong><%= data.start_date || '[START DATE]' %></strong>.</p>
+        <p><strong>2.2 Termination.</strong> This Agreement shall terminate on <strong><%= data.end_date || '[END DATE]' %></strong>, unless earlier terminated in accordance with the provisions hereof.</p>
+    </div>
+
+    <div class="section">
+        <h3>3. COMPENSATION</h3>
+        <p><strong>3.1 Payment.</strong> In consideration for the services provided hereunder, Client shall pay Provider the total amount of <strong>$<%= data.contract_value || '[CONTRACT VALUE]' %></strong>.</p>
+        <p><strong>3.2 Payment Terms.</strong> Payment shall be made according to the following schedule:</p>
+        <ul>
+            <li>[PAYMENT SCHEDULE - e.g., 50% upon execution, 50% upon completion]</li>
+            <li>All invoices are due within thirty (30) days of receipt</li>
+            <li>Late payments may incur a service charge of 1.5% per month</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>4. RESPONSIBILITIES</h3>
+        <p><strong>4.1 Provider Responsibilities.</strong> Provider shall:</p>
+        <ul>
+            <li>Perform all services with due care and diligence</li>
+            <li>Provide all necessary equipment and materials unless otherwise specified</li>
+            <li>Maintain confidentiality of Client's proprietary information</li>
+            <li>Comply with all applicable laws and regulations</li>
+        </ul>
+        
+        <p><strong>4.2 Client Responsibilities.</strong> Client shall:</p>
+        <ul>
+            <li>Provide reasonable access to facilities and information</li>
+            <li>Make timely payments as specified herein</li>
+            <li>Cooperate with Provider in the performance of services</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>5. INTELLECTUAL PROPERTY</h3>
+        <p><strong>5.1 Work Product.</strong> All work product, deliverables, and materials created by Provider in the performance of services shall be the property of [CLIENT/PROVIDER] upon full payment.</p>
+        <p><strong>5.2 Pre-existing Rights.</strong> Each party retains ownership of its pre-existing intellectual property rights.</p>
+    </div>
+
+    <div class="section">
+        <h3>6. CONFIDENTIALITY</h3>
+        <p><strong>6.1 Confidential Information.</strong> Each party acknowledges that it may have access to confidential information of the other party. Both parties agree to maintain the confidentiality of such information and not to disclose it to third parties without prior written consent.</p>
+    </div>
+
+    <div class="section">
+        <h3>7. LIMITATION OF LIABILITY</h3>
+        <p><strong>7.1 Limitation.</strong> Provider's total liability under this Agreement shall not exceed the total amount paid by Client to Provider hereunder.</p>
+        <p><strong>7.2 Exclusions.</strong> Neither party shall be liable for indirect, incidental, special, or consequential damages.</p>
+    </div>
+
+    <div class="section">
+        <h3>8. TERMINATION</h3>
+        <p><strong>8.1 Termination for Convenience.</strong> Either party may terminate this Agreement with thirty (30) days written notice.</p>
+        <p><strong>8.2 Termination for Cause.</strong> Either party may terminate this Agreement immediately upon written notice if the other party materially breaches this Agreement and fails to cure such breach within ten (10) days after written notice.</p>
+    </div>
+
+    <div class="section">
+        <h3>9. INDEPENDENT CONTRACTOR</h3>
+        <p><strong>9.1 Relationship.</strong> Provider is an independent contractor and not an employee of Client. Provider shall be responsible for all taxes, insurance, and benefits.</p>
+    </div>
+
+    <div class="section">
+        <h3>10. GENERAL PROVISIONS</h3>
+        <p><strong>10.1 Governing Law.</strong> This Agreement shall be governed by the laws of [STATE/JURISDICTION].</p>
+        <p><strong>10.2 Entire Agreement.</strong> This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, or agreements.</p>
+        <p><strong>10.3 Amendment.</strong> This Agreement may only be amended in writing signed by both parties.</p>
+        <p><strong>10.4 Severability.</strong> If any provision of this Agreement is held invalid, the remainder shall continue in full force and effect.</p>
+    </div>
+
+    <div class="signature-section">
+        <p>IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.</p>
+        
+        <div class="signature-blocks">
+            <div class="signature-block">
+                <p><strong>SERVICE PROVIDER:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.service_provider || '[SERVICE PROVIDER NAME]' %></p>
+                <p>Date: _______________</p>
+            </div>
+            
+            <div class="signature-block">
+                <p><strong>CLIENT:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.client_company || '[CLIENT NAME]' %></p>
+                <p>Title: _______________</p>
+                <p>Date: _______________</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

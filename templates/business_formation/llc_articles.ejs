@@ -1,0 +1,89 @@
+<%# LLC Articles of Organization Template %>
+<%- include('../base/document_header', {
+  documentTitle: documentTitle,
+  documentType: documentType,
+  jurisdiction: jurisdiction,
+  caseNumber: caseNumber
+}) %>
+
+<div class="document-body">
+  <div class="entity-name-section">
+    <h2>ARTICLE I - NAME</h2>
+    <p>The name of the Limited Liability Company is <strong><%= data.llc_name || '[LLC NAME]' %></strong>.</p>
+  </div>
+
+  <div class="registered-agent-section">
+    <h2>ARTICLE II - REGISTERED AGENT</h2>
+    <p>The registered agent for service of process is <strong><%= data.registered_agent || '[REGISTERED AGENT NAME]' %></strong>, whose address is:</p>
+    <div class="address-block">
+      <p><%= (data.agent_address || '[REGISTERED AGENT ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <div class="management-section">
+    <h2>ARTICLE III - MANAGEMENT</h2>
+    <p>This Limited Liability Company shall be <strong><%= data.management_type || 'Member-Managed' %></strong>.</p>
+    
+    <% if (data.management_type === 'Manager-Managed') { %>
+    <p>The name(s) and address(es) of the manager(s) are:</p>
+    <div class="manager-info">
+      <% if (data.managers && data.managers.length > 0) { %>
+        <% data.managers.forEach(function(manager) { %>
+          <p><strong><%= manager.name %></strong><br>
+          <%= manager.address.replace(/\n/g, '<br>') %></p>
+        <% }); %>
+      <% } else { %>
+        <p><strong><%= data.client_name || '[MANAGER NAME]' %></strong><br>
+        <%= (data.client_address || '[MANAGER ADDRESS]').replace(/\n/g, '<br>') %></p>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+
+  <div class="purpose-section">
+    <h2>ARTICLE IV - PURPOSE</h2>
+    <p>The purpose of this Limited Liability Company is:</p>
+    <div class="purpose-text">
+      <p><%= data.business_purpose || 'To engage in any lawful business activity for which a Limited Liability Company may be organized under the laws of ' + (data.state_formation || '[STATE]') + '.' %></p>
+    </div>
+  </div>
+
+  <div class="duration-section">
+    <h2>ARTICLE V - DURATION</h2>
+    <p>The duration of this Limited Liability Company is <strong><%= data.duration || 'perpetual' %></strong>.</p>
+  </div>
+
+  <div class="organizer-section">
+    <h2>ARTICLE VI - ORGANIZER</h2>
+    <p>The name and address of the organizer is:</p>
+    <div class="organizer-info">
+      <p><strong><%= data.client_name || '[ORGANIZER NAME]' %></strong><br>
+      <%= (data.client_address || '[ORGANIZER ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <% if (data.state_formation) { %>
+  <div class="state-specific-section">
+    <h2>ARTICLE VII - STATE-SPECIFIC PROVISIONS</h2>
+    <% if (data.state_formation === 'CA') { %>
+    <p>This Limited Liability Company is organized under the California Revised Uniform Limited Liability Company Act.</p>
+    <% } else if (data.state_formation === 'DE') { %>
+    <p>This Limited Liability Company is organized under the Delaware Limited Liability Company Act.</p>
+    <% } else if (data.state_formation === 'NY') { %>
+    <p>This Limited Liability Company is organized under the New York Limited Liability Company Law.</p>
+    <% } else { %>
+    <p>This Limited Liability Company is organized under the laws of <%= data.state_formation %>.</p>
+    <% } %>
+  </div>
+  <% } %>
+
+  <div class="effective-date-section">
+    <h2>ARTICLE VIII - EFFECTIVE DATE</h2>
+    <p>These Articles of Organization shall be effective upon filing with the Secretary of State of <%= data.state_formation || '[STATE]' %>.</p>
+  </div>
+</div>
+
+<%- include('../base/document_footer', {
+  signatures: signatures,
+  notarization: notarization
+}) %>

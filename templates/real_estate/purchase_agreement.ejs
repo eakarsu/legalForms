@@ -1,0 +1,99 @@
+<%- include('../base/document_header', {title: 'Real Estate Purchase Agreement'}) %>
+
+<div class="document-title">
+    <h1>REAL ESTATE PURCHASE AGREEMENT</h1>
+</div>
+
+<div class="document-body">
+    <p>This Real Estate Purchase Agreement ("Agreement") is made on _____________, 20__, between <strong><%= data.seller_name || '[SELLER NAME]' %></strong> ("Seller") and <strong><%= data.buyer_name || '[BUYER NAME]' %></strong> ("Buyer").</p>
+
+    <div class="section">
+        <h3>1. PROPERTY DESCRIPTION</h3>
+        <p>Seller agrees to sell and Buyer agrees to purchase the real property located at:</p>
+        <p class="property-address"><%= data.property_address || '[PROPERTY ADDRESS]' %></p>
+        <p>Including all fixtures, improvements, and appurtenances (the "Property").</p>
+    </div>
+
+    <div class="section">
+        <h3>2. PURCHASE PRICE</h3>
+        <p>The total purchase price for the Property is <strong>$<%= data.purchase_price || '[PURCHASE PRICE]' %></strong> ("Purchase Price"), to be paid as follows:</p>
+        <ul>
+            <li>Earnest Money Deposit: $<%= data.earnest_money || '[EARNEST MONEY]' %></li>
+            <li>Balance due at closing: $<%= data.purchase_price && data.earnest_money ? (parseInt(data.purchase_price) - parseInt(data.earnest_money)).toLocaleString() : '[BALANCE]' %></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>3. EARNEST MONEY</h3>
+        <p>Buyer has deposited $<%= data.earnest_money || '[EARNEST MONEY]' %> as earnest money with _____________ [Escrow Agent], which shall be applied toward the Purchase Price at closing or returned to Buyer if this Agreement is terminated in accordance with its terms.</p>
+    </div>
+
+    <div class="section">
+        <h3>4. FINANCING CONTINGENCY</h3>
+        <p>This Agreement is contingent upon Buyer obtaining financing within <%= data.financing_contingency || '[NUMBER]' %> days from the date of this Agreement. If Buyer cannot obtain financing within this period, this Agreement may be terminated by written notice to Seller.</p>
+    </div>
+
+    <div class="section">
+        <h3>5. INSPECTION CONTINGENCY</h3>
+        <p>Buyer shall have 10 days from the date of this Agreement to conduct inspections of the Property. If inspections reveal material defects, Buyer may:</p>
+        <ul>
+            <li>Accept the Property in its current condition;</li>
+            <li>Request repairs from Seller; or</li>
+            <li>Terminate this Agreement with written notice.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>6. TITLE AND SURVEY</h3>
+        <p>Seller shall provide Buyer with a current title commitment and survey. Title shall be marketable and insurable. Any title defects must be cured by Seller prior to closing.</p>
+    </div>
+
+    <div class="section">
+        <h3>7. CLOSING</h3>
+        <p>Closing shall occur on or before <strong><%= data.closing_date || '[CLOSING DATE]' %></strong> at a location mutually agreed upon by the parties. Time is of the essence.</p>
+    </div>
+
+    <div class="section">
+        <h3>8. CONDITION OF PROPERTY</h3>
+        <p>The Property shall be delivered in substantially the same condition as on the date of this Agreement, ordinary wear and tear excepted. All systems (heating, cooling, plumbing, electrical) shall be in working order at closing.</p>
+    </div>
+
+    <div class="section">
+        <h3>9. PRORATIONS</h3>
+        <p>Real estate taxes, insurance premiums, utilities, and other expenses shall be prorated as of the closing date.</p>
+    </div>
+
+    <div class="section">
+        <h3>10. DEFAULT</h3>
+        <p>If Buyer defaults, Seller may retain the earnest money as liquidated damages. If Seller defaults, Buyer may seek specific performance or damages.</p>
+    </div>
+
+    <div class="section">
+        <h3>11. ENTIRE AGREEMENT</h3>
+        <p>This Agreement constitutes the entire agreement between the parties and may only be modified in writing signed by both parties.</p>
+    </div>
+
+    <div class="signature-section">
+        <p>IN WITNESS WHEREOF, the parties have executed this Agreement on the date first written above.</p>
+        
+        <div class="signature-blocks">
+            <div class="signature-block">
+                <p><strong>SELLER:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.seller_name || '[SELLER NAME]' %></p>
+                <p>Date: _______________</p>
+            </div>
+            
+            <div class="signature-block">
+                <p><strong>BUYER:</strong></p>
+                <br><br>
+                <p>_________________________________</p>
+                <p><%= data.buyer_name || '[BUYER NAME]' %></p>
+                <p>Date: _______________</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

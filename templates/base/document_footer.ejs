@@ -1,0 +1,54 @@
+<%# Base document footer template %>
+<div class="document-footer">
+  <hr class="signature-separator">
+  
+  <div class="signature-section">
+    <% if (signatures && signatures.length > 0) { %>
+      <% signatures.forEach(function(signature, index) { %>
+        <div class="signature-block">
+          <div class="signature-line">
+            <span class="signature-label">Signature:</span>
+            <span class="signature-placeholder">_________________________________</span>
+          </div>
+          <div class="signature-info">
+            <p><strong>Name:</strong> <%= signature.name %></p>
+            <% if (signature.title) { %>
+            <p><strong>Title:</strong> <%= signature.title %></p>
+            <% } %>
+            <p><strong>Date:</strong> _________________</p>
+          </div>
+        </div>
+        <% if (index < signatures.length - 1) { %><br><% } %>
+      <% }); %>
+    <% } else { %>
+      <div class="signature-block">
+        <div class="signature-line">
+          <span class="signature-label">Signature:</span>
+          <span class="signature-placeholder">_________________________________</span>
+        </div>
+        <div class="signature-info">
+          <p><strong>Date:</strong> _________________</p>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (notarization) { %>
+  <div class="notarization-section">
+    <h3>Notarization</h3>
+    <p>State of: _________________</p>
+    <p>County of: _________________</p>
+    <p>On this _____ day of _________, 20___, before me personally appeared the above-named person(s), who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument.</p>
+    <br>
+    <div class="notary-signature">
+      <span class="signature-placeholder">_________________________________</span>
+      <p>Notary Public</p>
+      <p>My commission expires: _________________</p>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="document-disclaimer">
+    <p><em>This document was generated using LegalFormsAI. Please review carefully and consult with a qualified attorney before use.</em></p>
+  </div>
+</div>

@@ -13,6 +13,10 @@ const officegen = require('officegen');
 const compression = require('compression');
 const { SitemapStream, streamToPromise } = require('sitemap');
 
+// Import the template engines
+const LegalTemplateEngine = require('./lib/templateEngine');
+const AITemplateEngine = require('./lib/aiTemplateEngine');
+
 //add
 // Add these imports at the top
 const session = require('express-session');
@@ -48,6 +52,10 @@ const io = socketIo(server, {
   }
 });
 const PORT = process.env.PORT || 3000;
+
+// Initialize template engines
+const templateEngine = new LegalTemplateEngine();
+const aiTemplateEngine = new AITemplateEngine();
 
 app.set('trust proxy', 1);
 
@@ -380,12 +388,104 @@ const getFormFields = (formType, specificType) => {
     // Business Formation Fields
     llc_articles: [
       ...baseFields,
-      { name: 'llc_name', label: 'LLC Name', type: 'text', required: true },
-      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
-      { name: 'business_purpose', label: 'Business Purpose', type: 'textarea', required: true },
-      { name: 'registered_agent', label: 'Registered Agent Name', type: 'text', required: true },
-      { name: 'agent_address', label: 'Registered Agent Address', type: 'textarea', required: true },
-      { name: 'management_type', label: 'Management Type', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true }
+      // Basic LLC Information
+      { name: 'llc_name', label: 'Exact LLC Name (as it will appear on filing)', type: 'text', required: true, placeholder: 'Example: ABC Consulting Services, LLC' },
+      { name: 'alternate_names', label: 'Alternative Names or DBAs', type: 'textarea', required: false, placeholder: 'List any alternate names or "doing business as" names' },
+      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'], required: true },
+      { name: 'county_formation', label: 'County of Formation', type: 'text', required: true, placeholder: 'County where LLC is being formed' },
+      
+      // Detailed Business Purpose
+      { name: 'business_purpose', label: 'Detailed Business Purpose and Activities', type: 'textarea', required: true, placeholder: 'Describe in detail what your LLC will do, including all business activities, services, products, and any specific industry focus' },
+      { name: 'naics_code', label: 'NAICS Industry Code (if known)', type: 'text', required: false, placeholder: 'North American Industry Classification System code' },
+      { name: 'business_classification', label: 'Business Classification', type: 'select', options: ['Professional Services', 'Retail Trade', 'Manufacturing', 'Construction', 'Real Estate', 'Technology', 'Healthcare', 'Food Service', 'Transportation', 'Other'], required: true },
+      { name: 'special_licenses', label: 'Special Licenses or Permits Required', type: 'textarea', required: false, placeholder: 'List any professional licenses, permits, or certifications required for your business' },
+      
+      // Registered Agent Information
+      { name: 'registered_agent_type', label: 'Registered Agent Type', type: 'select', options: ['Individual', 'Professional Service Company', 'Member of LLC'], required: true },
+      { name: 'registered_agent', label: 'Registered Agent Full Legal Name', type: 'text', required: true },
+      { name: 'agent_address_street', label: 'Registered Agent Street Address', type: 'text', required: true, placeholder: 'Street address (no P.O. boxes)' },
+      { name: 'agent_address_city', label: 'Registered Agent City', type: 'text', required: true },
+      { name: 'agent_address_state', label: 'Registered Agent State', type: 'text', required: true },
+      { name: 'agent_address_zip', label: 'Registered Agent ZIP Code', type: 'text', required: true },
+      { name: 'agent_phone', label: 'Registered Agent Phone Number', type: 'tel', required: true },
+      { name: 'agent_email', label: 'Registered Agent Email', type: 'email', required: false },
+      { name: 'agent_consent', label: 'Registered Agent Consent', type: 'select', options: ['Yes - Agent has consented to serve', 'No - Need to obtain consent'], required: true },
+      
+      // Management Structure
+      { name: 'management_type', label: 'Management Structure', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true },
+      { name: 'management_details', label: 'Management Structure Details', type: 'textarea', required: true, placeholder: 'Explain how the LLC will be managed, who has authority to make decisions, and voting procedures' },
+      
+      // Member Information
+      { name: 'number_of_members', label: 'Total Number of Initial Members', type: 'number', required: true, min: 1 },
+      { name: 'member1_name', label: 'Member 1 - Full Legal Name', type: 'text', required: true },
+      { name: 'member1_address', label: 'Member 1 - Complete Address', type: 'textarea', required: true },
+      { name: 'member1_ownership', label: 'Member 1 - Ownership Percentage', type: 'number', required: true, min: 0, max: 100 },
+      { name: 'member1_contribution', label: 'Member 1 - Initial Capital Contribution', type: 'textarea', required: true, placeholder: 'Describe cash, property, or services contributed' },
+      { name: 'member1_ssn', label: 'Member 1 - SSN or Tax ID', type: 'text', required: false, placeholder: 'For tax reporting purposes' },
+      
+      { name: 'member2_name', label: 'Member 2 - Full Legal Name (if applicable)', type: 'text', required: false },
+      { name: 'member2_address', label: 'Member 2 - Complete Address', type: 'textarea', required: false },
+      { name: 'member2_ownership', label: 'Member 2 - Ownership Percentage', type: 'number', required: false, min: 0, max: 100 },
+      { name: 'member2_contribution', label: 'Member 2 - Initial Capital Contribution', type: 'textarea', required: false },
+      { name: 'member2_ssn', label: 'Member 2 - SSN or Tax ID', type: 'text', required: false },
+      
+      { name: 'additional_members', label: 'Additional Members (if more than 2)', type: 'textarea', required: false, placeholder: 'List additional members with names, addresses, ownership percentages, and contributions' },
+      
+      // Manager Information (if Manager-Managed)
+      { name: 'manager1_name', label: 'Manager 1 - Full Legal Name (if Manager-Managed)', type: 'text', required: false },
+      { name: 'manager1_address', label: 'Manager 1 - Complete Address', type: 'textarea', required: false },
+      { name: 'manager1_title', label: 'Manager 1 - Title/Position', type: 'text', required: false, placeholder: 'e.g., Managing Member, General Manager' },
+      { name: 'manager_powers', label: 'Manager Powers and Authority', type: 'textarea', required: false, placeholder: 'Describe the scope of authority granted to managers' },
+      
+      // Organizer Information
+      { name: 'organizer_name', label: 'Organizer Full Legal Name', type: 'text', required: true },
+      { name: 'organizer_address', label: 'Organizer Complete Address', type: 'textarea', required: true },
+      { name: 'organizer_phone', label: 'Organizer Phone Number', type: 'tel', required: true },
+      { name: 'organizer_email', label: 'Organizer Email Address', type: 'email', required: true },
+      { name: 'organizer_title', label: 'Organizer Title/Position', type: 'text', required: false, placeholder: 'e.g., Attorney, Incorporator, Member' },
+      { name: 'organizer_relationship', label: 'Organizer Relationship to LLC', type: 'select', options: ['Member', 'Attorney', 'Professional Service', 'Other'], required: true },
+      
+      // Business Operations
+      { name: 'principal_office_street', label: 'Principal Office Street Address', type: 'text', required: true },
+      { name: 'principal_office_city', label: 'Principal Office City', type: 'text', required: true },
+      { name: 'principal_office_state', label: 'Principal Office State', type: 'text', required: true },
+      { name: 'principal_office_zip', label: 'Principal Office ZIP Code', type: 'text', required: true },
+      { name: 'mailing_address_different', label: 'Is Mailing Address Different?', type: 'select', options: ['No - Same as Principal Office', 'Yes - Different Address'], required: true },
+      { name: 'mailing_address', label: 'Mailing Address (if different)', type: 'textarea', required: false },
+      
+      // Financial and Tax Information
+      { name: 'initial_capital', label: 'Total Initial Capital Investment', type: 'number', required: true, placeholder: 'Total amount of initial investment' },
+      { name: 'capital_structure', label: 'Capital Structure Details', type: 'textarea', required: true, placeholder: 'Describe how capital contributions are structured (cash, property, services, etc.)' },
+      { name: 'tax_election', label: 'Federal Tax Election', type: 'select', options: ['Default (Partnership/Disregarded Entity)', 'S-Corporation Election', 'C-Corporation Election'], required: true },
+      { name: 'fiscal_year_end', label: 'Fiscal Year End', type: 'select', options: ['December 31', 'January 31', 'February 28', 'March 31', 'April 30', 'May 31', 'June 30', 'July 31', 'August 31', 'September 30', 'October 31', 'November 30'], required: true },
+      
+      // Duration and Dissolution
+      { name: 'duration', label: 'Duration of LLC', type: 'select', options: ['Perpetual', 'Specific Date', 'Specific Event'], required: true },
+      { name: 'duration_date', label: 'Dissolution Date (if applicable)', type: 'date', required: false },
+      { name: 'dissolution_events', label: 'Dissolution Events', type: 'textarea', required: false, placeholder: 'Describe specific events that would cause dissolution' },
+      
+      // Filing Information
+      { name: 'effective_date', label: 'Requested Effective Date', type: 'date', required: true },
+      { name: 'expedited_filing', label: 'Expedited Filing Requested?', type: 'select', options: ['No - Standard Processing', 'Yes - Expedited (Additional Fee)'], required: true },
+      { name: 'filing_fee', label: 'Expected Filing Fee Amount', type: 'number', required: false, placeholder: 'State filing fee amount' },
+      
+      // Additional Provisions
+      { name: 'operating_agreement', label: 'Operating Agreement Status', type: 'select', options: ['Will be created separately', 'Included with Articles', 'Not needed at this time'], required: true },
+      { name: 'special_provisions', label: 'Special Provisions or Restrictions', type: 'textarea', required: false, placeholder: 'Any special provisions, restrictions, or requirements to include in the Articles' },
+      { name: 'professional_llc', label: 'Is this a Professional LLC (PLLC)?', type: 'select', options: ['No', 'Yes - Professional Services'], required: true },
+      { name: 'professional_license', label: 'Professional License Information (if PLLC)', type: 'textarea', required: false, placeholder: 'Describe professional licenses held by members' },
+      
+      // Contact and Service Information
+      { name: 'contact_person', label: 'Primary Contact Person', type: 'text', required: true },
+      { name: 'contact_phone', label: 'Primary Contact Phone', type: 'tel', required: true },
+      { name: 'contact_email', label: 'Primary Contact Email', type: 'email', required: true },
+      { name: 'preferred_communication', label: 'Preferred Communication Method', type: 'select', options: ['Email', 'Phone', 'Mail', 'Text'], required: true },
+      
+      // Legal and Compliance
+      { name: 'foreign_qualification', label: 'Will LLC operate in other states?', type: 'select', options: ['No - Only in formation state', 'Yes - Will need foreign qualification'], required: true },
+      { name: 'other_states', label: 'Other States of Operation', type: 'textarea', required: false, placeholder: 'List states where LLC will conduct business' },
+      { name: 'regulatory_compliance', label: 'Special Regulatory Requirements', type: 'textarea', required: false, placeholder: 'Any industry-specific regulations or compliance requirements' },
+      { name: 'insurance_requirements', label: 'Insurance Requirements', type: 'textarea', required: false, placeholder: 'Professional liability, general liability, or other required insurance' }
     ],
     corp_articles: [
       ...baseFields,
@@ -418,23 +518,63 @@ const getFormFields = (formType, specificType) => {
     // Real Estate Fields
     purchase_agreement: [
       ...baseFields,
-      { name: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true },
-      { name: 'seller_name', label: 'Seller Full Name', type: 'text', required: true },
-      { name: 'property_address', label: 'Property Address', type: 'textarea', required: true },
-      { name: 'purchase_price', label: 'Purchase Price ($)', type: 'number', required: true },
-      { name: 'earnest_money', label: 'Earnest Money Amount ($)', type: 'number', required: true },
+      { name: 'buyer_name', label: 'Buyer Full Legal Name', type: 'text', required: true },
+      { name: 'buyer_address', label: 'Buyer Complete Address', type: 'textarea', required: true },
+      { name: 'buyer_phone', label: 'Buyer Phone Number', type: 'tel', required: true },
+      { name: 'buyer_email', label: 'Buyer Email Address', type: 'email', required: true },
+      { name: 'seller_name', label: 'Seller Full Legal Name', type: 'text', required: true },
+      { name: 'seller_address', label: 'Seller Complete Address', type: 'textarea', required: true },
+      { name: 'seller_phone', label: 'Seller Phone Number', type: 'tel', required: true },
+      { name: 'seller_email', label: 'Seller Email Address', type: 'email', required: true },
+      { name: 'property_address', label: 'Complete Property Address', type: 'textarea', required: true, placeholder: 'Include street address, city, state, ZIP code' },
+      { name: 'legal_description', label: 'Legal Property Description', type: 'textarea', required: true, placeholder: 'Legal description from deed or survey' },
+      { name: 'property_type', label: 'Property Type', type: 'select', options: ['Single Family Home', 'Condominium', 'Townhouse', 'Multi-Family', 'Commercial', 'Vacant Land', 'Other'], required: true },
+      { name: 'purchase_price', label: 'Total Purchase Price ($)', type: 'number', required: true },
+      { name: 'earnest_money', label: 'Earnest Money Deposit ($)', type: 'number', required: true },
+      { name: 'down_payment', label: 'Down Payment Amount ($)', type: 'number', required: true },
+      { name: 'financing_amount', label: 'Loan/Financing Amount ($)', type: 'number', required: false },
       { name: 'closing_date', label: 'Proposed Closing Date', type: 'date', required: true },
-      { name: 'financing_contingency', label: 'Financing Contingency Period (days)', type: 'number', required: true }
+      { name: 'possession_date', label: 'Possession Date', type: 'date', required: true },
+      { name: 'financing_contingency', label: 'Financing Contingency Period (days)', type: 'number', required: true },
+      { name: 'inspection_contingency', label: 'Inspection Contingency Period (days)', type: 'number', required: true },
+      { name: 'appraisal_contingency', label: 'Appraisal Contingency Period (days)', type: 'number', required: true },
+      { name: 'title_company', label: 'Title Company/Closing Agent', type: 'text', required: false },
+      { name: 'real_estate_agent_buyer', label: 'Buyer\'s Real Estate Agent', type: 'text', required: false },
+      { name: 'real_estate_agent_seller', label: 'Seller\'s Real Estate Agent', type: 'text', required: false },
+      { name: 'included_items', label: 'Items Included in Sale', type: 'textarea', required: false, placeholder: 'List appliances, fixtures, and other items included' },
+      { name: 'excluded_items', label: 'Items Excluded from Sale', type: 'textarea', required: false, placeholder: 'List any items specifically excluded' },
+      { name: 'special_conditions', label: 'Special Conditions or Contingencies', type: 'textarea', required: false, placeholder: 'Any additional terms or conditions' }
     ],
     lease_agreement: [
       ...baseFields,
-      { name: 'landlord_name', label: 'Landlord Name', type: 'text', required: true },
-      { name: 'tenant_name', label: 'Tenant Name', type: 'text', required: true },
-      { name: 'property_address', label: 'Rental Property Address', type: 'textarea', required: true },
-      { name: 'monthly_rent', label: 'Monthly Rent ($)', type: 'number', required: true },
-      { name: 'security_deposit', label: 'Security Deposit ($)', type: 'number', required: true },
+      { name: 'landlord_name', label: 'Landlord Full Legal Name', type: 'text', required: true },
+      { name: 'landlord_address', label: 'Landlord Mailing Address', type: 'textarea', required: true },
+      { name: 'landlord_phone', label: 'Landlord Phone Number', type: 'tel', required: true },
+      { name: 'landlord_email', label: 'Landlord Email Address', type: 'email', required: true },
+      { name: 'tenant_name', label: 'Tenant Full Legal Name', type: 'text', required: true },
+      { name: 'tenant_phone', label: 'Tenant Phone Number', type: 'tel', required: true },
+      { name: 'tenant_email', label: 'Tenant Email Address', type: 'email', required: true },
+      { name: 'additional_tenants', label: 'Additional Tenants/Occupants', type: 'textarea', required: false, placeholder: 'List all other adults who will live in the property' },
+      { name: 'property_address', label: 'Complete Rental Property Address', type: 'textarea', required: true, placeholder: 'Include unit number if applicable' },
+      { name: 'property_type', label: 'Property Type', type: 'select', options: ['Apartment', 'House', 'Condominium', 'Townhouse', 'Room', 'Other'], required: true },
+      { name: 'furnished_status', label: 'Furnished Status', type: 'select', options: ['Unfurnished', 'Partially Furnished', 'Fully Furnished'], required: true },
+      { name: 'monthly_rent', label: 'Monthly Rent Amount ($)', type: 'number', required: true },
+      { name: 'rent_due_date', label: 'Rent Due Date Each Month', type: 'number', required: true, placeholder: 'Day of month (1-31)' },
+      { name: 'late_fee', label: 'Late Fee Amount ($)', type: 'number', required: false },
+      { name: 'grace_period', label: 'Grace Period for Late Payment (days)', type: 'number', required: false },
+      { name: 'security_deposit', label: 'Security Deposit Amount ($)', type: 'number', required: true },
+      { name: 'pet_deposit', label: 'Pet Deposit Amount ($)', type: 'number', required: false },
       { name: 'lease_start', label: 'Lease Start Date', type: 'date', required: true },
-      { name: 'lease_end', label: 'Lease End Date', type: 'date', required: true }
+      { name: 'lease_end', label: 'Lease End Date', type: 'date', required: true },
+      { name: 'lease_term_months', label: 'Lease Term (months)', type: 'number', required: true },
+      { name: 'renewal_option', label: 'Automatic Renewal Option', type: 'select', options: ['No automatic renewal', 'Month-to-month after term', 'Annual renewal option'], required: true },
+      { name: 'utilities_included', label: 'Utilities Included in Rent', type: 'textarea', required: false, placeholder: 'List which utilities are included (water, electric, gas, internet, etc.)' },
+      { name: 'utilities_tenant', label: 'Utilities Paid by Tenant', type: 'textarea', required: false, placeholder: 'List which utilities tenant is responsible for' },
+      { name: 'parking_included', label: 'Parking Included', type: 'select', options: ['No parking', '1 space', '2 spaces', '3+ spaces', 'Street parking only'], required: true },
+      { name: 'pets_allowed', label: 'Pet Policy', type: 'select', options: ['No pets allowed', 'Cats only', 'Dogs only', 'Cats and dogs allowed', 'All pets allowed with approval'], required: true },
+      { name: 'smoking_policy', label: 'Smoking Policy', type: 'select', options: ['No smoking anywhere', 'Smoking allowed outside only', 'Smoking allowed'], required: true },
+      { name: 'maintenance_responsibilities', label: 'Tenant Maintenance Responsibilities', type: 'textarea', required: false, placeholder: 'Describe what maintenance tasks tenant is responsible for' },
+      { name: 'house_rules', label: 'House Rules and Restrictions', type: 'textarea', required: false, placeholder: 'Any specific rules about noise, guests, use of property, etc.' }
     ],
     commercial_lease: [
       ...baseFields,
@@ -461,12 +601,32 @@ const getFormFields = (formType, specificType) => {
     // Estate Planning Fields
     last_will: [
       ...baseFields,
-      { name: 'testator_name', label: 'Testator Full Name', type: 'text', required: true },
-      { name: 'spouse_name', label: 'Spouse Name (if applicable)', type: 'text', required: false },
-      { name: 'beneficiaries', label: 'Primary Beneficiaries', type: 'textarea', required: true },
-      { name: 'executor_name', label: 'Executor Name', type: 'text', required: true },
+      { name: 'testator_name', label: 'Testator Full Legal Name', type: 'text', required: true },
+      { name: 'testator_address', label: 'Testator Complete Address', type: 'textarea', required: true },
+      { name: 'testator_ssn', label: 'Testator Social Security Number', type: 'text', required: false, placeholder: 'Optional - for identification purposes' },
+      { name: 'testator_birthdate', label: 'Testator Date of Birth', type: 'date', required: true },
+      { name: 'marital_status', label: 'Marital Status', type: 'select', options: ['Single', 'Married', 'Divorced', 'Widowed', 'Separated'], required: true },
+      { name: 'spouse_name', label: 'Spouse Full Legal Name', type: 'text', required: false },
+      { name: 'spouse_address', label: 'Spouse Address (if different)', type: 'textarea', required: false },
+      { name: 'children_info', label: 'Children Information', type: 'textarea', required: false, placeholder: 'List all children with full names, birthdates, and addresses' },
+      { name: 'primary_beneficiaries', label: 'Primary Beneficiaries', type: 'textarea', required: true, placeholder: 'List beneficiaries with their relationship to you and percentage of inheritance' },
+      { name: 'contingent_beneficiaries', label: 'Contingent Beneficiaries', type: 'textarea', required: false, placeholder: 'Backup beneficiaries if primary beneficiaries cannot inherit' },
+      { name: 'executor_name', label: 'Primary Executor Full Name', type: 'text', required: true },
+      { name: 'executor_address', label: 'Primary Executor Address', type: 'textarea', required: true },
+      { name: 'executor_phone', label: 'Primary Executor Phone', type: 'tel', required: true },
+      { name: 'alternate_executor', label: 'Alternate Executor Name', type: 'text', required: false },
+      { name: 'alternate_executor_address', label: 'Alternate Executor Address', type: 'textarea', required: false },
       { name: 'guardian_minors', label: 'Guardian for Minor Children', type: 'text', required: false },
-      { name: 'assets_description', label: 'Description of Major Assets', type: 'textarea', required: true }
+      { name: 'guardian_address', label: 'Guardian Address', type: 'textarea', required: false },
+      { name: 'alternate_guardian', label: 'Alternate Guardian for Minors', type: 'text', required: false },
+      { name: 'real_estate_assets', label: 'Real Estate Assets', type: 'textarea', required: false, placeholder: 'List all real estate properties with addresses and approximate values' },
+      { name: 'financial_assets', label: 'Financial Assets', type: 'textarea', required: false, placeholder: 'Bank accounts, investments, retirement accounts, etc.' },
+      { name: 'personal_property', label: 'Significant Personal Property', type: 'textarea', required: false, placeholder: 'Vehicles, jewelry, artwork, collections, etc.' },
+      { name: 'business_interests', label: 'Business Interests', type: 'textarea', required: false, placeholder: 'Ownership in businesses, partnerships, etc.' },
+      { name: 'specific_bequests', label: 'Specific Bequests', type: 'textarea', required: false, placeholder: 'Specific items or amounts to be given to particular people' },
+      { name: 'charitable_bequests', label: 'Charitable Bequests', type: 'textarea', required: false, placeholder: 'Donations to charities or organizations' },
+      { name: 'funeral_instructions', label: 'Funeral and Burial Instructions', type: 'textarea', required: false, placeholder: 'Preferences for funeral arrangements, burial, or cremation' },
+      { name: 'special_instructions', label: 'Special Instructions', type: 'textarea', required: false, placeholder: 'Any other specific wishes or instructions' }
     ],
     
     // Civil Litigation Fields
@@ -1116,7 +1276,13 @@ async function generateWord(content, filename) {
 // Enhanced document generation with compliance checking and review
 app.post('/generate', validateCompliance, async (req, res) => {
   try {
-    const { form_type: formType, specific_type: specificType, form_data: userData, format = 'txt' } = req.body;
+    const { 
+      form_type: formType, 
+      specific_type: specificType, 
+      form_data: userData, 
+      format = 'txt',
+      generation_mode = 'ai_summary' // 'ai_summary' or 'professional_template'
+    } = req.body;
 
     if (!FORM_TYPES[formType]) {
       return res.status(400).json({ error: 'Invalid form type' });
@@ -1153,8 +1319,22 @@ app.post('/generate', validateCompliance, async (req, res) => {
       });
     }
 
-    // Generate the document with specific type information
-    const document = await generateDocument(formType, userData, specificType);
+    let document;
+    
+    // Choose generation method based on user selection
+    if (generation_mode === 'professional_template' && specificType) {
+      // Use AI Template Engine with professional templates
+      try {
+        document = await aiTemplateEngine.generateDocument(formType, specificType, userData);
+      } catch (error) {
+        console.error('AI Template Engine error:', error);
+        // Fallback to regular AI generation
+        document = await generateDocument(formType, userData, specificType);
+      }
+    } else {
+      // Use regular AI generation (original method)
+      document = await generateDocument(formType, userData, specificType);
+    }
 
     // Save generated document in requested format
     const timestamp = moment().format('YYYYMMDD_HHmmss');

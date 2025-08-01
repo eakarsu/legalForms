@@ -1,0 +1,208 @@
+<%# Professional Residential Lease Agreement Template - Based on LawDepot %>
+<%- include('../base/document_header', {
+  documentTitle: documentTitle,
+  documentType: documentType,
+  jurisdiction: jurisdiction,
+  caseNumber: caseNumber
+}) %>
+
+<div class="document-body">
+  <div class="lease-header">
+    <h1>RESIDENTIAL LEASE AGREEMENT</h1>
+    <p>THIS LEASE (the "Lease") dated this <strong><%= new Date().getDate() %></strong> day of <strong><%= new Date().toLocaleDateString('en-US', { month: 'long' }) %></strong>, <strong><%= new Date().getFullYear() %></strong></p>
+  </div>
+
+  <div class="parties-section">
+    <p><strong>BETWEEN:</strong></p>
+    <p><strong><%= data.landlord_name || '[LANDLORD NAME]' %></strong><br>
+    <%= (data.landlord_address || '[LANDLORD ADDRESS]').replace(/\n/g, '<br>') %><br>
+    (the "Landlord")</p>
+    
+    <p><strong>- AND -</strong></p>
+    
+    <p><strong><%= data.tenant_name || '[TENANT NAME]' %></strong><br>
+    <%= (data.tenant_address || '[TENANT ADDRESS]').replace(/\n/g, '<br>') %><br>
+    (the "Tenant")</p>
+    
+    <p>(individually the "Party" and collectively the "Parties")</p>
+  </div>
+
+  <div class="consideration-clause">
+    <p><strong>IN CONSIDERATION OF</strong> the Landlord leasing certain premises to the Tenant and other valuable consideration, the receipt and sufficiency of which consideration is hereby acknowledged, the Parties agree as follows:</p>
+  </div>
+
+  <div class="lease-terms">
+    <h2>1. Leased Property</h2>
+    <p>The Landlord agrees to rent to the Tenant the <%= data.property_type || 'house' %>, municipally described as <strong><%= (data.property_address || '[PROPERTY ADDRESS]').replace(/\n/g, ', ') %></strong>, (the "Property"), for use as residential premises only.</p>
+    
+    <p>Subject to the provisions of this Lease, apart from the Tenant, no other persons will live in the Property without the prior written permission of the Landlord.</p>
+    
+    <p>No guests of the Tenants may occupy the Property for longer than one week without the prior written consent of the Landlord.</p>
+    
+    <% if (data.pets_allowed === 'no' || !data.pets_allowed) { %>
+    <p>No pets or animals are allowed to be kept in or about the Property.</p>
+    <% } else { %>
+    <p>Pets are allowed subject to the following conditions: <%= data.pet_conditions || '[PET CONDITIONS]' %></p>
+    <% } %>
+    
+    <% if (data.parking_included === 'yes') { %>
+    <p>Parking space is provided under the terms of this Lease for <%= data.parking_spaces || '1' %> vehicle(s).</p>
+    <% } else { %>
+    <p>Parking space is not provided under the terms of this Lease and no vehicle may park on or about the Property.</p>
+    <% } %>
+    
+    <% if (data.smoking_allowed === 'no' || !data.smoking_allowed) { %>
+    <p>The Tenant and members of the Tenant's household will not smoke anywhere in the Property nor permit any guests or visitors to smoke in the Property.</p>
+    <p>The Tenant and members of the Tenant's household will not vape anywhere in the Property nor permit any guests or visitors to vape in the Property.</p>
+    <% } %>
+
+    <h2>2. Term</h2>
+    <p>The term of the Lease commences at 12:00 noon on <strong><%= data.lease_start || '[START DATE]' %></strong> and ends at 12:00 noon on <strong><%= data.lease_end || '[END DATE]' %></strong>.</p>
+
+    <h2>3. Rent</h2>
+    <p>Subject to the provisions of this Lease, the rent for the Property is <strong>$<%= data.monthly_rent || '[MONTHLY RENT]' %></strong> per month (the "Rent").</p>
+    
+    <p>The Tenant will pay the Rent monthly, on or before the first (1st) day of each and every month of the term of this Lease, to the Landlord at <%= (data.payment_address || data.landlord_address || '[PAYMENT ADDRESS]').replace(/\n/g, ', ') %> or at such other place as the Landlord may later designate by <%= data.payment_method || 'cash or check' %>.</p>
+    
+    <p>The Landlord may increase the Rent for the Property upon providing to the Tenant such notice as required by the Act.</p>
+
+    <% if (data.security_deposit) { %>
+    <h2>4. Security Deposit</h2>
+    <p>The Tenant has paid a security deposit of <strong>$<%= data.security_deposit %></strong> which will be held by the Landlord as security for the faithful performance of the Tenant's obligations under this Agreement.</p>
+    <% } %>
+
+    <h2>5. Inspections</h2>
+    <p>The Parties will complete, sign and date an inspection report at the beginning and at the end of this tenancy.</p>
+    
+    <p>At all reasonable times during the term of this Lease and any renewal of this Lease, the Landlord and its agents may enter the Property to make inspections or repairs, or to show the Property to prospective tenants or purchasers in compliance with the Act.</p>
+
+    <h2>6. Tenant Improvements</h2>
+    <p>The Tenant will obtain written permission from the Landlord before doing any of the following:</p>
+    <ol type="a">
+      <li>applying adhesive materials, or inserting nails or hooks in walls or ceilings other than two small picture hooks per wall;</li>
+      <li>painting, wallpapering, redecorating or in any way significantly altering the appearance of the Property;</li>
+      <li>removing or adding walls, or performing any structural alterations;</li>
+      <li>installing a waterbed(s);</li>
+      <li>changing the amount of heat or power normally used on the Property as well as installing additional electrical wiring or heating units;</li>
+      <li>placing or exposing or allowing to be placed or exposed anywhere inside or outside the Property any placard, notice or sign for advertising or any other purpose; or</li>
+      <li>affixing to or erecting upon or near the Property any radio or TV antenna or tower.</li>
+    </ol>
+
+    <h2>7. Utilities and Other Charges</h2>
+    <% if (data.utilities_included === 'yes') { %>
+    <p>The Landlord is responsible for the payment of the following utilities: <%= data.included_utilities || '[INCLUDED UTILITIES]' %>.</p>
+    <p>The Tenant is responsible for the payment of all other utilities in relation to the Property.</p>
+    <% } else { %>
+    <p>The Tenant is responsible for the payment of all utilities in relation to the Property.</p>
+    <% } %>
+
+    <h2>8. Insurance</h2>
+    <p>The Tenant is hereby advised and understands that the personal property of the Tenant is not insured by the Landlord for either damage or loss, and the Landlord assumes no liability for any such loss.</p>
+    
+    <p>The Tenant is not responsible for insuring the Landlord's contents and furnishings in or about the Property for either damage or loss, and the Tenant assumes no liability for any such loss.</p>
+    
+    <p>The Tenant is not responsible for insuring the Property for liability insurance, and the Tenant assumes no liability for any such loss.</p>
+
+    <h2>9. Attorney Fees</h2>
+    <p>In the event that any action is filed in relation to this Lease, the unsuccessful Party in the action will pay to the successful Party, in addition to all the sums that either Party may be called on to pay, a reasonable sum for the successful Party's attorney fees.</p>
+
+    <h2>10. Governing Law</h2>
+    <p>This Lease will be construed in accordance with and exclusively governed by the laws of the State of <%= data.state_jurisdiction || jurisdiction || '[STATE]' %>.</p>
+
+    <h2>11. Care and Use of Property</h2>
+    <p>The Tenant will promptly notify the Landlord of any damage, or of any situation that may significantly interfere with the normal use of the Property or to any furnishings supplied by the Landlord.</p>
+    
+    <p>The Tenant will not engage in any illegal trade or activity on or about the Property.</p>
+    
+    <p>The Parties will comply with standards of health, sanitation, fire, housing and safety as required by law.</p>
+    
+    <p>At the expiration of the term of this Lease, the Tenant will quit and surrender the Property in as good a state and condition as they were at the commencement of this Lease, reasonable use and wear and tear excepted.</p>
+
+    <h2>12. General Provisions</h2>
+    <p>This Lease may only be amended or modified by a written document executed by the Parties.</p>
+    
+    <p>This Lease constitutes the entire agreement between the Parties.</p>
+    
+    <p>Time is of the essence in this Lease.</p>
+  </div>
+
+  <div class="signature-section">
+    <p><strong>IN WITNESS WHEREOF</strong> <%= data.landlord_name || '[LANDLORD NAME]' %> and <%= data.tenant_name || '[TENANT NAME]' %> have duly affixed their signatures on this <strong><%= new Date().getDate() %></strong> day of <strong><%= new Date().toLocaleDateString('en-US', { month: 'long' }) %></strong>, <strong><%= new Date().getFullYear() %></strong>.</p>
+    
+    <div class="signature-blocks">
+      <div class="landlord-signature">
+        <p><strong>Landlord</strong></p>
+        <br><br>
+        <p>_________________________________</p>
+        <p>Name: <%= data.landlord_name || '[LANDLORD NAME]' %></p>
+      </div>
+      
+      <div class="tenant-signature">
+        <p><strong>Tenant</strong></p>
+        <br><br>
+        <p>_________________________________</p>
+        <p>Name: <%= data.tenant_name || '[TENANT NAME]' %></p>
+      </div>
+    </div>
+    
+    <div class="acknowledgment">
+      <p>The Tenant acknowledges receiving a duplicate copy of this Lease signed by the Tenant and the Landlord on the <strong><%= new Date().getDate() %></strong> day of <strong><%= new Date().toLocaleDateString('en-US', { month: 'long' }) %></strong>, <strong><%= new Date().getFullYear() %></strong>.</p>
+      
+      <p><strong>Tenant</strong></p>
+      <br><br>
+      <p>_________________________________</p>
+      <p>Name: <%= data.tenant_name || '[TENANT NAME]' %></p>
+    </div>
+  </div>
+</div>
+
+<style>
+.lease-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.parties-section {
+  margin-bottom: 30px;
+}
+
+.consideration-clause {
+  margin-bottom: 30px;
+  font-weight: bold;
+}
+
+.lease-terms h2 {
+  color: #333;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  margin-top: 25px;
+  margin-bottom: 15px;
+}
+
+.signature-section {
+  margin-top: 40px;
+  page-break-inside: avoid;
+}
+
+.signature-blocks {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+}
+
+.landlord-signature, .tenant-signature {
+  width: 45%;
+}
+
+.acknowledgment {
+  margin-top: 30px;
+  border-top: 1px solid #ccc;
+  padding-top: 20px;
+}
+
+@media print {
+  .signature-section {
+    page-break-inside: avoid;
+  }
+}
+</style>

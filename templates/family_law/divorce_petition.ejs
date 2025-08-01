@@ -1,0 +1,128 @@
+<%- include('../base/document_header', {title: 'Petition for Dissolution of Marriage'}) %>
+
+<div class="document-title">
+    <h1>PETITION FOR DISSOLUTION OF MARRIAGE</h1>
+</div>
+
+<div class="case-caption">
+    <table class="case-table">
+        <tr>
+            <td class="petitioner-info">
+                <p><strong><%= data.petitioner_name || '[PETITIONER NAME]' %></strong></p>
+                <p>Petitioner,</p>
+                <p>vs.</p>
+                <p><strong><%= data.respondent_name || '[RESPONDENT NAME]' %></strong></p>
+                <p>Respondent.</p>
+            </td>
+            <td class="case-number">
+                <p>Case No. _______________</p>
+                <p>PETITION FOR DISSOLUTION OF MARRIAGE</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="document-body">
+    <p>TO THE HONORABLE COURT:</p>
+    
+    <p>Petitioner respectfully represents to this Court as follows:</p>
+
+    <div class="section">
+        <h3>I. JURISDICTION AND VENUE</h3>
+        <p><strong>1.1</strong> This Court has jurisdiction over this matter pursuant to state law.</p>
+        <p><strong>1.2</strong> Venue is proper in this Court because [VENUE REASON].</p>
+        <p><strong>1.3</strong> Petitioner has been a resident of this state for more than 90 days immediately preceding the filing of this Petition.</p>
+    </div>
+
+    <div class="section">
+        <h3>II. PARTIES</h3>
+        <p><strong>2.1</strong> Petitioner's name is <strong><%= data.petitioner_name || '[PETITIONER NAME]' %></strong>.</p>
+        <p><strong>2.2</strong> Respondent's name is <strong><%= data.respondent_name || '[RESPONDENT NAME]' %></strong>.</p>
+        <p><strong>2.3</strong> The parties were married on <strong><%= data.marriage_date || '[MARRIAGE DATE]' %></strong>.</p>
+        <% if (data.separation_date) { %>
+        <p><strong>2.4</strong> The parties separated on <strong><%= data.separation_date %></strong>.</p>
+        <% } %>
+    </div>
+
+    <div class="section">
+        <h3>III. CHILDREN</h3>
+        <% if (data.children_info && data.children_info.trim() !== '') { %>
+        <p><strong>3.1</strong> The parties have the following minor children:</p>
+        <div class="children-info">
+            <%= data.children_info %>
+        </div>
+        <% } else { %>
+        <p><strong>3.1</strong> There are no minor children born of this marriage.</p>
+        <% } %>
+    </div>
+
+    <div class="section">
+        <h3>IV. GROUNDS FOR DISSOLUTION</h3>
+        <p><strong>4.1</strong> This marriage is irretrievably broken based on <%= data.grounds_divorce || '[GROUNDS]' %>.</p>
+        <p><strong>4.2</strong> There is no reasonable prospect of reconciliation.</p>
+    </div>
+
+    <div class="section">
+        <h3>V. PROPERTY</h3>
+        <p><strong>5.1</strong> The parties have acquired certain real and personal property during the marriage.</p>
+        <p><strong>5.2</strong> Petitioner requests that the Court divide the marital property in an equitable manner.</p>
+    </div>
+
+    <div class="section">
+        <h3>VI. SPOUSAL SUPPORT</h3>
+        <p><strong>6.1</strong> Petitioner requests that the Court determine whether spousal support is appropriate and, if so, the amount and duration of such support.</p>
+    </div>
+
+    <% if (data.children_info && data.children_info.trim() !== '') { %>
+    <div class="section">
+        <h3>VII. CHILD CUSTODY AND SUPPORT</h3>
+        <p><strong>7.1</strong> Petitioner requests that the Court determine custody and visitation arrangements in the best interests of the minor children.</p>
+        <p><strong>7.2</strong> Petitioner requests that the Court order appropriate child support in accordance with state guidelines.</p>
+    </div>
+    <% } %>
+
+    <div class="section">
+        <h3>WHEREFORE</h3>
+        <p>Petitioner respectfully requests that this Court:</p>
+        <ol>
+            <li>Grant a dissolution of marriage between the parties;</li>
+            <li>Divide the marital property equitably;</li>
+            <li>Determine spousal support, if appropriate;</li>
+            <% if (data.children_info && data.children_info.trim() !== '') { %>
+            <li>Determine child custody and visitation;</li>
+            <li>Order appropriate child support;</li>
+            <% } %>
+            <li>Grant such other relief as the Court deems just and proper.</li>
+        </ol>
+    </div>
+
+    <div class="signature-section">
+        <p>Respectfully submitted,</p>
+        <br><br>
+        <p>_________________________________</p>
+        <p><%= data.petitioner_name || '[PETITIONER NAME]' %></p>
+        <p>Petitioner, Pro Se</p>
+        <p>Address: <%= data.client_address || '[PETITIONER ADDRESS]' %></p>
+        <p>Phone: <%= data.client_phone || '[PHONE NUMBER]' %></p>
+        <p>Email: <%= data.client_email || '[EMAIL ADDRESS]' %></p>
+    </div>
+
+    <div class="verification">
+        <h3>VERIFICATION</h3>
+        <p>I, <%= data.petitioner_name || '[PETITIONER NAME]' %>, being first duly sworn, state that I am the Petitioner in the above-entitled action; that I have read the foregoing Petition and know the contents thereof; and that the same is true to the best of my knowledge, information, and belief.</p>
+        
+        <br><br>
+        <p>_________________________________</p>
+        <p><%= data.petitioner_name || '[PETITIONER NAME]' %></p>
+        <p>Petitioner</p>
+        
+        <p>Subscribed and sworn to before me this _____ day of _____________, 20__.</p>
+        
+        <br><br>
+        <p>_________________________________</p>
+        <p>Notary Public</p>
+        <p>My commission expires: _______________</p>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

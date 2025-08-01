@@ -1,0 +1,90 @@
+<%# Residential Lease Agreement Template %>
+<%- include('../base/document_header', {
+  documentTitle: documentTitle,
+  documentType: documentType,
+  jurisdiction: jurisdiction,
+  caseNumber: caseNumber
+}) %>
+
+<div class="document-body">
+  <div class="parties-section">
+    <h2>PARTIES</h2>
+    <p>This Residential Lease Agreement ("Agreement") is entered into on <strong><%= new Date().toLocaleDateString() %></strong>, between:</p>
+    
+    <div class="landlord-info">
+      <p><strong>LANDLORD:</strong> <%= data.landlord_name || '[LANDLORD NAME]' %></p>
+      <p><strong>Address:</strong> <%= (data.client_address || '[LANDLORD ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+    
+    <div class="tenant-info">
+      <p><strong>TENANT:</strong> <%= data.tenant_name || '[TENANT NAME]' %></p>
+      <p><strong>Address:</strong> <%= (data.client_address || '[TENANT ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <div class="property-section">
+    <h2>RENTAL PROPERTY</h2>
+    <p>The Landlord agrees to rent to the Tenant the following described property:</p>
+    <div class="property-description">
+      <p><strong>Property Address:</strong><br>
+      <%= (data.property_address || '[PROPERTY ADDRESS]').replace(/\n/g, '<br>') %></p>
+    </div>
+  </div>
+
+  <div class="term-section">
+    <h2>LEASE TERM</h2>
+    <p>This lease shall commence on <strong><%= data.lease_start || '[START DATE]' %></strong> and shall terminate on <strong><%= data.lease_end || '[END DATE]' %></strong>, unless terminated earlier in accordance with the terms of this Agreement.</p>
+  </div>
+
+  <div class="rent-section">
+    <h2>RENT AND PAYMENT</h2>
+    <p>The monthly rent for the premises is <strong>$<%= data.monthly_rent || '[MONTHLY RENT]' %></strong>, payable in advance on the first day of each month.</p>
+    
+    <p>A security deposit of <strong>$<%= data.security_deposit || '[SECURITY DEPOSIT]' %></strong> is required and shall be held by the Landlord as security for the faithful performance of the Tenant's obligations under this Agreement.</p>
+    
+    <p>Rent payments shall be made to the Landlord at the address specified above or at such other place as the Landlord may designate in writing.</p>
+  </div>
+
+  <div class="use-section">
+    <h2>USE OF PREMISES</h2>
+    <p>The premises shall be used solely as a private residential dwelling and for no other purpose without the prior written consent of the Landlord.</p>
+    
+    <p>The Tenant shall not use the premises for any illegal purpose or in any manner that will increase the rate of insurance on the premises.</p>
+  </div>
+
+  <div class="maintenance-section">
+    <h2>MAINTENANCE AND REPAIRS</h2>
+    <p>The Landlord shall maintain the premises in good repair and shall comply with all applicable housing codes and regulations.</p>
+    
+    <p>The Tenant shall keep the premises clean and sanitary and shall not damage the premises beyond normal wear and tear.</p>
+    
+    <p>The Tenant shall promptly notify the Landlord of any needed repairs or maintenance.</p>
+  </div>
+
+  <div class="utilities-section">
+    <h2>UTILITIES</h2>
+    <p>The Tenant shall be responsible for payment of all utilities and services, including but not limited to electricity, gas, water, sewer, trash collection, telephone, and internet, unless otherwise specified in writing.</p>
+  </div>
+
+  <div class="pets-section">
+    <h2>PETS</h2>
+    <p>No pets shall be kept on the premises without the prior written consent of the Landlord. If pets are permitted, an additional pet deposit may be required.</p>
+  </div>
+
+  <div class="termination-section">
+    <h2>TERMINATION</h2>
+    <p>This Agreement may be terminated by either party upon thirty (30) days written notice to the other party.</p>
+    
+    <p>Upon termination, the Tenant shall surrender the premises in the same condition as received, normal wear and tear excepted.</p>
+  </div>
+
+  <div class="governing-law-section">
+    <h2>GOVERNING LAW</h2>
+    <p>This Agreement shall be governed by the laws of <%= data.state_jurisdiction || jurisdiction || '[STATE]' %>.</p>
+  </div>
+</div>
+
+<%- include('../base/document_footer', {
+  signatures: signatures,
+  notarization: notarization
+}) %>

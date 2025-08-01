@@ -1,0 +1,16 @@
+<%# Base document header template %>
+<div class="document-header">
+  <h1 class="document-title"><%= documentTitle %></h1>
+  <div class="document-meta">
+    <p><strong>Document Type:</strong> <%= documentType %></p>
+    <p><strong>Generated:</strong> <%= new Date().toLocaleDateString() %></p>
+    <% if (caseNumber) { %>
+    <p><strong>Case Number:</strong> <%= caseNumber %></p>
+    <% } %>
+    <% if (jurisdiction) { %>
+    <p><strong>Jurisdiction:</strong> <%= jurisdiction %></p>
+    <% } %>
+  </div>
+</div>
+
+<hr class="document-separator">

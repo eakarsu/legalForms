@@ -1,0 +1,65 @@
+<%- include('../base/document_header', {title: 'Articles of Incorporation'}) %>
+
+<div class="document-title">
+    <h1>ARTICLES OF INCORPORATION</h1>
+    <h2>OF</h2>
+    <h2><%= data.corp_name || '[CORPORATION NAME]' %></h2>
+</div>
+
+<div class="document-body">
+    <p>The undersigned, acting as incorporator under the General Corporation Law of the State of <%= data.state_incorporation || '[STATE]' %>, adopts the following Articles of Incorporation for such corporation:</p>
+
+    <div class="article">
+        <h3>ARTICLE I - NAME</h3>
+        <p>The name of this corporation is <strong><%= data.corp_name || '[CORPORATION NAME]' %></strong>.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE II - PURPOSE</h3>
+        <p>The purpose of this corporation is to engage in any lawful act or activity for which a corporation may be organized under the General Corporation Law of <%= data.state_incorporation || '[STATE]' %>.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE III - SHARES</h3>
+        <p>This corporation is authorized to issue <%= data.authorized_shares || '[NUMBER]' %> shares of common stock, with a par value of $<%= data.par_value || '[AMOUNT]' %> per share.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE IV - REGISTERED AGENT</h3>
+        <p>The name and address of the initial registered agent of this corporation is:</p>
+        <p><strong><%= data.registered_agent || '[AGENT NAME]' %></strong><br>
+        <%= data.agent_address || '[AGENT ADDRESS]' %></p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE V - INCORPORATOR</h3>
+        <p>The name and address of the incorporator is:</p>
+        <p><strong><%= data.client_name || '[INCORPORATOR NAME]' %></strong><br>
+        <%= data.client_address || '[INCORPORATOR ADDRESS]' %></p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE VI - DIRECTORS</h3>
+        <p>The initial directors of this corporation are:</p>
+        <p><%= data.initial_directors || '[DIRECTOR NAMES AND ADDRESSES]' %></p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE VII - DURATION</h3>
+        <p>The duration of this corporation shall be perpetual.</p>
+    </div>
+
+    <div class="signature-section">
+        <p>IN WITNESS WHEREOF, the undersigned incorporator has executed these Articles of Incorporation on the date set forth below.</p>
+        
+        <div class="signature-block">
+            <p>Date: _______________</p>
+            <br><br>
+            <p>_________________________________</p>
+            <p><%= data.client_name || '[INCORPORATOR NAME]' %></p>
+            <p>Incorporator</p>
+        </div>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

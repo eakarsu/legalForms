@@ -1,0 +1,93 @@
+<%- include('../base/document_header', {title: 'LLC Operating Agreement'}) %>
+
+<div class="document-title">
+    <h1>OPERATING AGREEMENT</h1>
+    <h2>OF</h2>
+    <h2><%= data.llc_name || '[LLC NAME]' %></h2>
+</div>
+
+<div class="document-body">
+    <p>This Operating Agreement ("Agreement") of <strong><%= data.llc_name || '[LLC NAME]' %></strong>, a <%= data.state_formation || '[STATE]' %> limited liability company ("Company"), is entered into and shall be effective as of _____________, 20__, by and among the Company and the persons executing this Agreement as Members.</p>
+
+    <div class="article">
+        <h3>ARTICLE 1 - FORMATION</h3>
+        <p><strong>1.1 Formation.</strong> The Company was formed as a limited liability company pursuant to the <%= data.state_formation || '[STATE]' %> Limited Liability Company Act by filing Articles of Organization with the Secretary of State of <%= data.state_formation || '[STATE]' %>.</p>
+        
+        <p><strong>1.2 Name.</strong> The name of the Company is <strong><%= data.llc_name || '[LLC NAME]' %></strong>.</p>
+        
+        <p><strong>1.3 Registered Office.</strong> The registered office of the Company shall be located at <%= data.agent_address || '[REGISTERED OFFICE ADDRESS]' %>.</p>
+        
+        <p><strong>1.4 Purpose.</strong> The purpose of the Company is <%= data.business_purpose || '[BUSINESS PURPOSE]' %> and to engage in any lawful activity for which a limited liability company may be organized under <%= data.state_formation || '[STATE]' %> law.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 2 - MEMBERS</h3>
+        <p><strong>2.1 Members.</strong> The Members of the Company and their respective membership interests are as follows:</p>
+        <div class="members-table">
+            <%= data.members_info || '[MEMBER NAMES, ADDRESSES, AND OWNERSHIP PERCENTAGES]' %>
+        </div>
+        
+        <p><strong>2.2 Admission of Members.</strong> No person may become a Member of the Company without the unanimous consent of all existing Members.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 3 - CAPITAL CONTRIBUTIONS</h3>
+        <p><strong>3.1 Initial Contributions.</strong> The Members have made or agree to make the following initial capital contributions:</p>
+        <div class="contributions">
+            <%= data.capital_contributions || '[CAPITAL CONTRIBUTION DETAILS]' %>
+        </div>
+        
+        <p><strong>3.2 Additional Contributions.</strong> No Member shall be required to make additional capital contributions to the Company.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 4 - MANAGEMENT</h3>
+        <% if (data.management_structure === 'Member-Managed') { %>
+        <p><strong>4.1 Management by Members.</strong> The Company shall be managed by its Members. Each Member shall have the authority to bind the Company in the ordinary course of business.</p>
+        <% } else { %>
+        <p><strong>4.1 Management by Managers.</strong> The Company shall be managed by one or more Managers who need not be Members of the Company.</p>
+        <% } %>
+        
+        <p><strong>4.2 Voting.</strong> Except as otherwise provided in this Agreement, all decisions requiring Member approval shall be made by majority vote of the Members based on their membership interests.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 5 - DISTRIBUTIONS</h3>
+        <p><strong>5.1 Distributions.</strong> <%= data.profit_distribution || 'Distributions shall be made to Members in proportion to their membership interests.' %></p>
+        
+        <p><strong>5.2 Tax Distributions.</strong> The Company may make distributions to Members to enable them to pay taxes on their allocable share of Company income.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 6 - TRANSFER OF INTERESTS</h3>
+        <p><strong>6.1 Restrictions on Transfer.</strong> No Member may transfer all or any part of their membership interest without the prior written consent of all other Members.</p>
+    </div>
+
+    <div class="article">
+        <h3>ARTICLE 7 - DISSOLUTION</h3>
+        <p><strong>7.1 Events of Dissolution.</strong> The Company shall be dissolved upon the occurrence of any of the following events:</p>
+        <ul>
+            <li>The unanimous consent of all Members;</li>
+            <li>The entry of a decree of judicial dissolution; or</li>
+            <li>Any other event that causes dissolution under applicable law.</li>
+        </ul>
+    </div>
+
+    <div class="signature-section">
+        <p>IN WITNESS WHEREOF, the Members have executed this Operating Agreement as of the date first written above.</p>
+        
+        <div class="signature-block">
+            <p><strong>MEMBERS:</strong></p>
+            <br><br>
+            <p>_________________________________</p>
+            <p><%= data.client_name || '[MEMBER NAME]' %></p>
+            <p>Member</p>
+            <br><br>
+            <p>_________________________________</p>
+            <p>[ADDITIONAL MEMBER NAME]</p>
+            <p>Member</p>
+        </div>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>

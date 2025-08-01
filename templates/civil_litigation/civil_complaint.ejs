@@ -1,0 +1,116 @@
+<%- include('../base/document_header', {title: 'Civil Complaint'}) %>
+
+<div class="document-title">
+    <h1>COMPLAINT</h1>
+</div>
+
+<div class="case-caption">
+    <table class="case-table">
+        <tr>
+            <td class="plaintiff-info">
+                <p><strong><%= data.plaintiff_name || '[PLAINTIFF NAME]' %></strong></p>
+                <p>Plaintiff,</p>
+                <p>vs.</p>
+                <p><strong><%= data.defendant_name || '[DEFENDANT NAME]' %></strong></p>
+                <p>Defendant.</p>
+            </td>
+            <td class="case-number">
+                <p>Case No. _______________</p>
+                <p>COMPLAINT FOR DAMAGES</p>
+                <p>JURY TRIAL DEMANDED</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="document-body">
+    <p>TO THE HONORABLE COURT:</p>
+    
+    <p>Plaintiff, by and through undersigned counsel, complains against Defendant as follows:</p>
+
+    <div class="section">
+        <h3>I. PARTIES</h3>
+        <p><strong>1.</strong> Plaintiff <strong><%= data.plaintiff_name || '[PLAINTIFF NAME]' %></strong> is an individual residing in <%= data.court_jurisdiction || '[JURISDICTION]' %>.</p>
+        <p><strong>2.</strong> Upon information and belief, Defendant <strong><%= data.defendant_name || '[DEFENDANT NAME]' %></strong> is an individual/entity [DESCRIBE DEFENDANT STATUS].</p>
+    </div>
+
+    <div class="section">
+        <h3>II. JURISDICTION AND VENUE</h3>
+        <p><strong>3.</strong> This Court has jurisdiction over this matter pursuant to [JURISDICTIONAL BASIS].</p>
+        <p><strong>4.</strong> Venue is proper in this Court pursuant to [VENUE BASIS] because <%= data.court_jurisdiction || '[VENUE REASON]' %>.</p>
+    </div>
+
+    <div class="section">
+        <h3>III. FACTUAL ALLEGATIONS</h3>
+        <p><strong>5.</strong> On or about <strong><%= data.incident_date || '[INCIDENT DATE]' %></strong>, the following events occurred:</p>
+        <p><strong>6.</strong> <%= data.case_description || '[DETAILED DESCRIPTION OF THE FACTS GIVING RISE TO THE CLAIM]' %></p>
+        <p><strong>7.</strong> As a direct and proximate result of Defendant's actions, Plaintiff has suffered damages as described herein.</p>
+    </div>
+
+    <div class="section">
+        <h3>COUNT I - [CAUSE OF ACTION]</h3>
+        <p><strong>8.</strong> Plaintiff incorporates by reference all preceding paragraphs as if fully set forth herein.</p>
+        <p><strong>9.</strong> Defendant owed Plaintiff a duty of [DESCRIBE DUTY].</p>
+        <p><strong>10.</strong> Defendant breached that duty by [DESCRIBE BREACH].</p>
+        <p><strong>11.</strong> As a direct and proximate result of Defendant's breach, Plaintiff has suffered damages.</p>
+    </div>
+
+    <div class="section">
+        <h3>IV. DAMAGES</h3>
+        <p><strong>12.</strong> As a direct and proximate result of Defendant's conduct, Plaintiff has suffered the following damages:</p>
+        <ul>
+            <li>Economic damages in the amount of $<%= data.damages_amount || '[AMOUNT]' %> or more;</li>
+            <li>Non-economic damages including pain and suffering;</li>
+            <li>Costs and attorney's fees as permitted by law;</li>
+            <li>Such other relief as the Court deems just and proper.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>JURY DEMAND</h3>
+        <p><strong>13.</strong> Plaintiff hereby demands a trial by jury on all issues so triable.</p>
+    </div>
+
+    <div class="section">
+        <h3>WHEREFORE</h3>
+        <p>Plaintiff respectfully requests that this Court:</p>
+        <ol>
+            <li>Enter judgment in favor of Plaintiff and against Defendant;</li>
+            <li>Award damages in the amount of $<%= data.damages_amount || '[AMOUNT]' %> or such other amount as proven at trial;</li>
+            <li>Award costs and attorney's fees;</li>
+            <li>Award pre- and post-judgment interest;</li>
+            <li>Grant such other relief as the Court deems just and proper.</li>
+        </ol>
+    </div>
+
+    <div class="signature-section">
+        <p>Respectfully submitted,</p>
+        <br><br>
+        <p>_________________________________</p>
+        <p><%= data.client_name || '[ATTORNEY NAME]' %></p>
+        <p>Attorney for Plaintiff</p>
+        <p>State Bar No. [NUMBER]</p>
+        <p>Address: <%= data.client_address || '[ATTORNEY ADDRESS]' %></p>
+        <p>Phone: <%= data.client_phone || '[PHONE NUMBER]' %></p>
+        <p>Email: <%= data.client_email || '[EMAIL ADDRESS]' %></p>
+    </div>
+
+    <div class="verification">
+        <h3>VERIFICATION</h3>
+        <p>I, <%= data.plaintiff_name || '[PLAINTIFF NAME]' %>, being first duly sworn, state that I am the Plaintiff in the above-entitled action; that I have read the foregoing Complaint and know the contents thereof; and that the same is true to the best of my knowledge, information, and belief.</p>
+        
+        <br><br>
+        <p>_________________________________</p>
+        <p><%= data.plaintiff_name || '[PLAINTIFF NAME]' %></p>
+        <p>Plaintiff</p>
+        
+        <p>Subscribed and sworn to before me this _____ day of _____________, 20__.</p>
+        
+        <br><br>
+        <p>_________________________________</p>
+        <p>Notary Public</p>
+        <p>My commission expires: _______________</p>
+    </div>
+</div>
+
+<%- include('../base/document_footer') %>
