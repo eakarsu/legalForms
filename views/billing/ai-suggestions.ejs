@@ -1,0 +1,134 @@
+<%- include('../base-pm', {
+    title: 'AI Billing Suggestions',
+    description: 'AI-powered billing optimization'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-robot me-2"></i>AI Billing Suggestions</h2>
+            <p class="text-muted mb-0">AI-identified billable items from case notes</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.total_suggestions || 0 %></h3>
+                    <small>Total Suggestions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.pending_count || 0 %></h3>
+                    <small>Pending Review</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.accepted_count || 0 %></h3>
+                    <small>Accepted</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h3 class="mb-0">$<%= parseFloat(stats.accepted_value || 0).toFixed(2) %></h3>
+                    <small>Accepted Value</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Suggestions -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Billing Suggestions</h5>
+        </div>
+        <div class="card-body">
+            <% const pendingSuggestions = suggestions.filter(s => s.status === 'pending'); %>
+            <% if (pendingSuggestions.length > 0) { %>
+            <div class="list-group">
+                <% pendingSuggestions.forEach(s => { %>
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1"><%= s.suggested_description %></h6>
+                            <p class="mb-1 text-muted">
+                                <span class="badge bg-secondary"><%= s.suggested_category %></span>
+                                <% if (s.case_title) { %> | Case: <%= s.case_title %><% } %>
+                            </p>
+                            <small>
+                                <strong><%= s.suggested_duration_minutes %> min</strong> |
+                                <strong>$<%= parseFloat(s.suggested_amount || 0).toFixed(2) %></strong> |
+                                Confidence: <%= Math.round((s.confidence_score || 0) * 100) %>%
+                            </small>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-success accept-btn" data-id="<%= s.id %>">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger reject-btn" data-id="<%= s.id %>">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+            <% } else { %>
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h5>All caught up!</h5>
+                <p class="text-muted">No pending billing suggestions</p>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.accept-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        try {
+            const res = await fetch(`/api/ai-billing/suggestions/${id}/accept`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    });
+});
+
+document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        try {
+            const res = await fetch(`/api/ai-billing/suggestions/${id}/reject`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<%- include('../base-pm', {
+    title: 'Case Predictions',
+    description: 'AI case outcome analysis'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-line me-2"></i>Case Predictions</h2>
+            <p class="text-muted mb-0">
+                Case: <%= caseData.case_number %> - <%= caseData.title %>
+            </p>
+        </div>
+        <a href="/cases/<%= caseData.id %>" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Case
+        </a>
+    </div>
+
+    <!-- Disclaimer Banner -->
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Important Disclaimer:</strong> <%= disclaimer %>
+    </div>
+
+    <!-- New Prediction -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Generate New Prediction</h5>
+        </div>
+        <div class="card-body">
+            <form id="predictionForm">
+                <input type="hidden" name="case_id" value="<%= caseData.id %>">
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="disclaimerAck" name="disclaimer_acknowledged" required>
+                    <label class="form-check-label" for="disclaimerAck">
+                        I understand that this AI analysis is for informational purposes only and does not constitute legal advice
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="generateBtn" disabled>
+                    <i class="fas fa-robot me-1"></i>Generate Prediction
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Predictions -->
+    <% if (predictions.length > 0) { %>
+    <% predictions.forEach(p => { %>
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Prediction - <%= new Date(p.created_at).toLocaleDateString() %>
+                </h5>
+                <small class="text-muted"><%= p.model_used %></small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6>Likelihood Assessment</h6>
+                    <%
+                        const likelihood = p.likelihood_assessment || {};
+                        const favorable = Math.round((likelihood.favorable || 0) * 100);
+                        const unfavorable = Math.round((likelihood.unfavorable || 0) * 100);
+                        const settlement = Math.round((likelihood.settlement_likely || 0) * 100);
+                    %>
+                    <div class="mb-2">
+                        <label>Favorable Outcome</label>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: <%= favorable %>%"><%= favorable %>%</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label>Unfavorable Outcome</label>
+                        <div class="progress">
+                            <div class="progress-bar bg-danger" style="width: <%= unfavorable %>%"><%= unfavorable %>%</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label>Settlement Likely</label>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width: <%= settlement %>%"><%= settlement %>%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <h6>Strengths</h6>
+                    <% const strengths = p.strengths || []; %>
+                    <% if (strengths.length > 0) { %>
+                    <ul class="list-unstyled">
+                        <% strengths.forEach(s => { %>
+                        <li><i class="fas fa-plus-circle text-success me-1"></i> <%= s %></li>
+                        <% }) %>
+                    </ul>
+                    <% } else { %>
+                    <p class="text-muted">None identified</p>
+                    <% } %>
+                </div>
+
+                <div class="col-md-4">
+                    <h6>Weaknesses</h6>
+                    <% const weaknesses = p.weaknesses || []; %>
+                    <% if (weaknesses.length > 0) { %>
+                    <ul class="list-unstyled">
+                        <% weaknesses.forEach(w => { %>
+                        <li><i class="fas fa-minus-circle text-danger me-1"></i> <%= w %></li>
+                        <% }) %>
+                    </ul>
+                    <% } else { %>
+                    <p class="text-muted">None identified</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if (p.recommended_strategy) { %>
+            <hr>
+            <h6>Strategic Recommendations</h6>
+            <p><%= p.recommended_strategy %></p>
+            <% } %>
+        </div>
+    </div>
+    <% }) %>
+    <% } else { %>
+    <div class="text-center py-5">
+        <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+        <h5>No predictions yet</h5>
+        <p class="text-muted">Generate your first AI prediction above</p>
+    </div>
+    <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('disclaimerAck').addEventListener('change', function() {
+    document.getElementById('generateBtn').disabled = !this.checked;
+});
+
+document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+
+    try {
+        const res = await fetch('/api/ai-predictions/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                case_id: '<%= caseData.id %>',
+                disclaimer_acknowledged: true
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-robot me-1"></i>Generate Prediction';
+    }
+});
+</script>
+</body>
+</html>

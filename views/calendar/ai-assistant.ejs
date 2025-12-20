@@ -1,0 +1,257 @@
+<%- include('../base-pm', {
+    title: 'AI Calendar Assistant',
+    description: 'AI-powered deadline extraction and SOL calculator'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-calendar-check me-2"></i>AI Calendar Assistant</h2>
+            <p class="text-muted mb-0">Extract deadlines and calculate statute of limitations</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.total_suggestions || 0 %></h3>
+                    <small>Total Suggestions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.pending_count || 0 %></h3>
+                    <small>Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.critical_count || 0 %></h3>
+                    <small>Critical</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- SOL Calculator -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Statute of Limitations Calculator</h5>
+                </div>
+                <div class="card-body">
+                    <form id="solForm">
+                        <div class="mb-3">
+                            <label class="form-label">Jurisdiction</label>
+                            <select class="form-select" name="jurisdiction" required>
+                                <option value="">Select...</option>
+                                <% jurisdictions.forEach(j => { %>
+                                <option value="<%= j %>"><%= j %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Case Type</label>
+                            <select class="form-select" name="case_type" required>
+                                <option value="">Select...</option>
+                                <option value="Personal Injury">Personal Injury</option>
+                                <option value="Medical Malpractice">Medical Malpractice</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Property Damage">Property Damage</option>
+                                <option value="Employment">Employment</option>
+                                <option value="Civil Rights">Civil Rights</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Incident Date</label>
+                            <input type="date" class="form-control" name="incident_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discovery Date (if applicable)</label>
+                            <input type="date" class="form-control" name="discovery_date">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calculator me-1"></i>Calculate
+                        </button>
+                    </form>
+
+                    <div id="solResult" class="mt-4 d-none">
+                        <hr>
+                        <div id="solContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deadline Extractor -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Extract Deadlines from Document</h5>
+                </div>
+                <div class="card-body">
+                    <form id="extractForm">
+                        <div class="mb-3">
+                            <label class="form-label">Document Text</label>
+                            <textarea class="form-control" name="document_text" rows="8"
+                                placeholder="Paste court order, contract, or other document..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-robot me-1"></i>Extract Deadlines
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Suggestions -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Pending Calendar Suggestions</h5>
+        </div>
+        <div class="card-body">
+            <% const pending = suggestions.filter(s => s.status === 'pending'); %>
+            <% if (pending.length > 0) { %>
+            <div class="list-group">
+                <% pending.forEach(s => { %>
+                <div class="list-group-item <%= s.is_critical ? 'border-danger' : '' %>">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                <% if (s.is_critical) { %>
+                                    <span class="badge bg-danger me-1">CRITICAL</span>
+                                <% } %>
+                                <%= s.suggested_title %>
+                            </h6>
+                            <p class="mb-1">
+                                <strong><%= s.suggested_date %></strong>
+                                | Type: <%= s.suggested_deadline_type %>
+                                <% if (s.case_title) { %> | Case: <%= s.case_title %><% } %>
+                            </p>
+                            <% if (s.legal_basis) { %>
+                            <small class="text-muted"><%= s.legal_basis %></small>
+                            <% } %>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-success accept-btn" data-id="<%= s.id %>">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger reject-btn" data-id="<%= s.id %>">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+            <% } else { %>
+            <p class="text-muted text-center">No pending suggestions</p>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// SOL Calculator
+document.getElementById('solForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const res = await fetch('/api/ai-calendar/calculate-sol', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        const resultDiv = document.getElementById('solResult');
+        const contentDiv = document.getElementById('solContent');
+        resultDiv.classList.remove('d-none');
+
+        if (result.found) {
+            contentDiv.innerHTML = `
+                <div class="alert alert-${result.calculation.isCritical ? 'danger' : 'info'}">
+                    <h5>Statute of Limitations</h5>
+                    <p><strong>Period:</strong> ${result.sol.periodText}</p>
+                    <p><strong>Deadline:</strong> ${result.calculation.deadlineDate}</p>
+                    <p><strong>Days Remaining:</strong> ${result.calculation.daysRemaining}</p>
+                    <p><small>${result.sol.statutoryReference}</small></p>
+                </div>
+            `;
+        } else {
+            contentDiv.innerHTML = '<div class="alert alert-warning">No SOL data found for this jurisdiction/case type.</div>';
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+});
+
+// Deadline Extractor
+document.getElementById('extractForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const text = document.querySelector('[name=document_text]').value;
+    if (!text.trim()) return;
+
+    const btn = this.querySelector('button');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Extracting...';
+
+    try {
+        const res = await fetch('/api/ai-calendar/extract-deadlines', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ document_text: text })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert(`Found ${result.suggestions.length} deadlines!`);
+            location.reload();
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-robot me-1"></i>Extract Deadlines';
+    }
+});
+
+// Accept/Reject
+document.querySelectorAll('.accept-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        try {
+            await fetch(`/api/ai-calendar/suggestions/${id}/accept`, { method: 'POST' });
+            location.reload();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    });
+});
+
+document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        try {
+            await fetch(`/api/ai-calendar/suggestions/${id}/reject`, { method: 'POST' });
+            location.reload();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    });
+});
+</script>
+</body>
+</html>

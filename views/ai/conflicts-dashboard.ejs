@@ -1,0 +1,151 @@
+<%- include('../base-pm', {
+    title: 'AI Conflict Analysis',
+    description: 'AI-enhanced conflict detection'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-exclamation-triangle me-2"></i>AI Conflict Analysis</h2>
+            <p class="text-muted mb-0">AI-powered fuzzy matching and corporate relationship detection</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.total_analyses || 0 %></h3>
+                    <small>Total Analyses</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.conflicts_found || 0 %></h3>
+                    <small>Conflicts Found</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h3 class="mb-0"><%= stats.pending_review || 0 %></h3>
+                    <small>Pending Review</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Analysis -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-search me-2"></i>New AI Conflict Check</h5>
+        </div>
+        <div class="card-body">
+            <form id="conflictForm">
+                <div class="mb-3">
+                    <label class="form-label">Party Names (one per line)</label>
+                    <textarea class="form-control" name="party_names" rows="5"
+                        placeholder="Enter names to check for conflicts..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                    <i class="fas fa-robot me-1"></i>Analyze for Conflicts
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Analyses -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Analyses</h5>
+        </div>
+        <div class="card-body">
+            <% if (analyses.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Conflicts</th>
+                            <th>Fuzzy Matches</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% analyses.forEach(a => { %>
+                        <tr>
+                            <td><%= new Date(a.created_at).toLocaleString() %></td>
+                            <td><%= a.analysis_type %></td>
+                            <td>
+                                <% const conflicts = a.potential_conflicts || []; %>
+                                <span class="badge bg-<%= conflicts.length > 0 ? 'danger' : 'success' %>">
+                                    <%= conflicts.length %>
+                                </span>
+                            </td>
+                            <td>
+                                <% const matches = a.fuzzy_matches || []; %>
+                                <span class="badge bg-<%= matches.length > 0 ? 'warning' : 'secondary' %>">
+                                    <%= matches.length %>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-<%= a.reviewed ? 'success' : 'warning' %>">
+                                    <%= a.reviewed ? 'Reviewed' : 'Pending' %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } else { %>
+            <p class="text-muted text-center">No analyses yet</p>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('conflictForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const names = document.querySelector('[name=party_names]').value.split('\n').filter(n => n.trim());
+    if (names.length === 0) {
+        alert('Please enter at least one name');
+        return;
+    }
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
+
+    try {
+        const res = await fetch('/api/ai-conflicts/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ party_names: names })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`Analysis complete! Found ${data.conflicts.length} potential conflicts.`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-robot me-1"></i>Analyze for Conflicts';
+    }
+});
+</script>
+</body>
+</html>

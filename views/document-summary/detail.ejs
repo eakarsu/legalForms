@@ -1,0 +1,189 @@
+<%- include('../base-pm', {
+    title: 'Document Summary',
+    description: 'AI-generated document summary'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-compress-alt me-2"></i><%= summary.source_name || 'Document Summary' %></h2>
+            <p class="text-muted mb-0">
+                <span class="badge bg-secondary"><%= summary.source_type || 'general' %></span>
+                | <%= summary.word_count || 0 %> words
+                <% if (summary.first_name) { %> | Client: <%= summary.first_name %> <%= summary.last_name %><% } %>
+                <% if (summary.case_title) { %> | Case: <%= summary.case_title %><% } %>
+            </p>
+        </div>
+        <div>
+            <% if (summary.case_id && !summary.case_note_id) { %>
+            <button class="btn btn-success me-2" id="createNoteBtn">
+                <i class="fas fa-sticky-note me-1"></i>Create Case Note
+            </button>
+            <% } %>
+            <a href="/document-summary" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Executive Summary -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Executive Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead mb-0"><%= summary.executive_summary || 'No executive summary available' %></p>
+                </div>
+            </div>
+
+            <!-- Detailed Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Detailed Summary</h5>
+                </div>
+                <div class="card-body">
+                    <% if (summary.detailed_summary) { %>
+                    <p style="white-space: pre-wrap;"><%= summary.detailed_summary %></p>
+                    <% } else { %>
+                    <p class="text-muted">No detailed summary available</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Key Points -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Key Points</h5>
+                    <span class="badge bg-secondary"><%= keyPoints.length %> points</span>
+                </div>
+                <div class="card-body">
+                    <% if (keyPoints.length > 0) { %>
+                    <div class="list-group">
+                        <% keyPoints.forEach((point, index) => { %>
+                        <%
+                            let importanceClass = '';
+                            let importanceBadge = '';
+                            if (point.importance === 'critical') {
+                                importanceClass = 'border-danger';
+                                importanceBadge = '<span class="badge bg-danger">CRITICAL</span>';
+                            } else if (point.importance === 'high') {
+                                importanceClass = 'border-warning';
+                                importanceBadge = '<span class="badge bg-warning text-dark">IMPORTANT</span>';
+                            }
+                        %>
+                        <div class="list-group-item <%= importanceClass %>" style="border-left-width: 4px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong class="me-2"><%= index + 1 %>.</strong>
+                                    <%= point.content %>
+                                </div>
+                                <div class="text-end">
+                                    <%- importanceBadge %>
+                                    <br><span class="badge bg-secondary"><%= point.category %></span>
+                                </div>
+                            </div>
+                            <% if (point.source_excerpt) { %>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-quote-left me-1"></i>
+                                    "<%= point.source_excerpt %>"
+                                </small>
+                            </div>
+                            <% } %>
+                        </div>
+                        <% }) %>
+                    </div>
+                    <% } else { %>
+                    <p class="text-muted text-center">No key points extracted</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Info Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Summary Info</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong>
+                        <span class="badge bg-<%= summary.status === 'completed' ? 'success' : 'secondary' %>">
+                            <%= summary.status %>
+                        </span>
+                    </p>
+                    <p><strong>Length:</strong> <%= summary.summary_length || 'medium' %></p>
+                    <p><strong>Audience:</strong> <%= summary.target_audience || 'attorney' %></p>
+                    <p><strong>Created:</strong> <%= new Date(summary.created_at).toLocaleString() %></p>
+                    <% if (summary.model_used) { %>
+                    <p><strong>Model:</strong> <%= summary.model_used %></p>
+                    <% } %>
+                    <% if (summary.case_note_id) { %>
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Case note created
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Original Document -->
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none p-0" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#originalText">
+                        <i class="fas fa-file-alt me-2"></i>Original Document
+                        <i class="fas fa-chevron-down ms-2"></i>
+                    </button>
+                </div>
+                <div class="collapse" id="originalText">
+                    <div class="card-body">
+                        <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;"><%= summary.original_text %></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const summaryId = '<%= summary.id %>';
+
+<% if (summary.case_id && !summary.case_note_id) { %>
+document.getElementById('createNoteBtn').addEventListener('click', async function() {
+    if (!confirm('Create a case note from this summary?')) return;
+
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creating...';
+
+    try {
+        const response = await fetch(`/api/document-summary/${summaryId}/create-note`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Case note created successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Create Case Note';
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Create Case Note';
+    }
+});
+<% } %>
+</script>
+</body>
+</html>

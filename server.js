@@ -52,7 +52,19 @@ const aiDraftingRoutes = require('./routes/ai-drafting');
 const calendarSyncRoutes = require('./routes/calendar-sync');
 const leadsRoutes = require('./routes/leads');
 const ocrRoutes = require('./routes/ocr');
-//add
+
+// Import AI feature routes
+const contractAnalysisRoutes = require('./routes/contract-analysis');
+const documentSummaryRoutes = require('./routes/document-summary');
+const aiBillingRoutes = require('./routes/ai-billing');
+const aiConflictsRoutes = require('./routes/ai-conflicts');
+const aiPredictionsRoutes = require('./routes/ai-predictions');
+const voiceNotesRoutes = require('./routes/voice-notes');
+const portalAIRoutes = require('./routes/portal-ai');
+const aiCalendarRoutes = require('./routes/ai-calendar');
+const citationFinderRoutes = require('./routes/citation-finder');
+const aiCommunicationsRoutes = require('./routes/ai-communications');
+const aiIntakeRoutes = require('./routes/ai-intake');
 
 require('dotenv').config();
 
@@ -203,6 +215,19 @@ app.use('/', aiDraftingRoutes);
 app.use('/', calendarSyncRoutes);
 app.use('/', leadsRoutes);
 app.use('/', ocrRoutes);
+
+// AI feature routes
+app.use('/', contractAnalysisRoutes);
+app.use('/', documentSummaryRoutes);
+app.use('/', aiBillingRoutes);
+app.use('/', aiConflictsRoutes);
+app.use('/', aiPredictionsRoutes);
+app.use('/', voiceNotesRoutes);
+app.use('/', portalAIRoutes);
+app.use('/', aiCalendarRoutes);
+app.use('/', citationFinderRoutes);
+app.use('/', aiCommunicationsRoutes);
+app.use('/', aiIntakeRoutes);
 
 // Debug: Log registered routes
 console.log('Registered API routes:');

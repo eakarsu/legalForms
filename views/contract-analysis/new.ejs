@@ -1,0 +1,190 @@
+<%- include('../base-pm', {
+    title: 'New Contract Analysis',
+    description: 'Analyze a contract for risks and key terms'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-file-contract me-2"></i>New Contract Analysis</h2>
+            <p class="text-muted mb-0">Upload or paste a contract for AI analysis</p>
+        </div>
+        <a href="/contract-analysis" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Contract Input</h5>
+                </div>
+                <div class="card-body">
+                    <form id="analysisForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Document Name</label>
+                                <input type="text" class="form-control" name="document_name" placeholder="e.g., Employment Agreement - John Doe">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Document Type</label>
+                                <select class="form-select" name="document_type">
+                                    <option value="general">General Contract</option>
+                                    <option value="employment">Employment Agreement</option>
+                                    <option value="nda">Non-Disclosure Agreement</option>
+                                    <option value="service">Service Agreement</option>
+                                    <option value="lease">Lease Agreement</option>
+                                    <option value="partnership">Partnership Agreement</option>
+                                    <option value="purchase">Purchase Agreement</option>
+                                    <option value="licensing">Licensing Agreement</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Client (Optional)</label>
+                                <select class="form-select" name="client_id">
+                                    <option value="">-- Select Client --</option>
+                                    <% clients.forEach(c => { %>
+                                    <option value="<%= c.id %>">
+                                        <%= c.first_name %> <%= c.last_name %>
+                                        <% if (c.company_name) { %> (<%= c.company_name %>)<% } %>
+                                    </option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Case (Optional)</label>
+                                <select class="form-select" name="case_id">
+                                    <option value="">-- Select Case --</option>
+                                    <% cases.forEach(c => { %>
+                                    <option value="<%= c.id %>"><%= c.case_number %> - <%= c.title %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Contract Text <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="document_text" rows="15"
+                                placeholder="Paste the full contract text here..."></textarea>
+                            <div class="form-text">Paste the complete contract text for analysis. Minimum 100 characters required.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[name=document_text]').value = ''">
+                                <i class="fas fa-eraser me-1"></i>Clear
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                                <i class="fas fa-robot me-1"></i>Analyze Contract
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Analysis Info</h5>
+                </div>
+                <div class="card-body">
+                    <h6>What We Analyze:</h6>
+                    <ul class="small">
+                        <li>Indemnification clauses</li>
+                        <li>Limitation of liability</li>
+                        <li>Termination provisions</li>
+                        <li>Non-compete clauses</li>
+                        <li>Arbitration/dispute resolution</li>
+                        <li>Confidentiality terms</li>
+                        <li>Payment terms</li>
+                        <li>Intellectual property rights</li>
+                    </ul>
+
+                    <hr>
+
+                    <h6>Key Terms Extracted:</h6>
+                    <ul class="small">
+                        <li>Parties and roles</li>
+                        <li>Effective dates and duration</li>
+                        <li>Monetary amounts</li>
+                        <li>Governing law/jurisdiction</li>
+                        <li>Notice requirements</li>
+                    </ul>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Disclaimer:</strong> AI analysis is for review purposes only. All findings should be verified by a licensed attorney.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Progress -->
+            <div class="card mt-3" id="progressCard" style="display: none;">
+                <div class="card-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Analyzing...</span>
+                    </div>
+                    <h5>Analyzing Contract</h5>
+                    <p class="text-muted">This may take 15-30 seconds...</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('analysisForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+
+    if (!data.document_text || data.document_text.length < 100) {
+        alert('Please enter at least 100 characters of contract text');
+        return;
+    }
+
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const progressCard = document.getElementById('progressCard');
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
+    progressCard.style.display = 'block';
+
+    try {
+        const response = await fetch('/api/contract-analysis/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/contract-analysis/' + result.analysisId;
+        } else {
+            alert('Error: ' + (result.error || 'Analysis failed'));
+            analyzeBtn.disabled = false;
+            analyzeBtn.innerHTML = '<i class="fas fa-robot me-1"></i>Analyze Contract';
+            progressCard.style.display = 'none';
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<i class="fas fa-robot me-1"></i>Analyze Contract';
+        progressCard.style.display = 'none';
+    }
+});
+</script>
+</body>
+</html>
