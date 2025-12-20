@@ -1,0 +1,110 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <a href="/portal/cases" class="btn btn-sm btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i> Back to Cases
+        </a>
+        <h4 class="d-inline mb-0">${locals.case.title}</h4>
+    </div>
+    <span class="status-badge status-${locals.case.status}">${locals.case.status}</span>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Case Details -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Case Information</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Case Number:</strong> ${locals.case.case_number || 'N/A'}</p>
+                    <p><strong>Type:</strong> ${locals.case.case_type || 'General'}</p>
+                    <p><strong>Priority:</strong> <span class="badge bg-${locals.case.priority === 'urgent' ? 'danger' : locals.case.priority === 'high' ? 'warning' : 'secondary'}">${locals.case.priority}</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Opened:</strong> ${new Date(locals.case.date_opened).toLocaleDateString()}</p>
+                    <p><strong>Court:</strong> ${locals.case.court_name || 'N/A'}</p>
+                    <p><strong>Court Case #:</strong> ${locals.case.court_case_number || 'N/A'}</p>
+                </div>
+            </div>
+            ${locals.case.description ? `
+            <hr>
+            <h6>Description</h6>
+            <p class="text-muted">${locals.case.description}</p>
+            ` : ''}
+        </div>
+
+        <!-- Case Documents -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-file-alt me-2 text-info"></i>Documents</h5>
+            ${documents.length > 0 ? `
+            <div class="list-group">
+                ${documents.map(doc => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                        <strong>${doc.title}</strong>
+                        <br><small class="text-muted">${doc.document_type} - ${new Date(doc.created_at).toLocaleDateString()}</small>
+                    </div>
+                    ${doc.access_type === 'download' ? `
+                    <a href="/portal/documents/${doc.id}/download" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                    ` : `
+                    <span class="badge bg-secondary">View Only</span>
+                    `}
+                </div>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center">No documents available for this case.</p>
+            `}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Important Deadlines -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-clock me-2 text-danger"></i>Deadlines</h5>
+            ${deadlines.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${deadlines.map(d => `
+                <div class="list-group-item px-0 ${d.is_critical ? 'border-danger' : ''}">
+                    <div class="d-flex justify-content-between">
+                        <strong>${d.title}</strong>
+                        ${d.is_critical ? '<span class="badge bg-danger">Critical</span>' : ''}
+                    </div>
+                    <small class="text-muted">${d.deadline_type}</small>
+                    <div class="mt-1">
+                        <strong class="${new Date(d.due_date) < new Date() ? 'text-danger' : ''}">${new Date(d.due_date).toLocaleDateString()}</strong>
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center">No deadlines.</p>
+            `}
+        </div>
+
+        <!-- Upcoming Events -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-calendar me-2 text-warning"></i>Upcoming Events</h5>
+            ${events.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${events.filter(e => new Date(e.start_time) >= new Date()).slice(0, 5).map(evt => `
+                <div class="list-group-item px-0">
+                    <strong>${evt.title}</strong>
+                    <br><small class="text-muted">${evt.event_type} - ${evt.location || 'No location'}</small>
+                    <div class="mt-1">
+                        <i class="fas fa-calendar-day text-primary me-1"></i>
+                        ${new Date(evt.start_time).toLocaleDateString()} at ${new Date(evt.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center">No upcoming events.</p>
+            `}
+        </div>
+    </div>
+</div>
+` }) %>

@@ -1,0 +1,153 @@
+<%- include('../base-pm', { title: title }) %>
+
+<%- include('../partials/pm-nav', { active: 'reports' }) %>
+
+<div class="pm-container">
+        <div class="pm-header">
+            <div class="pm-header-content"><h1><i class="fas fa-chart-bar me-2"></i>Reports Dashboard</h1><p class="text-muted">Analytics and insights for your practice</p></div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div><h3>$<%= (metrics.totalRevenue || 0).toLocaleString() %></h3><small>Total Revenue (YTD)</small></div>
+                            <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div><h3><%= metrics.totalHours || 0 %></h3><small>Hours Billed (YTD)</small></div>
+                            <i class="fas fa-clock fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div><h3><%= metrics.activeCases || 0 %></h3><small>Active Cases</small></div>
+                            <i class="fas fa-briefcase fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div><h3>$<%= (metrics.outstandingAR || 0).toLocaleString() %></h3><small>Outstanding A/R</small></div>
+                            <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Links -->
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Financial Reports</h5></div>
+                    <div class="list-group list-group-flush">
+                        <a href="/reports/revenue" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Revenue Report<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/revenue?type=aging" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            A/R Aging Report<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/revenue?type=collections" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Collections Report<i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-user-clock me-2"></i>Productivity Reports</h5></div>
+                    <div class="list-group list-group-flush">
+                        <a href="/reports/productivity" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Time by Attorney<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/productivity?type=activity" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Time by Activity Type<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/productivity?type=utilization" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Utilization Report<i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Case Reports</h5></div>
+                    <div class="list-group list-group-flush">
+                        <a href="/reports/cases" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Case Status Summary<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/cases?type=outcomes" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Case Outcomes<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/cases?type=workload" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Workload Distribution<i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-users me-2"></i>Client Reports</h5></div>
+                    <div class="list-group list-group-flush">
+                        <a href="/reports/clients" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Client Summary<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/clients?type=top" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Top Clients by Revenue<i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/reports/clients?type=acquisition" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Client Acquisition<i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Reports -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Saved Reports</h5>
+            </div>
+            <div class="card-body">
+                <% if (savedReports.length === 0) { %>
+                    <p class="text-muted text-center">No saved reports yet. Save a report to access it quickly.</p>
+                <% } else { %>
+                    <div class="row">
+                        <% savedReports.forEach(r => { %>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6><%= r.name %></h6>
+                                        <small class="text-muted"><%= r.report_type %></small>
+                                        <div class="mt-2">
+                                            <a href="/reports/<%= r.report_type %>?saved=<%= r.id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

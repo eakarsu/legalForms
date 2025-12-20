@@ -1,0 +1,76 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">My Invoices</h4>
+        <small class="text-muted">View and pay your invoices</small>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>$${parseFloat(totals.outstanding || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>
+            <p class="mb-0">Outstanding Balance</p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <h3>$${parseFloat(totals.total_paid || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>
+            <p class="mb-0">Total Paid</p>
+        </div>
+    </div>
+</div>
+
+<div class="portal-card">
+    ${invoices.length > 0 ? `
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Case</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Total</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${invoices.map(inv => `
+                <tr class="clickable-row" data-href="/portal/invoices/${inv.id}" style="cursor: pointer;">
+                    <td><strong>${inv.invoice_number || 'Draft'}</strong></td>
+                    <td>${inv.case_title || '<span class="text-muted">N/A</span>'}</td>
+                    <td>${new Date(inv.created_at).toLocaleDateString()}</td>
+                    <td>${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</td>
+                    <td>$${parseFloat(inv.total).toFixed(2)}</td>
+                    <td class="${parseFloat(inv.total - inv.amount_paid) > 0 ? 'text-danger fw-bold' : 'text-success'}">
+                        $${parseFloat(inv.total - inv.amount_paid).toFixed(2)}
+                    </td>
+                    <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                    <td onclick="event.stopPropagation();">
+                        <a href="/portal/invoices/${inv.id}" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        ${inv.status === 'sent' || inv.status === 'overdue' ? `
+                        <a href="/portal/invoices/${inv.id}" class="btn btn-sm btn-success">
+                            <i class="fas fa-credit-card"></i> Pay
+                        </a>
+                        ` : ''}
+                    </td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : `
+    <div class="text-center py-5">
+        <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+        <h5>No Invoices</h5>
+        <p class="text-muted">You don't have any invoices yet.</p>
+    </div>
+    `}
+</div>
+` }) %>

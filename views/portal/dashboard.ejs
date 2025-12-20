@@ -1,0 +1,179 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">Welcome back, ${client.first_name}!</h4>
+        <small class="text-muted">Here's an overview of your account</small>
+    </div>
+    <div>
+        <span class="text-muted">Last login: ${client.last_login ? new Date(client.last_login).toLocaleDateString() : 'First time'}</span>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h3>${cases.length}</h3>
+            <p class="mb-0">Active Cases</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <h3>${documents.length}</h3>
+            <p class="mb-0">Available Documents</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>$${parseFloat(outstandingBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>
+            <p class="mb-0">Outstanding Balance</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Cases -->
+    <div class="col-md-6">
+        <div class="portal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-briefcase me-2 text-primary"></i>Recent Cases</h5>
+                <a href="/portal/cases" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            ${cases.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${cases.map(c => `
+                <a href="/portal/cases/${c.id}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${c.title}</strong>
+                        <br><small class="text-muted">${c.case_number || 'No case number'}</small>
+                    </div>
+                    <span class="status-badge status-${c.status}">${c.status}</span>
+                </a>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center py-4">No active cases</p>
+            `}
+        </div>
+    </div>
+
+    <!-- Unpaid Invoices -->
+    <div class="col-md-6">
+        <div class="portal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Pending Invoices</h5>
+                <a href="/portal/invoices" class="btn btn-sm btn-outline-success">View All</a>
+            </div>
+            ${invoices.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${invoices.map(inv => `
+                <a href="/portal/invoices/${inv.id}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Invoice #${inv.invoice_number}</strong>
+                        <br><small class="text-muted">Due: ${new Date(inv.due_date).toLocaleDateString()}</small>
+                    </div>
+                    <div class="text-end">
+                        <strong>$${parseFloat(inv.total - inv.amount_paid).toFixed(2)}</strong>
+                        <br><span class="status-badge status-${inv.status}">${inv.status}</span>
+                    </div>
+                </a>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center py-4">No pending invoices</p>
+            `}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Upcoming Events -->
+    <div class="col-md-6">
+        <div class="portal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2 text-warning"></i>Upcoming Events</h5>
+                <a href="/portal/calendar" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+            ${events.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${events.map(evt => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${evt.title}</strong>
+                        <br><small class="text-muted">${evt.location || 'No location specified'}</small>
+                    </div>
+                    <div class="text-end">
+                        <strong>${new Date(evt.start_time).toLocaleDateString()}</strong>
+                        <br><small class="text-muted">${new Date(evt.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center py-4">No upcoming events</p>
+            `}
+        </div>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="col-md-6">
+        <div class="portal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2 text-info"></i>Recent Documents</h5>
+                <a href="/portal/documents" class="btn btn-sm btn-outline-info">View All</a>
+            </div>
+            ${documents.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${documents.map(doc => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                        <strong>${doc.title}</strong>
+                        <br><small class="text-muted">${doc.document_type}</small>
+                    </div>
+                    <div>
+                        ${doc.access_type === 'download' ? `
+                        <a href="/portal/documents/${doc.id}/download" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        ` : `
+                        <span class="badge bg-secondary">View Only</span>
+                        `}
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+            ` : `
+            <p class="text-muted text-center py-4">No documents available</p>
+            `}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="portal-card">
+    <h5 class="mb-3"><i class="fas fa-bolt me-2 text-warning"></i>Quick Actions</h5>
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <a href="/portal/messages" class="btn btn-outline-primary w-100">
+                <i class="fas fa-envelope me-2"></i>Send Message
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="/portal/invoices" class="btn btn-outline-success w-100">
+                <i class="fas fa-credit-card me-2"></i>Pay Invoice
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="/portal/documents" class="btn btn-outline-info w-100">
+                <i class="fas fa-file-alt me-2"></i>View Documents
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="/portal/profile" class="btn btn-outline-secondary w-100">
+                <i class="fas fa-user-cog me-2"></i>Update Profile
+            </a>
+        </div>
+    </div>
+</div>
+` }) %>

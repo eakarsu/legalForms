@@ -1,0 +1,208 @@
+<%- include('../base-pm', {
+    title: 'Intake Forms',
+    description: 'Manage lead intake forms'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/leads">Leads</a></li>
+                    <li class="breadcrumb-item active">Intake Forms</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-file-alt me-2"></i>Intake Forms</h2>
+            <p class="text-muted mb-0">Create and manage intake forms for lead capture</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newFormModal">
+            <i class="fas fa-plus me-1"></i>New Form
+        </button>
+    </div>
+
+    <!-- Forms List -->
+    <div class="row">
+        <% if (typeof forms !== 'undefined' && forms.length > 0) { %>
+        <% forms.forEach(form => { %>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 clickable-card" data-href="/leads/forms/<%= form.id %>" style="cursor: pointer;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><%= form.name %></h5>
+                    <span class="badge bg-<%= form.is_active ? 'success' : 'secondary' %>">
+                        <%= form.is_active ? 'Active' : 'Inactive' %>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted"><%= form.description || 'No description' %></p>
+                    <p class="mb-1"><strong>Practice Area:</strong> <%= form.practice_area || 'General' %></p>
+                    <p class="mb-1"><strong>Submissions:</strong> <%= form.submission_count || 0 %></p>
+                </div>
+                <div class="card-footer" onclick="event.stopPropagation();">
+                    <div class="btn-group w-100">
+                        <a href="/leads/forms/<%= form.id %>/preview" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>Preview
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyLink('<%= form.slug %>')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="editForm('<%= form.id %>')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteForm('<%= form.id %>', '<%= form.name %>')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }) %>
+        <% } else { %>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h5>No Intake Forms</h5>
+                    <p class="text-muted">Create your first intake form to start capturing leads.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newFormModal">
+                        <i class="fas fa-plus me-1"></i>Create Form
+                    </button>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<!-- New Form Modal -->
+<div class="modal fade" id="newFormModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Intake Form</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newFormForm">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Form Name</label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g., Personal Injury Intake">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">URL Slug</label>
+                            <div class="input-group">
+                                <span class="input-group-text">/intake/</span>
+                                <input type="text" name="slug" class="form-control" required placeholder="personal-injury">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Brief description of this form"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Practice Area</label>
+                            <select name="practice_area" class="form-select">
+                                <option value="">General</option>
+                                <option value="personal_injury">Personal Injury</option>
+                                <option value="family">Family Law</option>
+                                <option value="criminal">Criminal Defense</option>
+                                <option value="corporate">Corporate</option>
+                                <option value="estate">Estate Planning</option>
+                                <option value="real_estate">Real Estate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="is_active" class="form-select">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Welcome Message</label>
+                        <textarea name="welcome_message" class="form-control" rows="2" placeholder="Message shown at the top of the form"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Thank You Message</label>
+                        <textarea name="thank_you_message" class="form-control" rows="2" placeholder="Message shown after form submission"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Card click handlers
+document.querySelectorAll('.clickable-card').forEach(card => {
+    card.addEventListener('click', function() {
+        window.location.href = this.dataset.href;
+    });
+});
+
+function copyLink(slug) {
+    const url = window.location.origin + '/intake/' + slug;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+    });
+}
+
+function editForm(id) {
+    window.location.href = '/leads/forms/' + id + '/edit';
+}
+
+function deleteForm(id, name) {
+    if (!confirm('Delete form "' + name + '"? This cannot be undone.')) return;
+    fetch('/api/leads/forms/' + id, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete'));
+        }
+    })
+    .catch(() => alert('Delete failed'));
+}
+
+document.getElementById('newFormForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.is_active = data.is_active === 'true';
+
+    try {
+        const response = await fetch('/api/leads/forms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to create form');
+    }
+});
+
+// Auto-generate slug from name
+document.querySelector('input[name="name"]').addEventListener('input', function() {
+    const slug = this.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    document.querySelector('input[name="slug"]').value = slug;
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

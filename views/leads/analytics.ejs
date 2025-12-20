@@ -1,0 +1,269 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'leads' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-line me-2"></i>Lead Analytics</h2>
+            <p class="text-muted mb-0">Analyze your lead conversion performance</p>
+        </div>
+        <a href="/leads" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Leads
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><%= stats.total || 0 %></h3>
+                    <small>Total Leads</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><%= stats.converted || 0 %></h3>
+                    <small>Converted</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><%= conversionRate %>%</h3>
+                    <small>Conversion Rate</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><%= stats.this_month || 0 %></h3>
+                    <small>This Month</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <!-- Leads by Status -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Leads by Status</h5>
+                </div>
+                <div class="card-body">
+                    <% if (byStatus && byStatus.length > 0) { %>
+                    <canvas id="statusChart" height="250"></canvas>
+                    <% } else { %>
+                    <p class="text-muted text-center py-5">No data available</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads by Source -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-globe me-2"></i>Leads by Source</h5>
+                </div>
+                <div class="card-body">
+                    <% if (bySource && bySource.length > 0) { %>
+                    <canvas id="sourceChart" height="250"></canvas>
+                    <% } else { %>
+                    <p class="text-muted text-center py-5">No data available</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads by Practice Area -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>By Practice Area</h5>
+                </div>
+                <div class="card-body">
+                    <% if (byPracticeArea && byPracticeArea.length > 0) { %>
+                    <canvas id="practiceAreaChart" height="250"></canvas>
+                    <% } else { %>
+                    <p class="text-muted text-center py-5">No data available</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row">
+        <!-- Lead Trend -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Lead Acquisition Trend (6 Months)</h5>
+                </div>
+                <div class="card-body">
+                    <% if (trend && trend.length > 0) { %>
+                    <canvas id="trendChart" height="120"></canvas>
+                    <% } else { %>
+                    <p class="text-muted text-center py-5">No trend data available yet</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>This Week</span>
+                            <strong><%= stats.this_week || 0 %></strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>This Month</span>
+                            <strong><%= stats.this_month || 0 %></strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Converted</span>
+                            <strong class="text-success"><%= stats.converted || 0 %></strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Conversion Rate</span>
+                            <strong class="text-primary"><%= conversionRate %>%</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const statusColors = {
+    'new': '#17a2b8',
+    'contacted': '#007bff',
+    'qualified': '#6f42c1',
+    'proposal': '#fd7e14',
+    'converted': '#28a745',
+    'lost': '#dc3545'
+};
+
+const sourceColors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+const practiceColors = ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#20c997'];
+
+<% if (byStatus && byStatus.length > 0) { %>
+// Status Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusData = <%- JSON.stringify(byStatus) %>;
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: statusData.map(s => s.status.charAt(0).toUpperCase() + s.status.slice(1)),
+        datasets: [{
+            data: statusData.map(s => parseInt(s.count)),
+            backgroundColor: statusData.map(s => statusColors[s.status] || '#6c757d'),
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+<% } %>
+
+<% if (bySource && bySource.length > 0) { %>
+// Source Chart
+const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+const sourceData = <%- JSON.stringify(bySource) %>;
+new Chart(sourceCtx, {
+    type: 'doughnut',
+    data: {
+        labels: sourceData.map(s => s.source.charAt(0).toUpperCase() + s.source.slice(1).replace('_', ' ')),
+        datasets: [{
+            data: sourceData.map(s => parseInt(s.count)),
+            backgroundColor: sourceColors.slice(0, sourceData.length),
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+<% } %>
+
+<% if (byPracticeArea && byPracticeArea.length > 0) { %>
+// Practice Area Chart
+const paCtx = document.getElementById('practiceAreaChart').getContext('2d');
+const paData = <%- JSON.stringify(byPracticeArea) %>;
+new Chart(paCtx, {
+    type: 'doughnut',
+    data: {
+        labels: paData.map(p => p.practice_area.charAt(0).toUpperCase() + p.practice_area.slice(1).replace('_', ' ')),
+        datasets: [{
+            data: paData.map(p => parseInt(p.count)),
+            backgroundColor: practiceColors.slice(0, paData.length),
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+<% } %>
+
+<% if (trend && trend.length > 0) { %>
+// Trend Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const trendData = <%- JSON.stringify(trend) %>;
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: trendData.map(t => t.month),
+        datasets: [{
+            label: 'New Leads',
+            data: trendData.map(t => parseInt(t.count)),
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+<% } %>
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'payments' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-list me-2"></i>Payment Transactions</h2>
+            <p class="text-muted mb-0">View all online payment transactions</p>
+        </div>
+        <a href="/payments" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice</th>
+                        <th>Client</th>
+                        <th>Amount</th>
+                        <th>Fee</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (transactions.length === 0) { %>
+                    <tr><td colspan="7" class="text-center text-muted py-4">No transactions yet</td></tr>
+                    <% } else { %>
+                    <% transactions.forEach(tx => { %>
+                    <tr class="clickable-row" data-id="<%= tx.id %>" style="cursor: pointer;">
+                        <td><%= new Date(tx.created_at).toLocaleDateString() %></td>
+                        <td><strong><%= tx.invoice_number %></strong></td>
+                        <td><%= tx.company_name || (tx.first_name + ' ' + tx.last_name) %></td>
+                        <td>$<%= parseFloat(tx.amount).toFixed(2) %></td>
+                        <td>$<%= parseFloat(tx.fee_amount || 0).toFixed(2) %></td>
+                        <td><span class="badge bg-<%= tx.status === 'succeeded' ? 'success' : tx.status === 'pending' ? 'warning' : 'danger' %>"><%= tx.status %></span></td>
+                        <td onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-primary btn-view" data-id="<%= tx.id %>"><i class="fas fa-eye"></i></button>
+                        </td>
+                    </tr>
+                    <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Detail Modal -->
+<div class="modal fade" id="txModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Transaction Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="txDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Row click handlers
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        viewTransaction(this.dataset.id);
+    });
+});
+
+document.querySelectorAll('.btn-view').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        viewTransaction(this.dataset.id);
+    });
+});
+
+function viewTransaction(id) {
+    const transactions = <%- JSON.stringify(transactions) %>;
+    const tx = transactions.find(t => t.id == id);
+    if (tx) {
+        document.getElementById('txDetails').innerHTML = `
+            <table class="table table-borderless">
+                <tr><th width="120">Date:</th><td>${new Date(tx.created_at).toLocaleString()}</td></tr>
+                <tr><th>Invoice:</th><td>${tx.invoice_number}</td></tr>
+                <tr><th>Client:</th><td>${tx.company_name || (tx.first_name + ' ' + tx.last_name)}</td></tr>
+                <tr><th>Amount:</th><td><strong>$${parseFloat(tx.amount).toFixed(2)}</strong></td></tr>
+                <tr><th>Fee:</th><td>$${parseFloat(tx.fee_amount || 0).toFixed(2)}</td></tr>
+                <tr><th>Net:</th><td class="text-success">$${(parseFloat(tx.amount) - parseFloat(tx.fee_amount || 0)).toFixed(2)}</td></tr>
+                <tr><th>Status:</th><td><span class="badge bg-${tx.status === 'succeeded' ? 'success' : tx.status === 'pending' ? 'warning' : 'danger'}">${tx.status}</span></td></tr>
+                ${tx.payment_method ? '<tr><th>Method:</th><td>' + tx.payment_method + '</td></tr>' : ''}
+                ${tx.stripe_payment_id ? '<tr><th>Stripe ID:</th><td><code>' + tx.stripe_payment_id + '</code></td></tr>' : ''}
+            </table>
+        `;
+        new bootstrap.Modal(document.getElementById('txModal')).show();
+    }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

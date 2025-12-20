@@ -1,0 +1,162 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'billing' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar me-2"></i>Invoices</h2>
+            <p class="text-muted mb-0">Manage client invoices</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createInvoiceModal">
+            <i class="fas fa-plus me-2"></i>Create Invoice
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card"><div class="card-body text-center"><h4><%= stats.draft_count || 0 %></h4><small>Draft</small></div></div></div>
+        <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body text-center"><h4><%= stats.sent_count || 0 %></h4><small>Sent</small></div></div></div>
+        <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body text-center"><h4><%= stats.paid_count || 0 %></h4><small>Paid</small></div></div></div>
+        <div class="col-md-3"><div class="card bg-danger text-white"><div class="card-body text-center"><h4><%= stats.overdue_count || 0 %></h4><small>Overdue</small></div></div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <select name="status" class="form-select">
+                        <option value="all">All Status</option>
+                        <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+                        <option value="sent" <%= filters.status === 'sent' ? 'selected' : '' %>>Sent</option>
+                        <option value="paid" <%= filters.status === 'paid' ? 'selected' : '' %>>Paid</option>
+                        <option value="overdue" <%= filters.status === 'overdue' ? 'selected' : '' %>>Overdue</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="client_id" class="form-select">
+                        <option value="">All Clients</option>
+                        <% clients.forEach(c => { %>
+                        <option value="<%= c.id %>" <%= filters.client_id === c.id ? 'selected' : '' %>><%= c.company_name || c.first_name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-search me-1"></i>Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <% if (invoices.length === 0) { %>
+                <div class="text-center py-5"><p class="text-muted">No invoices found</p></div>
+            <% } else { %>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Invoice #</th><th>Client</th><th>Case</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% invoices.forEach(inv => { %>
+                                <tr class="clickable-row" data-href="/billing/invoices/<%= inv.id %>" style="cursor: pointer;">
+                                    <td><span class="fw-semibold text-primary"><%= inv.invoice_number %></span></td>
+                                    <td><%= inv.company_name || (inv.first_name + ' ' + inv.last_name) || '-' %></td>
+                                    <td><%= inv.case_title || '-' %></td>
+                                    <td><%= new Date(inv.created_at).toLocaleDateString() %></td>
+                                    <td><%= inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '-' %></td>
+                                    <td>$<%= parseFloat(inv.total || 0).toLocaleString() %></td>
+                                    <td>$<%= parseFloat(inv.amount_paid || 0).toLocaleString() %></td>
+                                    <td><span class="badge bg-<%= inv.status === 'paid' ? 'success' : inv.status === 'sent' ? 'primary' : inv.status === 'overdue' ? 'danger' : 'secondary' %>"><%= inv.status %></span></td>
+                                    <td onclick="event.stopPropagation();">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/billing/invoices/<%= inv.id %>" class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></a>
+                                            <% if (inv.status === 'draft') { %>
+                                                <button class="btn btn-outline-success btn-send" data-id="<%= inv.id %>" title="Send"><i class="fas fa-paper-plane"></i></button>
+                                            <% } %>
+                                            <% if (inv.status === 'draft' || inv.status === 'cancelled') { %>
+                                                <button class="btn btn-outline-danger btn-delete" data-id="<%= inv.id %>" data-number="<%= inv.invoice_number %>" title="Delete"><i class="fas fa-trash"></i></button>
+                                            <% } %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Create Invoice Modal -->
+<div class="modal fade" id="createInvoiceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Create Invoice</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Client *</label><select id="invClient" class="form-select"><option value="">Select Client</option><% clients.forEach(c => { %><option value="<%= c.id %>"><%= c.company_name || c.first_name %></option><% }) %></select></div>
+                <div class="mb-3"><label class="form-label">Due Date</label><input type="date" id="invDueDate" class="form-control"></div>
+                <div class="mb-3"><label class="form-label">Notes</label><textarea id="invNotes" class="form-control" rows="2"></textarea></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="btnCreateInvoice">Create</button></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.clickable-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-group') || e.target.closest('button') || e.target.closest('a')) return;
+            window.location.href = this.dataset.href;
+        });
+    });
+
+    document.querySelectorAll('.btn-send').forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); sendInvoice(this.dataset.id); });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); deleteInvoice(this.dataset.id, this.dataset.number); });
+    });
+
+    document.getElementById('btnCreateInvoice').addEventListener('click', createInvoice);
+
+    function createInvoice() {
+        fetch('/api/invoices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_id: document.getElementById('invClient').value, due_date: document.getElementById('invDueDate').value, notes: document.getElementById('invNotes').value })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) window.location.href = '/billing/invoices/' + d.invoice.id;
+            else alert('Error creating invoice: ' + (d.error || 'Unknown error'));
+        })
+        .catch(err => { alert('Failed to create invoice'); console.error(err); });
+    }
+
+    function sendInvoice(id) {
+        if (confirm('Send this invoice to the client?')) {
+            fetch('/api/invoices/' + id + '/send', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) location.reload();
+                else alert('Error sending invoice: ' + (d.error || 'Unknown error'));
+            })
+            .catch(err => { alert('Failed to send invoice'); console.error(err); });
+        }
+    }
+
+    function deleteInvoice(id, number) {
+        if (confirm('Delete invoice "' + number + '"?')) {
+            fetch('/api/invoices/' + id, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => { if (data.success) location.reload(); else alert('Error: ' + (data.error || 'Failed')); });
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

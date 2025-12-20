@@ -1,0 +1,171 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <a href="/portal/invoices" class="btn btn-sm btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <h4 class="d-inline mb-0">Invoice #${invoice.invoice_number || 'Draft'}</h4>
+    </div>
+    <span class="status-badge status-${invoice.status}">${invoice.status}</span>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="portal-card">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Bill To</h6>
+                    <p class="mb-0"><strong>${client.first_name} ${client.last_name}</strong></p>
+                    <p class="text-muted mb-0">${client.client_email || ''}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6>From</h6>
+                    <p class="mb-0"><strong>${invoice.attorney_first_name} ${invoice.attorney_last_name}</strong></p>
+                    <p class="text-muted mb-0">${invoice.attorney_email || ''}</p>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <small class="text-muted">Invoice Date</small>
+                    <p class="mb-0"><strong>${new Date(invoice.created_at).toLocaleDateString()}</strong></p>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">Due Date</small>
+                    <p class="mb-0"><strong>${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</strong></p>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">Related Case</small>
+                    <p class="mb-0"><strong>${invoice.case_title || 'N/A'}</strong></p>
+                </div>
+            </div>
+
+            <hr>
+
+            <h6 class="mb-3">Invoice Items</h6>
+            <table class="table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-center">Qty/Hours</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => `
+                    <tr>
+                        <td>${item.description}</td>
+                        <td class="text-center">${parseFloat(item.quantity).toFixed(2)}</td>
+                        <td class="text-end">$${parseFloat(item.rate).toFixed(2)}</td>
+                        <td class="text-end">$${parseFloat(item.amount).toFixed(2)}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Subtotal</strong></td>
+                        <td class="text-end"><strong>$${parseFloat(invoice.subtotal).toFixed(2)}</strong></td>
+                    </tr>
+                    ${parseFloat(invoice.tax_amount) > 0 ? `
+                    <tr>
+                        <td colspan="3" class="text-end">Tax (${invoice.tax_rate}%)</td>
+                        <td class="text-end">$${parseFloat(invoice.tax_amount).toFixed(2)}</td>
+                    </tr>
+                    ` : ''}
+                    <tr class="table-primary">
+                        <td colspan="3" class="text-end"><strong>Total</strong></td>
+                        <td class="text-end"><strong>$${parseFloat(invoice.total).toFixed(2)}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="text-end">Amount Paid</td>
+                        <td class="text-end text-success">-$${parseFloat(invoice.amount_paid).toFixed(2)}</td>
+                    </tr>
+                    <tr class="table-${parseFloat(invoice.total - invoice.amount_paid) > 0 ? 'danger' : 'success'}">
+                        <td colspan="3" class="text-end"><strong>Balance Due</strong></td>
+                        <td class="text-end"><strong>$${parseFloat(invoice.total - invoice.amount_paid).toFixed(2)}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            ${invoice.notes ? `
+            <hr>
+            <h6>Notes</h6>
+            <p class="text-muted">${invoice.notes}</p>
+            ` : ''}
+        </div>
+
+        <!-- Payment History -->
+        ${payments.length > 0 ? `
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-history me-2"></i>Payment History</h5>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${payments.map(p => `
+                    <tr>
+                        <td>${new Date(p.payment_date).toLocaleDateString()}</td>
+                        <td>${p.payment_method || 'N/A'}</td>
+                        <td>${p.reference_number || 'N/A'}</td>
+                        <td class="text-end text-success">$${parseFloat(p.amount).toFixed(2)}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        ` : ''}
+    </div>
+
+    <div class="col-md-4">
+        <!-- Pay Now Card -->
+        ${parseFloat(invoice.total - invoice.amount_paid) > 0 && (invoice.status === 'sent' || invoice.status === 'overdue') ? `
+        <div class="portal-card bg-light">
+            <h5 class="mb-3"><i class="fas fa-credit-card me-2 text-success"></i>Pay Now</h5>
+            <div class="text-center mb-4">
+                <h2 class="text-danger">$${parseFloat(invoice.total - invoice.amount_paid).toFixed(2)}</h2>
+                <p class="text-muted">Balance Due</p>
+            </div>
+            ${paymentLink ? `
+            <a href="/pay/${paymentLink}" class="btn btn-success btn-lg w-100 mb-3">
+                <i class="fas fa-lock me-2"></i>Pay Securely
+            </a>
+            <p class="text-center text-muted small">
+                <i class="fas fa-shield-alt me-1"></i>Secured by Stripe
+            </p>
+            ` : `
+            <p class="text-center text-muted">
+                Contact your attorney to receive a payment link.
+            </p>
+            `}
+        </div>
+        ` : ''}
+
+        <!-- Download Options -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-download me-2"></i>Download</h5>
+            <a href="/portal/invoices/${invoice.id}/pdf" class="btn btn-outline-primary w-100 mb-2">
+                <i class="fas fa-file-pdf me-2"></i>Download PDF
+            </a>
+            <a href="/portal/invoices/${invoice.id}/print" target="_blank" class="btn btn-outline-secondary w-100">
+                <i class="fas fa-print me-2"></i>Print Invoice
+            </a>
+        </div>
+
+        <!-- Need Help -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-question-circle me-2"></i>Need Help?</h5>
+            <p class="text-muted small">If you have questions about this invoice, please contact your attorney.</p>
+            <a href="/portal/messages" class="btn btn-outline-primary w-100">
+                <i class="fas fa-envelope me-2"></i>Send Message
+            </a>
+        </div>
+    </div>
+</div>
+` }) %>

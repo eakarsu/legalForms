@@ -1,0 +1,343 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'reports' }) %>
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+            <li class="breadcrumb-item active">Cases</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-briefcase me-2"></i>Case Analytics</h2>
+            <p class="text-muted mb-0">Overview of case performance and status</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary" onclick="downloadCSV()"><i class="fas fa-file-csv me-1"></i>CSV</button>
+            <button class="btn btn-outline-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary"><%= summary.open || 0 %></h3>
+                    <small>Open</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-warning"><%= summary.pending || 0 %></h3>
+                    <small>Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success"><%= summary.closed || 0 %></h3>
+                    <small>Closed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-info"><%= summary.total || 0 %></h3>
+                    <small>Total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3><%= summary.avgDays || 0 %></h3>
+                    <small>Avg Days Open</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3>$<%= ((summary.avgValue || 0) / 1000).toFixed(0) %>K</h3>
+                    <small>Avg Value</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Status Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Case Status Distribution</h5></div>
+                <div class="card-body">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Type Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Case Type Distribution</h5></div>
+                <div class="card-body">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cases by Type Table -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Cases by Type</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Case Type</th>
+                            <th class="text-end">Count</th>
+                            <th class="text-end">Open</th>
+                            <th class="text-end">Closed</th>
+                            <th class="text-end">Avg Duration (Days)</th>
+                            <th class="text-end">Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% byType.forEach(row => { %>
+                        <tr>
+                            <td><%= row.case_type || 'Unspecified' %></td>
+                            <td class="text-end"><%= row.count %></td>
+                            <td class="text-end text-primary"><%= row.open || 0 %></td>
+                            <td class="text-end text-success"><%= row.closed || 0 %></td>
+                            <td class="text-end"><%= row.avgDays || '-' %></td>
+                            <td class="text-end">$<%= parseFloat(row.totalValue || 0).toLocaleString() %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Cases -->
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Recently Closed Cases</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Case</th>
+                            <th>Client</th>
+                            <th>Type</th>
+                            <th>Opened</th>
+                            <th>Closed</th>
+                            <th>Duration</th>
+                            <th class="text-end">Billed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% recentClosed.forEach(c => { %>
+                        <tr>
+                            <td><a href="/cases/<%= c.id %>"><%= c.title %></a></td>
+                            <td><%= c.client_name || '-' %></td>
+                            <td><%= c.case_type || '-' %></td>
+                            <td><%= c.date_opened ? new Date(c.date_opened).toLocaleDateString() : '-' %></td>
+                            <td><%= c.date_closed ? new Date(c.date_closed).toLocaleDateString() : '-' %></td>
+                            <td><%= c.duration || '-' %> days</td>
+                            <td class="text-end">$<%= parseFloat(c.total_billed || 0).toLocaleString() %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    try {
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Open', 'Pending', 'Closed', 'Archived'],
+                datasets: [{ data: [<%= summary.open || 0 %>, <%= summary.pending || 0 %>, <%= summary.closed || 0 %>, <%= summary.archived || 0 %>], backgroundColor: ['#667eea', '#ffc107', '#28a745', '#6c757d'] }]
+            },
+            options: { responsive: true }
+        });
+
+        const typeData = <%- JSON.stringify(byType) %>;
+        new Chart(document.getElementById('typeChart'), {
+            type: 'bar',
+            data: {
+                labels: typeData.map(d => d.case_type || 'Unspecified'),
+                datasets: [{ label: 'Cases', data: typeData.map(d => d.count), backgroundColor: 'rgba(102, 126, 234, 0.7)' }]
+            },
+            options: { responsive: true, indexAxis: 'y' }
+        });
+    } catch(e) {
+        console.error('Chart error:', e);
+    }
+
+    async function downloadCSV() {
+        let csv = 'Case Analytics Report\n';
+        csv += 'Generated: ' + new Date().toLocaleString() + '\n\n';
+
+        csv += 'Summary\n';
+        csv += 'Open,Pending,Closed,Total,Avg Days Open,Avg Value\n';
+        csv += '<%= summary.open || 0 %>,<%= summary.pending || 0 %>,<%= summary.closed || 0 %>,<%= summary.total || 0 %>,<%= summary.avgDays || 0 %>,$<%= summary.avgValue || 0 %>\n\n';
+
+        csv += 'Cases by Type\n';
+        csv += 'Case Type,Count,Open,Closed,Avg Duration (Days),Total Value\n';
+        <% byType.forEach(row => { %>
+        csv += '"<%= (row.case_type || "Unspecified").replace(/"/g, '""') %>",<%= row.count %>,<%= row.open || 0 %>,<%= row.closed || 0 %>,<%= row.avgDays || 0 %>,$<%= row.totalValue || 0 %>\n';
+        <% }) %>
+
+        csv += '\nRecently Closed Cases\n';
+        csv += 'Case Title,Client,Type,Date Opened,Date Closed,Duration (Days),Total Billed\n';
+        <% recentClosed.forEach(c => { %>
+        csv += '"<%= (c.title || "").replace(/"/g, '""') %>","<%= (c.client_name || "").replace(/"/g, '""') %>","<%= c.case_type || "" %>","<%= c.date_opened ? new Date(c.date_opened).toLocaleDateString() : "" %>","<%= c.date_closed ? new Date(c.date_closed).toLocaleDateString() : "" %>",<%= c.duration || 0 %>,$<%= c.total_billed || 0 %>\n';
+        <% }) %>
+
+        const filename = 'case-analytics-' + new Date().toISOString().split('T')[0] + '.csv';
+
+        // Use blob download (works in all browsers including incognito)
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportPDF() {
+        const pdfContent = document.createElement('div');
+        pdfContent.style.cssText = 'padding: 20px; background: white; font-family: Arial, sans-serif;';
+
+        pdfContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 15px;">
+                <h1 style="color: #667eea; margin: 0;">Case Analytics Report</h1>
+                <p style="color: #666; margin: 5px 0 0 0;">Generated: ${new Date().toLocaleString()}</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; min-width: 80px; margin: 3px;">
+                    <h3 style="margin: 0; color: #667eea;"><%= summary.open || 0 %></h3>
+                    <small>Open</small>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; min-width: 80px; margin: 3px;">
+                    <h3 style="margin: 0; color: #ffc107;"><%= summary.pending || 0 %></h3>
+                    <small>Pending</small>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; min-width: 80px; margin: 3px;">
+                    <h3 style="margin: 0; color: #28a745;"><%= summary.closed || 0 %></h3>
+                    <small>Closed</small>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; min-width: 80px; margin: 3px;">
+                    <h3 style="margin: 0; color: #17a2b8;"><%= summary.total || 0 %></h3>
+                    <small>Total</small>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; min-width: 80px; margin: 3px;">
+                    <h3 style="margin: 0;"><%= summary.avgDays || 0 %></h3>
+                    <small>Avg Days</small>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                <div style="width: 45%;">
+                    <h4 style="color: #333; text-align: center;">Case Status Distribution</h4>
+                    <img src="${document.getElementById('statusChart').toDataURL('image/png')}" style="max-width: 100%; height: auto;">
+                </div>
+                <div style="width: 45%;">
+                    <h4 style="color: #333; text-align: center;">Case Type Distribution</h4>
+                    <img src="${document.getElementById('typeChart').toDataURL('image/png')}" style="max-width: 100%; height: auto;">
+                </div>
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Cases by Type</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Case Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Count</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Open</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Closed</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Avg Duration</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Total Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% byType.forEach(row => { %>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= row.case_type || 'Unspecified' %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= row.count %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #667eea;"><%= row.open || 0 %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #28a745;"><%= row.closed || 0 %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= row.avgDays || '-' %> days</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$<%= parseFloat(row.totalValue || 0).toLocaleString() %></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Recently Closed Cases</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Case</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Client</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Duration</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Billed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% recentClosed.forEach(c => { %>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= c.title %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= c.client_name || '-' %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= c.case_type || '-' %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= c.duration || '-' %> days</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$<%= parseFloat(c.total_billed || 0).toLocaleString() %></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <div style="text-align: center; color: #999; font-size: 12px; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
+                LegalFormsAI - Practice Management System
+            </div>
+        `;
+
+        document.body.appendChild(pdfContent);
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'case-analytics-' + new Date().toISOString().split('T')[0] + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(pdfContent).save().then(() => {
+            document.body.removeChild(pdfContent);
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

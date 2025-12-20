@@ -1,0 +1,209 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'cases' }) %>
+
+    <div class="pm-container">
+        <div class="pm-header">
+            <div class="pm-header-content">
+                <h1><i class="fas fa-briefcase me-2"></i>Cases</h1>
+                <p class="text-muted">Manage your legal matters</p>
+            </div>
+            <a href="/cases/new" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Case
+            </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h3 class="mb-0"><%= stats.open_count || 0 %></h3>
+                        <small>Open Cases</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning">
+                    <div class="card-body">
+                        <h3 class="mb-0"><%= stats.pending_count || 0 %></h3>
+                        <small>Pending</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <h3 class="mb-0"><%= stats.closed_count || 0 %></h3>
+                        <small>Closed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h3 class="mb-0"><%= stats.total_count || 0 %></h3>
+                        <small>Total Cases</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="all">All Status</option>
+                            <option value="open" <%= filters.status === 'open' ? 'selected' : '' %>>Open</option>
+                            <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="closed" <%= filters.status === 'closed' ? 'selected' : '' %>>Closed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Type</label>
+                        <select name="type" class="form-select">
+                            <option value="all">All Types</option>
+                            <option value="litigation" <%= filters.type === 'litigation' ? 'selected' : '' %>>Litigation</option>
+                            <option value="corporate" <%= filters.type === 'corporate' ? 'selected' : '' %>>Corporate</option>
+                            <option value="family" <%= filters.type === 'family' ? 'selected' : '' %>>Family</option>
+                            <option value="estate" <%= filters.type === 'estate' ? 'selected' : '' %>>Estate</option>
+                            <option value="real_estate" <%= filters.type === 'real_estate' ? 'selected' : '' %>>Real Estate</option>
+                            <option value="employment" <%= filters.type === 'employment' ? 'selected' : '' %>>Employment</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Client</label>
+                        <select name="client_id" class="form-select">
+                            <option value="">All Clients</option>
+                            <% clients.forEach(c => { %>
+                                <option value="<%= c.id %>" <%= filters.client_id === c.id ? 'selected' : '' %>>
+                                    <%= c.client_type === 'business' ? c.company_name : c.first_name + ' ' + c.last_name %>
+                                </option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Case title or number..." value="<%= filters.search || '' %>">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-secondary w-100">
+                            <i class="fas fa-search me-1"></i>Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cases Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <% if (cases.length === 0) { %>
+                    <div class="text-center py-5">
+                        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No cases found. <a href="/cases/new">Create your first case</a></p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Case</th>
+                                    <th>Client</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Hours</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% cases.forEach(c => { %>
+                                    <tr class="clickable-row" data-href="/cases/<%= c.id %>" style="cursor: pointer;">
+                                        <td>
+                                            <span class="fw-semibold"><%= c.title %></span>
+                                            <br><small class="text-muted"><%= c.case_number %></small>
+                                        </td>
+                                        <td>
+                                            <% if (c.client_id) { %>
+                                                <span><%= c.client_type === 'business' ? c.client_company : c.client_first_name + ' ' + c.client_last_name %></span>
+                                            <% } else { %>
+                                                <span class="text-muted">No client</span>
+                                            <% } %>
+                                        </td>
+                                        <td><%= c.case_type %></td>
+                                        <td>
+                                            <span class="badge bg-<%= c.status === 'open' ? 'success' : c.status === 'pending' ? 'warning' : 'secondary' %>">
+                                                <%= c.status %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<%= c.priority === 'urgent' ? 'danger' : c.priority === 'high' ? 'warning' : c.priority === 'medium' ? 'info' : 'secondary' %>">
+                                                <%= c.priority %>
+                                            </span>
+                                        </td>
+                                        <td><%= ((c.total_minutes || 0) / 60).toFixed(1) %>h</td>
+                                        <td class="actions-cell">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="/cases/<%= c.id %>" class="btn btn-outline-primary" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="/cases/<%= c.id %>/edit" class="btn btn-outline-secondary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-outline-danger btn-delete-case" data-id="<%= c.id %>" data-title="<%= c.title %>" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Clickable rows
+        document.querySelectorAll('.clickable-row').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a')) return;
+                window.location.href = this.dataset.href;
+            });
+        });
+
+        // Delete case buttons
+        document.querySelectorAll('.btn-delete-case').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deleteCase(this.dataset.id, this.dataset.title);
+            });
+        });
+
+        // Delete case
+        function deleteCase(id, title) {
+            if (confirm('Are you sure you want to delete case "' + title + '"? This will also delete all related time entries, notes, and documents.')) {
+                fetch('/api/cases/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting case: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert('Error deleting case: ' + err.message));
+            }
+        }
+    </script>
+</body>
+</html>

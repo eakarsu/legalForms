@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay Invoice - Secure Payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .payment-header {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3142 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .payment-header h2 {
+            margin-bottom: 5px;
+        }
+        .payment-body {
+            padding: 30px;
+        }
+        .amount-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .amount-display h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .invoice-details {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .invoice-details p {
+            margin: 5px 0;
+            color: #666;
+        }
+        #card-element {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        #card-element.StripeElement--focus {
+            border-color: #667eea;
+        }
+        #card-errors {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-bottom: 15px;
+        }
+        .btn-pay {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+            font-size: 1.1rem;
+        }
+        .btn-pay:hover {
+            opacity: 0.9;
+            color: white;
+        }
+        .btn-pay:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .secure-badge {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+        .secure-badge i {
+            color: #11998e;
+        }
+        .spinner-border {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="payment-header">
+            <i class="fas fa-file-invoice-dollar fa-2x mb-2"></i>
+            <h2>Invoice Payment</h2>
+            <p class="mb-0">Invoice #<%= paymentLink.invoice_number %></p>
+        </div>
+
+        <div class="payment-body">
+            <div class="invoice-details">
+                <p><strong>Bill To:</strong> <%= paymentLink.first_name %> <%= paymentLink.last_name %></p>
+                <% if (paymentLink.company_name) { %>
+                <p><strong>Company:</strong> <%= paymentLink.company_name %></p>
+                <% } %>
+                <p><strong>From:</strong> <%= paymentLink.attorney_first_name %> <%= paymentLink.attorney_last_name %></p>
+                <% if (paymentLink.due_date) { %>
+                <p><strong>Due Date:</strong> <%= new Date(paymentLink.due_date).toLocaleDateString() %></p>
+                <% } %>
+            </div>
+
+            <div class="amount-display">
+                <p class="text-muted mb-1">Amount Due</p>
+                <h1>$<%= balanceDue.toFixed(2) %></h1>
+            </div>
+
+            <form id="payment-form">
+                <div class="mb-3">
+                    <label class="form-label">Card Details</label>
+                    <div id="card-element"></div>
+                    <div id="card-errors" role="alert"></div>
+                </div>
+
+                <button type="submit" class="btn btn-pay" id="submit-button">
+                    <span id="button-text">
+                        <i class="fas fa-lock me-2"></i>Pay $<%= balanceDue.toFixed(2) %>
+                    </span>
+                    <span id="spinner" class="d-none">
+                        <span class="spinner-border spinner-border-sm me-2"></span>Processing...
+                    </span>
+                </button>
+            </form>
+
+            <div class="secure-badge">
+                <i class="fas fa-shield-alt me-2"></i>
+                Secured by Stripe - Your payment info is encrypted
+            </div>
+        </div>
+    </div>
+
+    <% if (stripePublicKey) { %>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        const stripe = Stripe('<%= stripePublicKey %>');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': { color: '#aab7c4' }
+                }
+            }
+        });
+        cardElement.mount('#card-element');
+
+        cardElement.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            displayError.textContent = event.error ? event.error.message : '';
+        });
+
+        const form = document.getElementById('payment-form');
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            setLoading(true);
+
+            // Create payment intent
+            const response = await fetch('/pay/<%= paymentLink.token %>/create-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: <%= balanceDue %> })
+            });
+
+            const { clientSecret, error } = await response.json();
+
+            if (error) {
+                showError(error);
+                setLoading(false);
+                return;
+            }
+
+            // Confirm payment
+            const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: { card: cardElement }
+            });
+
+            if (stripeError) {
+                showError(stripeError.message);
+                setLoading(false);
+            } else if (paymentIntent.status === 'succeeded') {
+                window.location.href = '/pay/<%= paymentLink.token %>/success';
+            }
+        });
+
+        function setLoading(isLoading) {
+            document.getElementById('submit-button').disabled = isLoading;
+            document.getElementById('spinner').classList.toggle('d-none', !isLoading);
+            document.getElementById('button-text').classList.toggle('d-none', isLoading);
+        }
+
+        function showError(message) {
+            document.getElementById('card-errors').textContent = message;
+        }
+    </script>
+    <% } else { %>
+    <!-- Demo mode without Stripe -->
+    <script>
+        const form = document.getElementById('payment-form');
+        const cardElement = document.getElementById('card-element');
+        cardElement.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Demo Mode:</strong> Click pay to simulate a successful payment.
+            </div>
+        `;
+
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            setLoading(true);
+
+            const response = await fetch('/pay/<%= paymentLink.token %>/demo-process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: <%= balanceDue %> })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = '/pay/<%= paymentLink.token %>/success';
+            } else {
+                alert('Payment failed: ' + result.error);
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            document.getElementById('submit-button').disabled = isLoading;
+            document.getElementById('spinner').classList.toggle('d-none', !isLoading);
+            document.getElementById('button-text').classList.toggle('d-none', isLoading);
+        }
+    </script>
+    <% } %>
+</body>
+</html>

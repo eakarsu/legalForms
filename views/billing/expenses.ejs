@@ -1,0 +1,231 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'billing' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-receipt me-2"></i>Expenses</h2>
+            <p class="text-muted mb-0">Track case and firm expenses</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            <i class="fas fa-plus me-2"></i>Add Expense
+        </button>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <select name="case_id" class="form-select">
+                        <option value="">All Cases</option>
+                        <% cases.forEach(c => { %>
+                        <option value="<%= c.id %>" <%= filters.case_id === c.id ? 'selected' : '' %>><%= c.title %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="category" class="form-select">
+                        <option value="all">All Categories</option>
+                        <option value="filing_fee">Filing Fee</option>
+                        <option value="travel">Travel</option>
+                        <option value="copies">Copies</option>
+                        <option value="expert">Expert</option>
+                        <option value="postage">Postage</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="is_billed" class="form-select">
+                        <option value="all">All</option>
+                        <option value="false">Unbilled</option>
+                        <option value="true">Billed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-search"></i> Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <% if (expenses.length === 0) { %>
+                <div class="text-center py-5"><p class="text-muted">No expenses found</p></div>
+            <% } else { %>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Date</th><th>Description</th><th>Case</th><th>Category</th><th>Vendor</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% expenses.forEach(e => { %>
+                                <tr class="clickable-row" data-id="<%= e.id %>" style="cursor: pointer;">
+                                    <td><%= new Date(e.expense_date).toLocaleDateString() %></td>
+                                    <td><%= e.description %></td>
+                                    <td><%= e.case_title || '-' %></td>
+                                    <td><span class="badge bg-secondary"><%= e.category %></span></td>
+                                    <td><%= e.vendor || '-' %></td>
+                                    <td>$<%= parseFloat(e.amount).toFixed(2) %></td>
+                                    <td><span class="badge bg-<%= e.is_billed ? 'success' : 'warning' %>"><%= e.is_billed ? 'Billed' : 'Unbilled' %></span></td>
+                                    <td onclick="event.stopPropagation();">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary btn-edit" data-id="<%= e.id %>" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-outline-danger btn-delete" data-id="<%= e.id %>" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Add Expense</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label>Case</label><select id="expCase" name="case_id" class="form-select"><option value="">No Case</option><% cases.forEach(c => { %><option value="<%= c.id %>"><%= c.title %></option><% }) %></select></div>
+                <div class="mb-3"><label>Description *</label><input type="text" id="expDesc" name="description" class="form-control" required></div>
+                <div class="row">
+                    <div class="col-6 mb-3"><label>Amount *</label><input type="number" id="expAmount" name="amount" class="form-control" step="0.01" required></div>
+                    <div class="col-6 mb-3"><label>Date</label><input type="date" id="expDate" name="date" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>"></div>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3"><label>Category</label><select id="expCategory" name="category" class="form-select"><option value="filing_fee">Filing Fee</option><option value="travel">Travel</option><option value="copies">Copies</option><option value="expert">Expert</option><option value="postage">Postage</option><option value="other">Other</option></select></div>
+                    <div class="col-6 mb-3"><label>Vendor</label><input type="text" id="expVendor" name="vendor" class="form-control"></div>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="expBillable" name="billable" checked>
+                    <label class="form-check-label" for="expBillable">Billable expense</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="btnSaveExpense">Save</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-receipt me-2"></i>Expense Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="expenseDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="btnDeleteExpense"><i class="fas fa-trash me-1"></i>Delete</button>
+                <button type="button" class="btn btn-outline-primary" id="btnEditExpense"><i class="fas fa-edit me-1"></i>Edit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentExpenseId = null;
+
+    document.querySelectorAll('.clickable-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-group') || e.target.closest('button')) return;
+            if (this.dataset.id) viewExpense(this.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.btn-edit').forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); editExpense(this.dataset.id); });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); deleteExpense(this.dataset.id); });
+    });
+
+    function saveExpense() {
+        var editId = document.getElementById('addExpenseModal').dataset.editId;
+        fetch(editId ? '/api/expenses/' + editId : '/api/expenses', {
+            method: editId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                case_id: document.getElementById('expCase').value || null,
+                description: document.getElementById('expDesc').value,
+                amount: document.getElementById('expAmount').value,
+                expense_date: document.getElementById('expDate').value,
+                category: document.getElementById('expCategory').value,
+                vendor: document.getElementById('expVendor').value
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) location.reload();
+            else alert('Error saving expense: ' + (data.error || 'Unknown error'));
+        })
+        .catch(function(err) { alert('Failed to save expense'); console.error(err); });
+    }
+
+    function deleteExpense(id) {
+        if (confirm('Delete this expense?')) {
+            fetch('/api/expenses/' + id, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => { if (data.success) location.reload(); else alert('Error: ' + (data.error || 'Failed')); });
+        }
+    }
+
+    function viewExpense(id) {
+        currentExpenseId = id;
+        fetch('/api/expenses/' + id).then(r => r.json()).then(function(data) {
+            if (data.expense) {
+                var e = data.expense;
+                var html = '<table class="table table-borderless">' +
+                    '<tr><th width="140">Date:</th><td>' + new Date(e.expense_date).toLocaleDateString() + '</td></tr>' +
+                    '<tr><th>Amount:</th><td><strong>$' + parseFloat(e.amount).toFixed(2) + '</strong></td></tr>' +
+                    '<tr><th>Category:</th><td><span class="badge bg-info">' + e.category + '</span></td></tr>' +
+                    '<tr><th>Vendor:</th><td>' + (e.vendor || 'N/A') + '</td></tr>' +
+                    '<tr><th>Case:</th><td>' + (e.case_title || 'Not linked') + '</td></tr>' +
+                    '<tr><th>Billed:</th><td>' + (e.is_billed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-warning">No</span>') + '</td></tr>' +
+                    '</table><div class="mt-3"><strong>Description:</strong><p class="p-3 bg-light rounded">' + e.description + '</p></div>';
+                document.getElementById('expenseDetails').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('viewExpenseModal')).show();
+            }
+        });
+    }
+
+    function editExpense(id) {
+        fetch('/api/expenses/' + id).then(r => r.json()).then(function(data) {
+            if (data.expense) {
+                var e = data.expense;
+                document.getElementById('expCase').value = e.case_id || '';
+                document.getElementById('expDesc').value = e.description;
+                document.getElementById('expAmount').value = e.amount;
+                document.getElementById('expDate').value = e.expense_date.split('T')[0];
+                document.getElementById('expCategory').value = e.category;
+                document.getElementById('expVendor').value = e.vendor || '';
+                document.getElementById('addExpenseModal').dataset.editId = id;
+                document.querySelector('#addExpenseModal .modal-header h5').textContent = 'Edit Expense';
+                new bootstrap.Modal(document.getElementById('addExpenseModal')).show();
+            }
+        });
+    }
+
+    document.getElementById('btnEditExpense').onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal')).hide();
+        editExpense(currentExpenseId);
+    };
+
+    document.getElementById('btnDeleteExpense').onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal')).hide();
+        deleteExpense(currentExpenseId);
+    };
+
+    document.getElementById('addExpenseModal').addEventListener('hidden.bs.modal', function() {
+        delete this.dataset.editId;
+        document.querySelector('#addExpenseModal .modal-header h5').textContent = 'Add Expense';
+    });
+
+    document.getElementById('btnSaveExpense').addEventListener('click', saveExpense);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<%- include('../base-pm', {
+    title: title,
+    description: 'Client trust ledger details'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/trust">Trust Accounting</a></li>
+                    <li class="breadcrumb-item"><a href="/trust/<%= accountId %>"><%= ledger.account_name %></a></li>
+                    <li class="breadcrumb-item active"><%= ledger.first_name %> <%= ledger.last_name %></li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-user me-2"></i><%= ledger.first_name %> <%= ledger.last_name %></h2>
+            <p class="text-muted mb-0">
+                <% if (ledger.case_title) { %>
+                    Case: <%= ledger.case_title %> (<%= ledger.case_number %>)
+                <% } else { %>
+                    General Trust Ledger
+                <% } %>
+            </p>
+        </div>
+        <div>
+            <a href="/trust/<%= accountId %>" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Account
+            </a>
+        </div>
+    </div>
+
+    <!-- Ledger Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>$<%= parseFloat(ledger.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></h3>
+                    <small>Current Balance</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5><%= ledger.email || 'N/A' %></h5>
+                    <small class="text-muted">Email</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5><%= ledger.phone || 'N/A' %></h5>
+                    <small class="text-muted">Phone</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Transaction History</h5>
+        </div>
+        <div class="card-body">
+            <% if (transactions.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end">Balance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% transactions.forEach(tx => { %>
+                        <tr class="clickable-row" data-id="<%= tx.id %>" style="cursor: pointer;">
+                            <td><%= new Date(tx.transaction_date).toLocaleDateString() %></td>
+                            <td>
+                                <span class="badge bg-<%= tx.transaction_type === 'deposit' ? 'success' : 'danger' %>">
+                                    <%= tx.transaction_type %>
+                                </span>
+                            </td>
+                            <td><%= tx.description %></td>
+                            <td><%= tx.reference_number || '-' %></td>
+                            <td class="text-end <%= tx.transaction_type === 'deposit' ? 'text-success' : 'text-danger' %>">
+                                <%= tx.transaction_type === 'deposit' ? '+' : '-' %>$<%= parseFloat(tx.amount || 0).toFixed(2) %>
+                            </td>
+                            <td class="text-end">$<%= parseFloat(tx.running_balance || 0).toFixed(2) %></td>
+                            <td>
+                                <% if (tx.reconciled) { %>
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Reconciled</span>
+                                <% } else { %>
+                                    <span class="badge bg-warning">Pending</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } else { %>
+            <div class="text-center py-5">
+                <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No transactions for this ledger yet</p>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Detail Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-receipt me-2"></i>Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="transactionDetails">
+                Loading...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        const id = this.dataset.id;
+        // Show transaction details in modal
+        const cells = this.querySelectorAll('td');
+        const html = `
+            <table class="table table-borderless">
+                <tr><th>Date:</th><td>${cells[0].textContent}</td></tr>
+                <tr><th>Type:</th><td>${cells[1].textContent.trim()}</td></tr>
+                <tr><th>Description:</th><td>${cells[2].textContent}</td></tr>
+                <tr><th>Reference:</th><td>${cells[3].textContent}</td></tr>
+                <tr><th>Amount:</th><td><strong>${cells[4].textContent}</strong></td></tr>
+                <tr><th>Balance:</th><td>${cells[5].textContent}</td></tr>
+                <tr><th>Status:</th><td>${cells[6].innerHTML}</td></tr>
+            </table>
+        `;
+        document.getElementById('transactionDetails').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('transactionModal')).show();
+    });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

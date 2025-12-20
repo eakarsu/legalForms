@@ -87,13 +87,36 @@
                     <div class="mb-4">
                         <label for="naturalLanguageInput" class="form-label">Describe Your Legal Needs</label>
                         <div class="input-group">
-                            <textarea class="form-control" id="naturalLanguageInput" rows="3" 
+                            <textarea class="form-control" id="naturalLanguageInput" rows="3"
                                 placeholder="Example: I need to form an LLC for my consulting business in California..."></textarea>
+                            <button class="btn btn-outline-danger" type="button" id="voiceInputBtn" title="Click to start voice input (or press Ctrl+Shift+V)">
+                                <i class="fas fa-microphone" id="voiceIcon"></i> <span id="voiceBtnText">Voice</span>
+                            </button>
                             <button class="btn btn-outline-secondary" type="button" id="parseNLBtn">
                                 <i class="fas fa-magic"></i> Parse
                             </button>
                         </div>
-                        <small class="form-text text-muted">Describe what you need in plain English, and we'll help fill out the form.</small>
+                        <small class="form-text text-muted">Type or speak to describe what you need in plain English, and we'll help fill out the form.</small>
+
+                        <!-- Example Buttons -->
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2" id="example1Btn">
+                                <i class="fas fa-lightbulb"></i> Example 1
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="example2Btn">
+                                <i class="fas fa-lightbulb"></i> Example 2
+                            </button>
+                        </div>
+
+                        <!-- Voice Status Indicator -->
+                        <div id="voiceStatus" class="mt-2" style="display: none;">
+                            <div class="alert alert-info mb-0 d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span id="voiceStatusText">Listening...</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Template Recommendations -->
@@ -1127,10 +1150,54 @@
     $(document).on('DOMSubtreeModified', '#formFields', function() {
         setupComplianceValidation();
     });
+
+    // Example buttons - Pre-fill with sample lead data based on form type
+    const formType = '<%= formType %>';
+
+    // Define examples for each form type
+    const examples = {
+        'business': {
+            example1: `I want to form a Limited Liability Company (LLC) for my consulting business. The company name is TechConsult Solutions LLC. The business will be registered in California. The registered agent is Sarah Johnson located at 456 Business Ave, Suite 200, Los Angeles, CA 90012. The business purpose is to provide technology consulting and software development services. There are two members: Michael Chen who owns 60% and holds the title of Managing Member, and Lisa Wong who owns 40% and is a Member. The company will be member-managed. The initial capital contribution is $50,000. The fiscal year will be calendar year. The business address is 789 Tech Park Drive, San Francisco, CA 94105.`,
+            example2: `I need to create a Corporation for my manufacturing business. The corporation name is Advanced Manufacturing Inc. It will be registered in Delaware. The registered agent is Corporate Services LLC at 100 Corporate Blvd, Wilmington, DE 19801. The corporation purpose is to manufacture and distribute industrial equipment. The corporation will issue 10,000 shares of common stock with a par value of $1.00 per share. The incorporator is David Martinez. There are three directors: Jennifer Lee, Robert Brown, and Susan Taylor. The principal office is located at 500 Industrial Way, Chicago, IL 60601. The fiscal year ends on December 31.`
+        },
+        'real-estate': {
+            example1: `I need to create a residential lease agreement for a property located at 123 Main Street, Apartment 4B, New York, NY 10001. The monthly rent is $2,500 and the security deposit is $2,500. The lease term is 12 months starting on January 1, 2026 and ending on December 31, 2026. The landlord is John Smith, phone number 555-123-4567, email john.smith@email.com. The tenant is Jane Doe, phone number 555-987-6543, email jane.doe@email.com. Utilities included are water and trash removal. Tenant is responsible for electricity and internet. Pets are allowed with a $300 pet deposit. No smoking is allowed on the property.`,
+            example2: `I want to create a real estate purchase agreement. The property is a single-family home located at 456 Oak Avenue, Los Angeles, CA 90015. The purchase price is $750,000. The buyer is Mark Thompson and spouse Emily Thompson. The seller is Patricia Williams. The earnest money deposit is $25,000 to be held in escrow by ABC Title Company. The closing date is March 15, 2026. The sale includes all appliances, window treatments, and garage door openers. The property is being sold as-is. The buyer will obtain conventional financing. Contingencies include home inspection within 10 days and loan approval within 30 days.`
+        },
+        'family-law': {
+            example1: `I need to file for divorce. My name is Amanda Roberts and my spouse is James Roberts. We were married on June 15, 2015 in Miami, Florida. We have been separated since January 1, 2025. We have two minor children: Emma Roberts age 8 and Noah Roberts age 5. We agree on joint legal custody with primary physical custody to me. We own a home at 789 Maple Drive, Miami, FL 33101 valued at $400,000 with a mortgage of $250,000. We have a joint savings account with $30,000 and a joint checking account with $5,000. My spouse has a 401k worth $80,000. We agree to divide assets equally. I am requesting child support based on state guidelines. No spousal support is being requested.`,
+            example2: `I want to create a prenuptial agreement. My name is Christopher Davis and my future spouse is Rachel Martinez. We plan to marry on August 20, 2026 in Austin, Texas. I own a business called Davis Tech Solutions valued at $500,000. I also own a rental property at 234 River Road, Austin, TX 78701. My future spouse owns a home at 567 Hill Street, Austin, TX 78702 valued at $350,000. We agree that all property owned before marriage will remain separate property. Any property acquired during marriage will be community property. We each have separate retirement accounts that will remain separate. In case of divorce, no spousal support will be paid by either party. We each have consulted with independent legal counsel.`
+        },
+        'employment': {
+            example1: `I need an employment agreement for a new hire. The company is Tech Innovations LLC located at 100 Tech Plaza, San Jose, CA 95101. The employee is Alex Morgan. The position is Senior Software Engineer. The start date is February 1, 2026. The annual salary is $120,000 paid bi-weekly. The employee is eligible for health insurance, dental insurance, and 401k with 4% company match. The employee will receive 15 days of PTO per year. The employment is at-will. The employee must sign a confidentiality agreement and non-compete for 12 months within a 50 mile radius. The employee will work Monday through Friday, 9am to 5pm, with option for remote work 2 days per week. The probationary period is 90 days.`,
+            example2: `I want to create an independent contractor agreement. The company is Marketing Plus Inc located at 200 Commerce Street, Dallas, TX 75201. The contractor is Jordan Lee doing business as JL Creative Services. The services to be provided are graphic design and marketing materials creation. The contract term is 6 months from January 1, 2026 to June 30, 2026 with option to renew. The compensation is $5,000 per month paid on the first of each month. The contractor will provide their own equipment and software. The contractor can work for other clients. All work product will be owned by the company. The contractor must maintain liability insurance of at least $1 million. Either party can terminate with 30 days written notice.`
+        },
+        'contracts': {
+            example1: `I need a service agreement between my company and a client. My company is ABC Services LLC located at 300 Business Park, Seattle, WA 98101. The client is XYZ Corporation at 400 Corporate Center, Portland, OR 97201. We will provide IT support and maintenance services. The contract term is one year starting March 1, 2026. The monthly fee is $3,000 for up to 40 hours of service per month. Additional hours are billed at $100 per hour. Payment is due within 15 days of invoice. We will provide 24/7 emergency support. Response time for critical issues is 2 hours. The contract automatically renews unless either party gives 60 days notice. We provide a 99% uptime guarantee. Liability is limited to the amount paid in the previous 3 months.`,
+            example2: `I want to create a non-disclosure agreement. The disclosing party is Innovation Tech Inc located at 500 Startup Way, Boston, MA 02101. The receiving party is Venture Partners LLC at 600 Investment Plaza, New York, NY 10001. The purpose is to discuss a potential business partnership and investment opportunity. The confidential information includes business plans, financial projections, customer lists, and proprietary technology. The receiving party agrees not to disclose the information to third parties and to use it only for evaluation purposes. The NDA term is 3 years from the date of signing. The receiving party must return or destroy all confidential materials upon request. The agreement is governed by Massachusetts law.`
+        },
+        'litigation': {
+            example1: `I need to file a civil complaint. I am the plaintiff, Thomas Anderson, residing at 700 Elm Street, Phoenix, AZ 85001. The defendant is Global Services Corp located at 800 Corporate Drive, Phoenix, AZ 85002. On September 15, 2025, I entered into a contract with the defendant to provide consulting services for $50,000. I completed all services by November 1, 2025 as agreed. Despite multiple demands, the defendant has refused to pay the agreed amount. I am owed $50,000 plus interest. I have suffered damages including lost business opportunities valued at $10,000. I am requesting judgment for $60,000 plus interest, costs, and attorney fees. I have attached the signed contract and proof of completed work.`,
+            example2: `I want to file a small claims complaint. I am the plaintiff, Maria Garcia, at 900 Main Avenue, Miami, FL 33101. The defendant is Quick Fix Repairs, a sole proprietorship owned by Tom Wilson at 1000 Service Road, Miami, FL 33102. On July 20, 2025, I paid the defendant $3,500 to repair my roof. The defendant did incomplete and substandard work. The roof still leaks and other contractors estimate it will cost $4,000 to properly repair. I contacted the defendant multiple times but they refused to fix the problems or provide a refund. I am requesting $3,500 refund plus $500 for additional damages to interior ceiling. Total claim amount is $4,000.`
+        }
+    };
+
+    $(document).on('click', '#example1Btn', function() {
+        let exampleText = examples[formType]?.example1 || examples['business'].example1;
+        $('#naturalLanguageInput').val(exampleText);
+        $('#naturalLanguageInput').focus();
+    });
+
+    $(document).on('click', '#example2Btn', function() {
+        let exampleText = examples[formType]?.example2 || examples['business'].example2;
+        $('#naturalLanguageInput').val(exampleText);
+        $('#naturalLanguageInput').focus();
+    });
     </script>
 
     <!-- Include enhanced feature scripts -->
     <script src="/js/compliance.js"></script>
     <script src="/js/nlp.js"></script>
+    <script src="/js/voice-input.js"></script>
 </body>
 </html>

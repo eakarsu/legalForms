@@ -1,0 +1,58 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'payments' }) %>
+
+<div class="container-fluid py-4">
+    <h2><i class="fas fa-plus me-2"></i>Create Payment Link</h2>
+    <p class="text-muted">Generate a payment link for an invoice</p>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <form action="/api/invoices/INVOICE_ID/payment-link" method="POST" id="linkForm">
+                <div class="mb-3">
+                    <label class="form-label">Select Invoice</label>
+                    <select class="form-select" name="invoice_id" id="invoiceSelect" required>
+                        <option value="">Choose an invoice...</option>
+                        <% invoices.forEach(inv => { %>
+                        <option value="<%= inv.id %>">
+                            <%= inv.invoice_number %> - <%= inv.company_name || (inv.first_name + ' ' + inv.last_name) %> - $<%= parseFloat(inv.total - inv.amount_paid).toFixed(2) %> due
+                        </option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Expires In (Days)</label>
+                    <input type="number" class="form-control" name="expires_days" value="30" min="1" max="365">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-link me-1"></i>Generate Payment Link
+                </button>
+                <a href="/payments/links" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('linkForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const invoiceId = document.getElementById('invoiceSelect').value;
+    if (!invoiceId) return alert('Please select an invoice');
+
+    const formData = new FormData(this);
+    const response = await fetch('/api/invoices/' + invoiceId + '/payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expires_days: formData.get('expires_days') })
+    });
+    const data = await response.json();
+    if (data.success) {
+        alert('Payment link created! URL: ' + data.paymentUrl);
+        window.location.href = '/payments/links';
+    } else {
+        alert('Error: ' + data.error);
+    }
+};
+</script>
+</body>
+</html>

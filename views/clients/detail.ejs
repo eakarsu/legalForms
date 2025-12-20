@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - LegalFormsAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/css/custom.css" rel="stylesheet">
+    <link href="/css/practice-management.css" rel="stylesheet">
+    <style>
+        .pm-navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .pm-navbar .navbar-brand .brand-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pm-navbar .nav-link {
+            color: rgba(255,255,255,0.85) !important;
+        }
+        .pm-navbar .nav-link:hover, .pm-navbar .nav-link.active {
+            color: #fff !important;
+        }
+        .pm-navbar .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Practice Management Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark pm-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/dashboard">
+                <div class="brand-icon me-2">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-text">LegalForms<span class="text-info">AI</span></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#pmNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="pmNavbar">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i>Dashboard</a></li>
+
+                    <!-- Clients -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" data-bs-toggle="dropdown"><i class="fas fa-users me-1"></i>Clients</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/clients"><i class="fas fa-list me-2"></i>All Clients</a></li>
+                            <li><a class="dropdown-item" href="/clients/analytics"><i class="fas fa-chart-line me-2"></i>Analytics</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Leads -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-user-plus me-1"></i>Leads</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/leads"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/leads/forms"><i class="fas fa-file-alt me-2"></i>Intake Forms</a></li>
+                            <li><a class="dropdown-item" href="/leads/analytics"><i class="fas fa-chart-line me-2"></i>Analytics</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Conflicts -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-exclamation-triangle me-1"></i>Conflicts</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/conflicts"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/conflicts/history"><i class="fas fa-history me-2"></i>Check History</a></li>
+                            <li><a class="dropdown-item" href="/conflicts/parties"><i class="fas fa-users me-2"></i>Parties Database</a></li>
+                            <li><a class="dropdown-item" href="/conflicts/waivers"><i class="fas fa-file-signature me-2"></i>Waivers</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Cases -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-briefcase me-1"></i>Cases</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/cases"><i class="fas fa-list me-2"></i>All Cases</a></li>
+                            <li><a class="dropdown-item" href="/deadlines"><i class="fas fa-exclamation-circle me-2"></i>Deadlines</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Calendar -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-calendar-alt me-1"></i>Calendar</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/calendar"><i class="fas fa-calendar me-2"></i>Calendar View</a></li>
+                            <li><a class="dropdown-item" href="/deadlines"><i class="fas fa-clock me-2"></i>Deadlines</a></li>
+                            <li><a class="dropdown-item" href="/tasks"><i class="fas fa-tasks me-2"></i>Tasks</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Calendar Sync -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-sync me-1"></i>Cal Sync</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/calendar-sync"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/calendar-sync/settings"><i class="fas fa-cog me-2"></i>Sync Settings</a></li>
+                            <li><a class="dropdown-item" href="/calendar-sync/history"><i class="fas fa-history me-2"></i>Sync History</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Billing -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-dollar-sign me-1"></i>Billing</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/billing"><i class="fas fa-chart-line me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/billing/time"><i class="fas fa-stopwatch me-2"></i>Time Tracking</a></li>
+                            <li><a class="dropdown-item" href="/billing/invoices"><i class="fas fa-file-invoice-dollar me-2"></i>Invoices</a></li>
+                            <li><a class="dropdown-item" href="/billing/expenses"><i class="fas fa-receipt me-2"></i>Expenses</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Trust -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-university me-1"></i>Trust</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/trust"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/trust/accounts"><i class="fas fa-piggy-bank me-2"></i>Accounts</a></li>
+                            <li><a class="dropdown-item" href="/trust/ledgers"><i class="fas fa-book me-2"></i>Client Ledgers</a></li>
+                            <li><a class="dropdown-item" href="/trust/transactions"><i class="fas fa-exchange-alt me-2"></i>Transactions</a></li>
+                            <li><a class="dropdown-item" href="/trust/reconciliation"><i class="fas fa-balance-scale me-2"></i>Reconciliation</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Payments -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-credit-card me-1"></i>Payments</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/payments"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/payments/links"><i class="fas fa-link me-2"></i>Payment Links</a></li>
+                            <li><a class="dropdown-item" href="/payments/transactions"><i class="fas fa-list me-2"></i>Transactions</a></li>
+                            <li><a class="dropdown-item" href="/payments/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Documents -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-file-alt me-1"></i>Documents</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/services"><i class="fas fa-file-contract me-2"></i>Document Generator</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/ai-drafting"><i class="fas fa-robot me-2"></i>AI Drafting</a></li>
+                            <li><a class="dropdown-item" href="/ocr"><i class="fas fa-file-image me-2"></i>Document OCR</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Messages -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-envelope me-1"></i>Messages</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/messages"><i class="fas fa-inbox me-2"></i>Inbox</a></li>
+                            <li><a class="dropdown-item" href="/notifications"><i class="fas fa-bell me-2"></i>Notifications</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Reports -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-chart-bar me-1"></i>Reports</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/reports"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/reports/revenue"><i class="fas fa-dollar-sign me-2"></i>Revenue</a></li>
+                            <li><a class="dropdown-item" href="/reports/productivity"><i class="fas fa-clock me-2"></i>Productivity</a></li>
+                            <li><a class="dropdown-item" href="/reports/cases"><i class="fas fa-briefcase me-2"></i>Cases</a></li>
+                            <li><a class="dropdown-item" href="/reports/clients"><i class="fas fa-users me-2"></i>Clients</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <!-- Right side menu -->
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/portal/login" target="_blank" title="Client Portal"><i class="fas fa-external-link-alt"></i></a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="fas fa-user-circle me-1"></i>Account</a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/team"><i class="fas fa-users-cog me-2"></i>Team</a></li>
+                            <li><a class="dropdown-item" href="/activity"><i class="fas fa-history me-2"></i>Activity Log</a></li>
+                            <li><a class="dropdown-item" href="/2fa/setup"><i class="fas fa-shield-alt me-2"></i>Two-Factor Auth</a></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><form action="/logout" method="POST" class="d-inline"><button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button></form></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/clients">Clients</a></li>
+                <li class="breadcrumb-item active"><%= title %></li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    <% if (client.client_type === 'business') { %>
+                        <i class="fas fa-building me-2"></i><%= client.company_name %>
+                    <% } else { %>
+                        <i class="fas fa-user me-2"></i><%= client.first_name %> <%= client.last_name %>
+                    <% } %>
+                    <span class="badge bg-<%= client.status === 'active' ? 'success' : 'secondary' %> ms-2"><%= client.status %></span>
+                </h2>
+            </div>
+            <div>
+                <a href="/clients/<%= client.id %>/edit" class="btn btn-outline-primary me-2"><i class="fas fa-edit me-1"></i>Edit</a>
+                <button class="btn btn-outline-danger" onclick="deleteClient()"><i class="fas fa-trash me-1"></i>Delete</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Client Information</h5></div>
+                    <div class="card-body">
+                        <% if (client.email) { %><p><i class="fas fa-envelope text-muted me-2"></i><%= client.email %></p><% } %>
+                        <% if (client.phone) { %><p><i class="fas fa-phone text-muted me-2"></i><%= client.phone %></p><% } %>
+                        <% if (client.address) { %><p><i class="fas fa-map-marker-alt text-muted me-2"></i><%= client.address %></p><% } %>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Billing</h5></div>
+                    <div class="card-body">
+                        <p>Total Billed: $<%= parseFloat(billing.total_billed || 0).toFixed(2) %></p>
+                        <p>Total Paid: $<%= parseFloat(billing.total_paid || 0).toFixed(2) %></p>
+                        <p>Outstanding: $<%= parseFloat(billing.outstanding || 0).toFixed(2) %></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Cases (<%= cases.length %>)</h5></div>
+                    <div class="card-body p-0">
+                        <% if (cases.length === 0) { %>
+                            <div class="text-center py-4"><p class="text-muted">No cases</p></div>
+                        <% } else { %>
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Case</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <% cases.forEach(function(c) { %>
+                                        <tr style="cursor:pointer" onclick="window.location='/cases/<%= c.id %>'">
+                                            <td><%= c.title %></td>
+                                            <td><%= c.status %></td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Invoices (<%= invoices.length %>)</h5></div>
+                    <div class="card-body p-0">
+                        <% if (invoices.length === 0) { %>
+                            <div class="text-center py-4"><p class="text-muted">No invoices</p></div>
+                        <% } else { %>
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Invoice</th><th>Total</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <% invoices.forEach(function(inv) { %>
+                                        <tr style="cursor:pointer" onclick="window.location='/billing/invoices/<%= inv.id %>'">
+                                            <td><%= inv.invoice_number %></td>
+                                            <td>$<%= parseFloat(inv.total).toFixed(2) %></td>
+                                            <td><%= inv.status %></td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function deleteClient() {
+            if (confirm('Delete this client? This cannot be undone.')) {
+                fetch('/api/clients/<%= client.id %>', { method: 'DELETE' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) window.location='/clients';
+                    else alert('Error: ' + (d.error || 'Failed to delete client'));
+                })
+                .catch(function(err) {
+                    alert('Failed to delete client');
+                    console.error(err);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

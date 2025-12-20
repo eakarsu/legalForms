@@ -1,0 +1,75 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'calendar-sync' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-sync me-2"></i>Calendar Sync</h2>
+            <p class="text-muted mb-0">Sync your calendar with Google and Outlook</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0"><i class="fab fa-google me-2"></i>Google Calendar</h5></div>
+                <div class="card-body">
+                    <% const googleConn = connections.find(c => c.provider === 'google'); %>
+                    <% if (googleConn) { %>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>Connected as <%= googleConn.provider_email %>
+                    </div>
+                    <a href="/calendar-sync/settings" class="btn btn-outline-primary">Manage</a>
+                    <% } else { %>
+                    <p class="text-muted">Not connected</p>
+                    <a href="/calendar-sync/google" class="btn btn-primary"><i class="fab fa-google me-1"></i>Connect Google Calendar</a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0"><i class="fab fa-microsoft me-2"></i>Outlook Calendar</h5></div>
+                <div class="card-body">
+                    <% const outlookConn = connections.find(c => c.provider === 'outlook'); %>
+                    <% if (outlookConn) { %>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>Connected as <%= outlookConn.provider_email %>
+                    </div>
+                    <a href="/calendar-sync/settings" class="btn btn-outline-primary">Manage</a>
+                    <% } else { %>
+                    <p class="text-muted">Not connected</p>
+                    <a href="/calendar-sync/outlook" class="btn btn-primary"><i class="fab fa-microsoft me-1"></i>Connect Outlook</a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sync Activity -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Sync Activity</h5>
+            <a href="/calendar-sync/history" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+            <% if (syncLogs.length === 0) { %>
+            <p class="text-muted text-center">No sync activity yet</p>
+            <% } else { %>
+            <% syncLogs.forEach(log => { %>
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div>
+                    <strong><%= log.provider %></strong> - <%= log.provider_email %>
+                    <br><small class="text-muted"><%= new Date(log.started_at).toLocaleString() %></small>
+                </div>
+                <span class="badge bg-<%= log.status === 'completed' ? 'success' : log.status === 'failed' ? 'danger' : 'warning' %>"><%= log.status %></span>
+            </div>
+            <% }) %>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .intake-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            max-width: 700px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .intake-header {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3142 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .intake-body {
+            padding: 40px;
+        }
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px 15px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: none;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+        }
+        .btn-submit:hover {
+            opacity: 0.9;
+            color: white;
+        }
+        .required-star {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="intake-container">
+        <div class="intake-header">
+            <i class="fas fa-balance-scale fa-3x mb-3"></i>
+            <h2><%= form.name %></h2>
+            <% if (form.description) { %>
+            <p class="mb-0"><%= form.description %></p>
+            <% } %>
+        </div>
+
+        <div class="intake-body">
+            <% if (typeof isPreview !== 'undefined' && isPreview) { %>
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-eye me-2"></i>
+                <strong>Preview Mode</strong> - This form is pre-filled with sample data. Actual submissions will start with blank fields.
+            </div>
+            <% } %>
+            <form id="intakeForm">
+                <% if (!fields || fields.length === 0) { %>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No fields configured for this form. Please edit the form to add fields.
+                </div>
+                <% } %>
+                <% (fields || []).forEach((field, index) => { %>
+                <div class="mb-4">
+                    <label class="form-label">
+                        <%= field.label %>
+                        <% if (field.required) { %><span class="required-star">*</span><% } %>
+                    </label>
+
+                    <% const fieldName = field.name || field.id || 'field_' + index; %>
+                    <%
+                    // Sample data for preview mode
+                    let sampleValue = '';
+                    if (typeof isPreview !== 'undefined' && isPreview) {
+                        const labelLower = (field.label || '').toLowerCase();
+                        if (labelLower.includes('name') && !labelLower.includes('company')) {
+                            sampleValue = 'John Doe (Sample)';
+                        } else if (labelLower.includes('email')) {
+                            sampleValue = 'sample@example.com';
+                        } else if (labelLower.includes('phone') || field.type === 'tel') {
+                            sampleValue = '(555) 123-4567';
+                        } else if (labelLower.includes('company') || labelLower.includes('business')) {
+                            sampleValue = 'Sample Company LLC';
+                        } else if (labelLower.includes('address')) {
+                            sampleValue = '123 Main Street, City, State 12345';
+                        } else if (field.type === 'date') {
+                            sampleValue = new Date().toISOString().split('T')[0];
+                        }
+                    }
+                    %>
+                    <% if (field.type === 'text' || field.type === 'email' || field.type === 'tel' || field.type === 'date') { %>
+                    <input type="<%= field.type %>" name="<%= fieldName %>" class="form-control"
+                           placeholder="<%= field.placeholder || '' %>" value="<%= sampleValue %>" <%= field.required ? 'required' : '' %>>
+                    <% } else if (field.type === 'textarea') { %>
+                    <%
+                    let textareaSample = '';
+                    if (typeof isPreview !== 'undefined' && isPreview) {
+                        const labelLower = (field.label || '').toLowerCase();
+                        if (labelLower.includes('help') || labelLower.includes('message') || labelLower.includes('describe') || labelLower.includes('details')) {
+                            textareaSample = 'This is a sample message describing the legal matter. The potential client would explain their situation here and provide any relevant details about their case.';
+                        } else {
+                            textareaSample = 'Sample text for preview purposes.';
+                        }
+                    }
+                    %>
+                    <textarea name="<%= fieldName %>" class="form-control" rows="4"
+                              placeholder="<%= field.placeholder || '' %>" <%= field.required ? 'required' : '' %>><%= textareaSample %></textarea>
+                    <% } else if (field.type === 'select' && field.options) { %>
+                    <select name="<%= fieldName %>" class="form-select" <%= field.required ? 'required' : '' %>>
+                        <option value="">Select...</option>
+                        <% field.options.forEach(opt => { %>
+                        <option value="<%= opt %>"><%= opt %></option>
+                        <% }) %>
+                    </select>
+                    <% } else if (field.type === 'checkbox') { %>
+                    <div class="form-check">
+                        <input type="checkbox" name="<%= fieldName %>" class="form-check-input" id="field_<%= index %>">
+                        <label class="form-check-label" for="field_<%= index %>"><%= field.checkboxLabel || field.label || '' %></label>
+                    </div>
+                    <% } %>
+
+                    <% if (field.helpText) { %>
+                    <small class="text-muted"><%= field.helpText %></small>
+                    <% } %>
+                </div>
+                <% }) %>
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="privacy" required>
+                        <label class="form-check-label" for="privacy">
+                            I agree to the privacy policy and consent to being contacted regarding my inquiry.
+                        </label>
+                    </div>
+                </div>
+
+                <% if (typeof isPreview !== 'undefined' && isPreview) { %>
+                <button type="button" class="btn btn-submit" disabled style="opacity: 0.7;">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Inquiry (Disabled in Preview)
+                </button>
+                <% } else { %>
+                <button type="submit" class="btn btn-submit">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Inquiry
+                </button>
+                <% } %>
+            </form>
+
+            <div id="successMessage" class="alert alert-success mt-4 d-none">
+                <i class="fas fa-check-circle me-2"></i>
+                Thank you for your submission! We will contact you shortly.
+            </div>
+
+            <div id="errorMessage" class="alert alert-danger mt-4 d-none">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span id="errorText">An error occurred. Please try again.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('intakeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(window.location.pathname + '/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('successMessage').classList.remove('d-none');
+                    form.classList.add('d-none');
+                } else {
+                    document.getElementById('errorText').textContent = result.error || 'An error occurred';
+                    document.getElementById('errorMessage').classList.remove('d-none');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').classList.remove('d-none');
+            }
+
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>

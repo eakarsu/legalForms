@@ -32,6 +32,26 @@ const esignatureRoutes = require('./routes/esignature');
 const templatesRoutes = require('./routes/templates');
 const http = require('http');
 const socketIo = require('socket.io');
+
+// Import practice management routes
+const clientsRoutes = require('./routes/clients');
+const casesRoutes = require('./routes/cases');
+const billingRoutes = require('./routes/billing');
+const calendarRoutes = require('./routes/calendar');
+const communicationsRoutes = require('./routes/communications');
+const collaborationRoutes = require('./routes/collaboration');
+const reportsRoutes = require('./routes/reports');
+
+// Import advanced feature routes
+const clientPortalRoutes = require('./routes/client-portal');
+const paymentsRoutes = require('./routes/payments');
+const trustAccountingRoutes = require('./routes/trust-accounting');
+const conflictsRoutes = require('./routes/conflicts');
+const twoFactorRoutes = require('./routes/two-factor');
+const aiDraftingRoutes = require('./routes/ai-drafting');
+const calendarSyncRoutes = require('./routes/calendar-sync');
+const leadsRoutes = require('./routes/leads');
+const ocrRoutes = require('./routes/ocr');
 //add
 
 require('dotenv').config();
@@ -63,8 +83,16 @@ app.set('trust proxy', 1);
 app.set('io', io);
 
 // Security middleware with relaxed CSP for development
-// Enable compression for better performance
-app.use(compression());
+// Enable compression for better performance (skip CSV downloads)
+app.use(compression({
+    filter: (req, res) => {
+        // Don't compress CSV exports - they need to download properly
+        if (req.path.includes('export-csv')) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -73,12 +101,15 @@ app.use(helmet({
       scriptSrc: [
         "'self'",
         "'unsafe-inline'",
+        "'unsafe-eval'",
         "https://cdn.jsdelivr.net",
         "https://code.jquery.com",
         "https://cdnjs.cloudflare.com",
         "https://www.googletagmanager.com",
-        "https://www.google-analytics.com"
+        "https://www.google-analytics.com",
+        "blob:"
       ],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
@@ -92,23 +123,31 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com"
       ],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://www.google-analytics.com"]
+      connectSrc: ["'self'", "https://www.google-analytics.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "wss:", "ws:", "blob:"]
     }
   }
 }));
 app.use(cors());
 
-// Rate limiting
+// Rate limiting - more permissive for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  skip: (req) => req.path.startsWith('/css') || req.path.startsWith('/js') || req.path.startsWith('/images')
 });
 app.use(limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(fileUpload());
+// File upload middleware (exclude routes that use multer)
+app.use((req, res, next) => {
+  // Skip fileUpload for OCR routes which use multer
+  if (req.path.startsWith('/ocr') || req.path.startsWith('/api/ocr')) {
+    return next();
+  }
+  fileUpload()(req, res, next);
+});
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -145,11 +184,38 @@ app.use('/api/nlp', nlpRoutes);
 app.use('/api/esignature', esignatureRoutes);
 app.use('/api/templates', templatesRoutes);
 
+// Register practice management routes
+app.use('/', clientsRoutes);
+app.use('/', casesRoutes);
+app.use('/', billingRoutes);
+app.use('/', calendarRoutes);
+app.use('/', communicationsRoutes);
+app.use('/', collaborationRoutes);
+app.use('/', reportsRoutes);
+
+// Advanced feature routes
+app.use('/', clientPortalRoutes);
+app.use('/', paymentsRoutes);
+app.use('/', trustAccountingRoutes);
+app.use('/', conflictsRoutes);
+app.use('/', twoFactorRoutes);
+app.use('/', aiDraftingRoutes);
+app.use('/', calendarSyncRoutes);
+app.use('/', leadsRoutes);
+app.use('/', ocrRoutes);
+
 // Debug: Log registered routes
 console.log('Registered API routes:');
 console.log('- /api/nlp/*');
 console.log('- /api/esignature/*');
 console.log('- /api/templates/*');
+console.log('- /api/clients/*');
+console.log('- /api/cases/*');
+console.log('- /api/billing/*');
+console.log('- /api/calendar/*');
+console.log('- /api/communications/*');
+console.log('- /api/collaboration/*');
+console.log('- /api/reports/*');
 //add
 
 // Ensure upload directory exists
@@ -816,29 +882,22 @@ function generatePageMeta(page, formType = null) {
 
 // Routes
 app.get('/', (req, res) => {
-  const meta = generatePageMeta('home');
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "LegalFormsAI",
-    "url": "https://legalaiforms.com",
-    "description": "Professional AI-powered legal document generation platform",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://legalaiforms.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  };
-  
-  res.render('index', { 
-    formTypes: FORM_TYPES,
-    title: meta.title,
-    description: meta.description,
-    keywords: meta.keywords,
-    canonical: meta.canonical,
-    structuredData: structuredData,
-    req: req
-  });
+  // Redirect to login if not authenticated
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+
+  // Redirect to dashboard if authenticated
+  res.redirect('/dashboard');
+});
+
+// Dashboard route - redirect to practice management
+app.get('/dashboard', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+  // Redirect to practice management clients page
+  res.redirect('/clients');
 });
 
 app.get('/home', (req, res) => {
@@ -846,16 +905,20 @@ app.get('/home', (req, res) => {
 });
 
 app.get('/services', (req, res) => {
-  res.render('index', { 
+  res.render('index', {
     formTypes: FORM_TYPES,
-    title: 'Legal Forms Generator - Services'
+    title: 'Legal Forms Generator - Services',
+    req: req,
+    user: req.session ? req.session.userId : null
   });
 });
 
 app.get('/features', (req, res) => {
-  res.render('index', { 
+  res.render('index', {
     formTypes: FORM_TYPES,
-    title: 'Legal Forms Generator - Features'
+    title: 'Legal Forms Generator - Features',
+    req: req,
+    user: req.session ? req.session.userId : null
   });
 });
 

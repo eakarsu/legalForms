@@ -1,0 +1,98 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'calendar-sync' }) %>
+
+<div class="container-fluid py-4">
+    <h2><i class="fas fa-history me-2"></i>Sync History</h2>
+    <p class="text-muted">View calendar synchronization history</p>
+
+    <div class="card mt-4">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Provider</th>
+                        <th>Account</th>
+                        <th>Events Synced</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (logs.length === 0) { %>
+                    <tr><td colspan="5" class="text-center text-muted py-4">No sync history</td></tr>
+                    <% } else { %>
+                    <% logs.forEach(log => { %>
+                    <tr class="clickable-row" style="cursor: pointer;"
+                        data-started="<%= new Date(log.started_at).toLocaleString() %>"
+                        data-ended="<%= log.completed_at ? new Date(log.completed_at).toLocaleString() : 'N/A' %>"
+                        data-provider="<%= log.provider %>"
+                        data-email="<%= log.provider_email %>"
+                        data-events="<%= log.events_synced || 0 %>"
+                        data-status="<%= log.status %>"
+                        data-error="<%= log.error_message || '' %>">
+                        <td><%= new Date(log.started_at).toLocaleString() %></td>
+                        <td><i class="fab fa-<%= log.provider === 'google' ? 'google' : 'microsoft' %> me-1"></i><%= log.provider %></td>
+                        <td><%= log.provider_email %></td>
+                        <td><%= log.events_synced || 0 %></td>
+                        <td><span class="badge bg-<%= log.status === 'completed' ? 'success' : log.status === 'failed' ? 'danger' : 'warning' %>"><%= log.status %></span></td>
+                    </tr>
+                    <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Details Modal -->
+<div class="modal fade" id="syncDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-history me-2"></i>Sync Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="syncDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.clickable-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+        var started = this.dataset.started;
+        var ended = this.dataset.ended;
+        var provider = this.dataset.provider;
+        var email = this.dataset.email;
+        var events = this.dataset.events;
+        var status = this.dataset.status;
+        var error = this.dataset.error;
+
+        var statusClass = status === 'completed' ? 'success' : status === 'failed' ? 'danger' : 'warning';
+        var providerIcon = provider === 'google' ? 'google' : 'microsoft';
+
+        var html = '<table class="table table-borderless">' +
+            '<tr><th width="140"><i class="fas fa-clock text-muted me-2"></i>Started:</th><td>' + started + '</td></tr>' +
+            '<tr><th><i class="fas fa-check-circle text-muted me-2"></i>Completed:</th><td>' + ended + '</td></tr>' +
+            '<tr><th><i class="fab fa-' + providerIcon + ' text-muted me-2"></i>Provider:</th><td>' + provider + '</td></tr>' +
+            '<tr><th><i class="fas fa-envelope text-muted me-2"></i>Account:</th><td>' + email + '</td></tr>' +
+            '<tr><th><i class="fas fa-calendar text-muted me-2"></i>Events:</th><td><strong>' + events + '</strong></td></tr>' +
+            '<tr><th><i class="fas fa-info-circle text-muted me-2"></i>Status:</th><td><span class="badge bg-' + statusClass + '">' + status + '</span></td></tr>' +
+            '</table>';
+
+        if (error) {
+            html += '<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i><strong>Error:</strong> ' + error + '</div>';
+        }
+
+        document.getElementById('syncDetails').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('syncDetailModal')).show();
+    });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

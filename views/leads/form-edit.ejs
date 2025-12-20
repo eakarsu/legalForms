@@ -1,0 +1,305 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'leads' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/leads">Leads</a></li>
+                    <li class="breadcrumb-item"><a href="/leads/forms">Intake Forms</a></li>
+                    <li class="breadcrumb-item"><a href="/leads/forms/<%= form.id %>"><%= form.name %></a></li>
+                    <li class="breadcrumb-item active">Edit</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-edit me-2"></i>Edit Form</h2>
+        </div>
+        <div>
+            <a href="/leads/forms/<%= form.id %>" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+            </a>
+            <button class="btn btn-primary" onclick="saveForm()">
+                <i class="fas fa-save me-1"></i>Save Changes
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form Settings -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Form Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Form Name *</label>
+                        <input type="text" id="formName" class="form-control" value="<%= form.name %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea id="formDescription" class="form-control" rows="3"><%= form.description || '' %></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Practice Area</label>
+                        <select id="formPracticeArea" class="form-select">
+                            <option value="">General</option>
+                            <option value="family" <%= form.practice_area === 'family' ? 'selected' : '' %>>Family Law</option>
+                            <option value="personal_injury" <%= form.practice_area === 'personal_injury' ? 'selected' : '' %>>Personal Injury</option>
+                            <option value="criminal" <%= form.practice_area === 'criminal' ? 'selected' : '' %>>Criminal Defense</option>
+                            <option value="estate" <%= form.practice_area === 'estate' ? 'selected' : '' %>>Estate Planning</option>
+                            <option value="corporate" <%= form.practice_area === 'corporate' ? 'selected' : '' %>>Corporate</option>
+                            <option value="real_estate" <%= form.practice_area === 'real_estate' ? 'selected' : '' %>>Real Estate</option>
+                            <option value="immigration" <%= form.practice_area === 'immigration' ? 'selected' : '' %>>Immigration</option>
+                            <option value="bankruptcy" <%= form.practice_area === 'bankruptcy' ? 'selected' : '' %>>Bankruptcy</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="formActive" <%= form.is_active ? 'checked' : '' %>>
+                            <label class="form-check-label" for="formActive">Active</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="formPublic" <%= form.is_public ? 'checked' : '' %>>
+                            <label class="form-check-label" for="formPublic">Publicly Accessible</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Field -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add Field</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('text')">
+                            <i class="fas fa-font me-1"></i>Text Input
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('email')">
+                            <i class="fas fa-envelope me-1"></i>Email
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('tel')">
+                            <i class="fas fa-phone me-1"></i>Phone
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('textarea')">
+                            <i class="fas fa-align-left me-1"></i>Text Area
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('select')">
+                            <i class="fas fa-list me-1"></i>Dropdown
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('date')">
+                            <i class="fas fa-calendar me-1"></i>Date
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addField('checkbox')">
+                            <i class="fas fa-check-square me-1"></i>Checkbox
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Fields -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Form Fields</h5>
+                </div>
+                <div class="card-body">
+                    <div id="fieldsContainer">
+                        <% if (fields.length === 0) { %>
+                            <div class="text-center text-muted py-5" id="noFieldsMessage">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No fields yet. Add fields from the panel on the left.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Field Modal -->
+<div class="modal fade" id="editFieldModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Field</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editFieldIndex">
+                <div class="mb-3">
+                    <label class="form-label">Field Label *</label>
+                    <input type="text" id="editFieldLabel" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Placeholder</label>
+                    <input type="text" id="editFieldPlaceholder" class="form-control">
+                </div>
+                <div class="mb-3" id="editOptionsContainer" style="display: none;">
+                    <label class="form-label">Options (one per line)</label>
+                    <textarea id="editFieldOptions" class="form-control" rows="4"></textarea>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editFieldRequired">
+                    <label class="form-check-label" for="editFieldRequired">Required field</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveFieldEdit()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let formFields = <%- JSON.stringify(fields) %>;
+    const formId = '<%= form.id %>';
+
+    function renderFields() {
+        const container = document.getElementById('fieldsContainer');
+        const noFieldsMsg = document.getElementById('noFieldsMessage');
+
+        if (formFields.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5" id="noFieldsMessage">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>No fields yet. Add fields from the panel on the left.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = formFields.map((field, index) => `
+            <div class="card mb-2" data-index="${index}">
+                <div class="card-body py-2 px-3 d-flex align-items-center">
+                    <i class="fas fa-grip-vertical text-muted me-3" style="cursor: move;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${field.label}</strong>
+                        <small class="text-muted ms-2">${field.type}</small>
+                        ${field.required ? '<span class="badge bg-danger ms-2">Required</span>' : ''}
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editField(${index})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeField(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addField(type) {
+        const typeLabels = {
+            'text': 'Text Field',
+            'email': 'Email Address',
+            'tel': 'Phone Number',
+            'textarea': 'Message',
+            'select': 'Select Option',
+            'date': 'Date',
+            'checkbox': 'Checkbox'
+        };
+
+        formFields.push({
+            id: 'field_' + Date.now(),
+            type: type,
+            label: typeLabels[type] || 'New Field',
+            placeholder: '',
+            required: false,
+            options: type === 'select' ? ['Option 1', 'Option 2', 'Option 3'] : []
+        });
+
+        renderFields();
+    }
+
+    function editField(index) {
+        const field = formFields[index];
+        document.getElementById('editFieldIndex').value = index;
+        document.getElementById('editFieldLabel').value = field.label;
+        document.getElementById('editFieldPlaceholder').value = field.placeholder || '';
+        document.getElementById('editFieldRequired').checked = field.required;
+
+        const optionsContainer = document.getElementById('editOptionsContainer');
+        if (field.type === 'select') {
+            optionsContainer.style.display = 'block';
+            document.getElementById('editFieldOptions').value = (field.options || []).join('\n');
+        } else {
+            optionsContainer.style.display = 'none';
+        }
+
+        new bootstrap.Modal(document.getElementById('editFieldModal')).show();
+    }
+
+    function saveFieldEdit() {
+        const index = parseInt(document.getElementById('editFieldIndex').value);
+        formFields[index].label = document.getElementById('editFieldLabel').value;
+        formFields[index].placeholder = document.getElementById('editFieldPlaceholder').value;
+        formFields[index].required = document.getElementById('editFieldRequired').checked;
+
+        if (formFields[index].type === 'select') {
+            formFields[index].options = document.getElementById('editFieldOptions').value
+                .split('\n')
+                .map(o => o.trim())
+                .filter(o => o);
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('editFieldModal')).hide();
+        renderFields();
+    }
+
+    function removeField(index) {
+        if (confirm('Remove this field?')) {
+            formFields.splice(index, 1);
+            renderFields();
+        }
+    }
+
+    async function saveForm() {
+        const name = document.getElementById('formName').value.trim();
+        if (!name) {
+            alert('Please enter a form name');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/leads/forms/' + formId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    description: document.getElementById('formDescription').value,
+                    practice_area: document.getElementById('formPracticeArea').value,
+                    fields: formFields,
+                    is_active: document.getElementById('formActive').checked,
+                    is_public: document.getElementById('formPublic').checked
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Form saved successfully!');
+                window.location.href = '/leads/forms/' + formId;
+            } else {
+                alert('Error: ' + (result.error || 'Failed to save form'));
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Failed to save form');
+        }
+    }
+
+    // Initial render
+    renderFields();
+</script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'calendar' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-tasks me-2"></i>Tasks</h2>
+            <p class="text-muted mb-0">Manage your to-do list and assignments</p>
+        </div>
+        <button id="btnAddTask" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+            <i class="fas fa-plus me-1"></i>Add Task
+        </button>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="all">All Status</option>
+                        <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                        <option value="in_progress" <%= filters.status === 'in_progress' ? 'selected' : '' %>>In Progress</option>
+                        <option value="completed" <%= filters.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="priority" class="form-select">
+                        <option value="all">All Priorities</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="case_id" class="form-select">
+                        <option value="">All Cases</option>
+                        <% cases.forEach(c => { %>
+                        <option value="<%= c.id %>"><%= c.title %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-search me-1"></i>Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <% ['pending', 'in_progress', 'completed'].forEach(status => {
+            const statusTasks = tasks.filter(t => t.status === status);
+            const statusLabel = status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1);
+            const statusColor = status === 'pending' ? 'warning' : status === 'in_progress' ? 'primary' : 'success';
+        %>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-<%= statusColor %> text-white">
+                    <h6 class="mb-0"><%= statusLabel %> (<%= statusTasks.length %>)</h6>
+                </div>
+                <div class="card-body task-column" data-status="<%= status %>">
+                    <% if (statusTasks.length === 0) { %>
+                    <p class="text-muted text-center">No tasks</p>
+                    <% } else { %>
+                    <% statusTasks.forEach(task => { %>
+                    <div class="task-card mb-2 p-3 border rounded clickable-task" data-id="<%= task.id %>" data-title="<%= task.title %>" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="mb-1"><%= task.title %></h6>
+                            <span class="badge bg-<%= task.priority === 'urgent' ? 'danger' : task.priority === 'high' ? 'warning' : task.priority === 'medium' ? 'info' : 'secondary' %>"><%= task.priority %></span>
+                        </div>
+                        <% if (task.case_title) { %><small class="text-muted d-block"><i class="fas fa-briefcase me-1"></i><%= task.case_title %></small><% } %>
+                        <% if (task.due_date) { %><small class="text-<%= new Date(task.due_date) < new Date() && status !== 'completed' ? 'danger' : 'muted' %>"><i class="fas fa-calendar me-1"></i><%= new Date(task.due_date).toLocaleDateString() %></small><% } %>
+                        <% if (task.description) { %><small class="text-muted d-block mt-1"><%= task.description.substring(0, 40) %><%= task.description.length > 40 ? '...' : '' %></small><% } %>
+                        <div class="mt-2 btn-group btn-group-sm">
+                            <% if (status === 'pending') { %>
+                            <button class="btn btn-outline-primary btn-start" data-id="<%= task.id %>" title="Start"><i class="fas fa-play"></i></button>
+                            <% } else if (status === 'in_progress') { %>
+                            <button class="btn btn-outline-success btn-complete" data-id="<%= task.id %>" title="Complete"><i class="fas fa-check"></i></button>
+                            <% } %>
+                            <button class="btn btn-outline-secondary btn-edit" data-id="<%= task.id %>" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-outline-danger btn-delete" data-id="<%= task.id %>" data-title="<%= task.title %>" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <% }) %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Title *</label>
+                    <input type="text" id="taskTitle" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Case</label>
+                    <select id="taskCase" class="form-select">
+                        <option value="">No Case</option>
+                        <% cases.forEach(c => { %>
+                        <option value="<%= c.id %>"><%= c.title %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" id="taskDue" class="form-control">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Priority</label>
+                        <select id="taskPriority" class="form-select">
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea id="taskDesc" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveTask">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Task Modal -->
+<div class="modal fade" id="viewTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-tasks me-2"></i>Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="taskDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="btnDeleteTask"><i class="fas fa-trash me-1"></i>Delete</button>
+                <button type="button" class="btn btn-outline-primary" id="btnEditTask"><i class="fas fa-edit me-1"></i>Edit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentTaskId = null;
+var currentTaskTitle = '';
+
+document.querySelectorAll('.clickable-task').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-group') || e.target.closest('button')) return;
+        if (this.dataset.id) viewTask(this.dataset.id);
+    });
+});
+
+document.querySelectorAll('.btn-start').forEach(function(btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); updateTask(this.dataset.id, 'in_progress'); });
+});
+
+document.querySelectorAll('.btn-complete').forEach(function(btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); updateTask(this.dataset.id, 'completed'); });
+});
+
+document.querySelectorAll('.btn-edit').forEach(function(btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); editTask(this.dataset.id); });
+});
+
+document.querySelectorAll('.btn-delete').forEach(function(btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); deleteTask(this.dataset.id, this.dataset.title); });
+});
+
+function saveTask() {
+    var editId = document.getElementById('addTaskModal').dataset.editId;
+    var url = editId ? '/api/tasks/' + editId : '/api/tasks';
+    var method = editId ? 'PUT' : 'POST';
+    fetch(url, {
+        method: method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: document.getElementById('taskTitle').value, case_id: document.getElementById('taskCase').value || null, due_date: document.getElementById('taskDue').value || null, priority: document.getElementById('taskPriority').value, description: document.getElementById('taskDesc').value })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            delete document.getElementById('addTaskModal').dataset.editId;
+            location.reload();
+        } else {
+            alert('Error saving task: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Failed to save task');
+        console.error(err);
+    });
+}
+
+function updateTask(id, status) {
+    fetch('/api/tasks/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: status }) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating task: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Failed to update task');
+        console.error(err);
+    });
+}
+
+function viewTask(id) {
+    currentTaskId = id;
+    fetch('/api/tasks/' + id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.task) {
+            var t = data.task;
+            currentTaskTitle = t.title;
+            var priorityColors = { 'urgent': 'danger', 'high': 'warning', 'medium': 'info', 'low': 'secondary' };
+            var statusColors = { 'pending': 'warning', 'in_progress': 'primary', 'completed': 'success' };
+            var statusLabels = { 'pending': 'Pending', 'in_progress': 'In Progress', 'completed': 'Completed' };
+            var html = '<h5 class="mb-3">' + t.title + '</h5><table class="table table-borderless">' +
+                '<tr><th width="120"><i class="fas fa-flag text-muted me-2"></i>Priority:</th><td><span class="badge bg-' + (priorityColors[t.priority] || 'secondary') + '">' + t.priority + '</span></td></tr>' +
+                '<tr><th><i class="fas fa-tasks text-muted me-2"></i>Status:</th><td><span class="badge bg-' + (statusColors[t.status] || 'secondary') + '">' + (statusLabels[t.status] || t.status) + '</span></td></tr>' +
+                '<tr><th><i class="fas fa-calendar text-muted me-2"></i>Due Date:</th><td>' + (t.due_date ? new Date(t.due_date).toLocaleDateString() : '<span class="text-muted">Not set</span>') + '</td></tr>' +
+                '<tr><th><i class="fas fa-briefcase text-muted me-2"></i>Case:</th><td>' + (t.case_title || '<span class="text-muted">Not linked</span>') + '</td></tr></table>';
+            if (t.description) html += '<div class="mt-3"><strong><i class="fas fa-align-left me-2"></i>Description:</strong><p class="mt-2 p-3 bg-light rounded">' + t.description + '</p></div>';
+            document.getElementById('taskDetails').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('viewTaskModal')).show();
+        }
+    });
+}
+
+function editTask(id) {
+    fetch('/api/tasks/' + id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.task) {
+            var t = data.task;
+            document.getElementById('taskTitle').value = t.title;
+            document.getElementById('taskCase').value = t.case_id || '';
+            document.getElementById('taskDue').value = t.due_date ? t.due_date.split('T')[0] : '';
+            document.getElementById('taskPriority').value = t.priority;
+            document.getElementById('taskDesc').value = t.description || '';
+            document.getElementById('addTaskModal').dataset.editId = id;
+            document.querySelector('#addTaskModal .modal-title').textContent = 'Edit Task';
+            new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+        }
+    });
+}
+
+function deleteTask(id, title) {
+    if (confirm('Delete task "' + title + '"?')) {
+        fetch('/api/tasks/' + id, { method: 'DELETE' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { if (data.success) location.reload(); else alert('Error: ' + (data.error || 'Failed')); });
+    }
+}
+
+document.getElementById('btnEditTask').onclick = function() { bootstrap.Modal.getInstance(document.getElementById('viewTaskModal')).hide(); editTask(currentTaskId); };
+document.getElementById('btnDeleteTask').onclick = function() { bootstrap.Modal.getInstance(document.getElementById('viewTaskModal')).hide(); deleteTask(currentTaskId, currentTaskTitle); };
+
+document.getElementById('addTaskModal').addEventListener('hidden.bs.modal', function() {
+    delete this.dataset.editId;
+    document.querySelector('#addTaskModal .modal-title').textContent = 'Add Task';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskCase').value = '';
+    document.getElementById('taskDue').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskDesc').value = '';
+});
+
+document.getElementById('btnSaveTask').addEventListener('click', saveTask);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

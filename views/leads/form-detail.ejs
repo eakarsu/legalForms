@@ -1,0 +1,248 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'leads' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/leads">Leads</a></li>
+                    <li class="breadcrumb-item"><a href="/leads/forms">Intake Forms</a></li>
+                    <li class="breadcrumb-item active"><%= form.name %></li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-file-alt me-2"></i><%= form.name %></h2>
+            <p class="text-muted mb-0"><%= form.description || 'No description' %></p>
+        </div>
+        <div>
+            <a href="/leads/forms/<%= form.id %>/preview" target="_blank" class="btn btn-outline-primary">
+                <i class="fas fa-external-link-alt me-1"></i>Preview Form
+            </a>
+            <button class="btn btn-outline-secondary" onclick="copyLink()">
+                <i class="fas fa-copy me-1"></i>Copy Link
+            </button>
+            <button class="btn btn-outline-danger" onclick="deleteForm()">
+                <i class="fas fa-trash me-1"></i>Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form Info -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Form Details</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge bg-<%= form.is_active ? 'success' : 'secondary' %>">
+                                    <%= form.is_active ? 'Active' : 'Inactive' %>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Public:</th>
+                            <td>
+                                <span class="badge bg-<%= form.is_public ? 'success' : 'warning' %>">
+                                    <%= form.is_public ? 'Yes' : 'No' %>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Practice Area:</th>
+                            <td><%= form.practice_area || 'General' %></td>
+                        </tr>
+                        <tr>
+                            <th>Submissions:</th>
+                            <td><strong><%= form.submission_count || 0 %></strong></td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td><%= new Date(form.created_at).toLocaleDateString() %></td>
+                        </tr>
+                        <tr>
+                            <th>URL Slug:</th>
+                            <td><code>/intake/<%= form.slug %></code></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="toggleActive()">
+                            <i class="fas fa-<%= form.is_active ? 'pause' : 'play' %> me-1"></i>
+                            <%= form.is_active ? 'Deactivate' : 'Activate' %> Form
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="togglePublic()">
+                            <i class="fas fa-<%= form.is_public ? 'lock' : 'globe' %> me-1"></i>
+                            Make <%= form.is_public ? 'Private' : 'Public' %>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <% if (form.welcome_message) { %>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-comment me-2"></i>Welcome Message</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0"><%= form.welcome_message %></p>
+                </div>
+            </div>
+            <% } %>
+
+            <!-- Form Fields -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Form Fields</h5>
+                    <a href="/leads/forms/<%= form.id %>/edit" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-edit me-1"></i>Edit Fields
+                    </a>
+                </div>
+                <div class="card-body">
+                    <% if (fields && fields.length > 0) { %>
+                    <ul class="list-group list-group-flush">
+                        <% fields.forEach((field, index) => { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><%= field.label %></strong>
+                                <span class="text-muted ms-2">(<%= field.type %>)</span>
+                            </div>
+                            <div>
+                                <% if (field.required) { %>
+                                <span class="badge bg-danger">Required</span>
+                                <% } else { %>
+                                <span class="badge bg-secondary">Optional</span>
+                                <% } %>
+                            </div>
+                        </li>
+                        <% }) %>
+                    </ul>
+                    <% } else { %>
+                    <p class="text-muted mb-0 text-center py-3">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        No fields configured. <a href="/leads/forms/<%= form.id %>/edit">Add fields</a>
+                    </p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submissions -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Recent Submissions</h5>
+                    <a href="/leads?form_id=<%= form.id %>" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <% if (submissions.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% submissions.forEach(sub => { %>
+                                <tr class="clickable-row" data-href="/leads/<%= sub.id %>" style="cursor: pointer;">
+                                    <td><%= new Date(sub.created_at).toLocaleDateString() %></td>
+                                    <td><strong><%= sub.first_name %> <%= sub.last_name %></strong></td>
+                                    <td><%= sub.email || 'N/A' %></td>
+                                    <td>
+                                        <span class="badge bg-<%= sub.status === 'converted' ? 'success' : sub.status === 'new' ? 'primary' : 'secondary' %>">
+                                            <%= sub.status %>
+                                        </span>
+                                    </td>
+                                    <td onclick="event.stopPropagation();">
+                                        <a href="/leads/<%= sub.id %>" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No submissions yet</p>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Row click handlers
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        window.location.href = this.dataset.href;
+    });
+});
+
+function copyLink() {
+    const url = window.location.origin + '/intake/<%= form.slug %>';
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+    });
+}
+
+function toggleActive() {
+    fetch('/api/leads/forms/<%= form.id %>', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: <%= !form.is_active %> })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Error: ' + (data.error || 'Failed'));
+    });
+}
+
+function togglePublic() {
+    fetch('/api/leads/forms/<%= form.id %>', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: <%= !form.is_public %> })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Error: ' + (data.error || 'Failed'));
+    });
+}
+
+function deleteForm() {
+    if (!confirm('Delete this form? This cannot be undone.')) return;
+    fetch('/api/leads/forms/<%= form.id %>', { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) window.location.href = '/leads/forms';
+        else alert('Error: ' + (data.error || 'Failed'));
+    });
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

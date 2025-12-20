@@ -1,0 +1,372 @@
+<%- include('../base-pm', {
+    title: account.account_name + ' - Trust Account',
+    description: 'Trust account details and ledgers'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/trust">Trust Accounting</a></li>
+                    <li class="breadcrumb-item active"><%= account.account_name %></li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-university me-2"></i><%= account.account_name %></h2>
+            <p class="text-muted mb-0"><%= account.bank_name %> - <%= account.account_type.toUpperCase() %></p>
+        </div>
+        <div>
+            <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#depositModal">
+                <i class="fas fa-plus me-1"></i>Deposit
+            </button>
+            <button class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                <i class="fas fa-minus me-1"></i>Withdrawal
+            </button>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newLedgerModal">
+                <i class="fas fa-user-plus me-1"></i>New Client Ledger
+            </button>
+        </div>
+    </div>
+
+    <!-- Account Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>$<%= parseFloat(account.current_balance).toLocaleString('en-US', {minimumFractionDigits: 2}) %></h3>
+                    <small>Current Balance</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3><%= ledgers.length %></h3>
+                    <small>Client Ledgers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>****<%= account.account_number_last4 || 'N/A' %></h3>
+                    <small>Account Number</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3><%= new Date(account.created_at).toLocaleDateString() %></h3>
+                    <small>Opened</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Client Ledgers -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Client Ledgers</h5>
+                </div>
+                <div class="card-body">
+                    <% if (ledgers.length > 0) { %>
+                    <div class="list-group">
+                        <% ledgers.forEach(ledger => { %>
+                        <a href="/trust/<%= account.id %>/ledger/<%= ledger.id %>" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong><%= ledger.first_name %> <%= ledger.last_name %></strong>
+                                    <% if (ledger.case_title) { %><br><small class="text-muted"><%= ledger.case_title %></small><% } %>
+                                </div>
+                                <strong class="<%= parseFloat(ledger.balance || 0) >= 0 ? 'text-success' : 'text-danger' %>">
+                                    $<%= parseFloat(ledger.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                                </strong>
+                            </div>
+                        </a>
+                        <% }) %>
+                    </div>
+                    <% } else { %>
+                    <p class="text-muted text-center">No client ledgers yet</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <% if (transactions.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% transactions.forEach(tx => { %>
+                                <tr class="clickable-tx" data-id="<%= tx.id %>" style="cursor: pointer;">
+                                    <td><%= new Date(tx.transaction_date).toLocaleDateString() %></td>
+                                    <td><%= tx.first_name %> <%= tx.last_name %></td>
+                                    <td><%= tx.description %></td>
+                                    <td class="text-end <%= tx.transaction_type === 'deposit' ? 'text-success' : 'text-danger' %>">
+                                        <%= tx.transaction_type === 'deposit' ? '+' : '-' %>$<%= parseFloat(tx.amount || 0).toFixed(2) %>
+                                    </td>
+                                    <td class="text-end">$<%= parseFloat(tx.running_balance || 0).toFixed(2) %></td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                    <p class="text-muted text-center">No transactions yet</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deposit Modal -->
+<div class="modal fade" id="depositModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus text-success me-2"></i>Record Deposit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="depositForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Client Ledger</label>
+                        <select name="ledger_id" class="form-select" required>
+                            <option value="">Select client...</option>
+                            <% ledgers.forEach(l => { %>
+                            <option value="<%= l.id %>"><%= l.first_name %> <%= l.last_name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" placeholder="e.g., Retainer deposit" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference #</label>
+                        <input type="text" name="reference_number" class="form-control" placeholder="Check number, wire ref, etc.">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Record Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal fade" id="withdrawModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-minus text-danger me-2"></i>Record Withdrawal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="withdrawForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Client Ledger</label>
+                        <select name="ledger_id" class="form-select" required>
+                            <option value="">Select client...</option>
+                            <% ledgers.forEach(l => { %>
+                            <option value="<%= l.id %>"><%= l.first_name %> <%= l.last_name %> ($<%= parseFloat(l.balance).toFixed(2) %>)</option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" placeholder="e.g., Attorney fees disbursement" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference #</label>
+                        <input type="text" name="reference_number" class="form-control" placeholder="Check number, etc.">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Record Withdrawal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- New Ledger Modal -->
+<div class="modal fade" id="newLedgerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Client Ledger</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newLedgerForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Client</label>
+                        <select name="client_id" class="form-select" required>
+                            <option value="">Select client...</option>
+                            <% if (typeof clients !== 'undefined') { clients.forEach(c => { %>
+                            <option value="<%= c.id %>"><%= c.first_name %> <%= c.last_name %></option>
+                            <% }) } %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Case (Optional)</label>
+                        <select name="case_id" class="form-select">
+                            <option value="">No specific case</option>
+                            <% if (typeof cases !== 'undefined') { cases.forEach(cs => { %>
+                            <option value="<%= cs.id %>"><%= cs.title %></option>
+                            <% }) } %>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Ledger</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Detail Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-receipt me-2"></i>Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="transactionDetails">Loading...</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Transaction row click handler
+document.querySelectorAll('.clickable-tx').forEach(row => {
+    row.addEventListener('click', function() {
+        const cells = this.querySelectorAll('td');
+        const html = `
+            <table class="table table-borderless">
+                <tr><th width="120">Date:</th><td>${cells[0].textContent}</td></tr>
+                <tr><th>Client:</th><td>${cells[1].textContent}</td></tr>
+                <tr><th>Description:</th><td>${cells[2].textContent}</td></tr>
+                <tr><th>Amount:</th><td><strong>${cells[3].textContent}</strong></td></tr>
+                <tr><th>Balance:</th><td>${cells[4].textContent}</td></tr>
+            </table>
+        `;
+        document.getElementById('transactionDetails').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('transactionModal')).show();
+    });
+});
+
+document.getElementById('depositForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.transaction_type = 'deposit';
+
+    try {
+        const response = await fetch('/api/trust/<%= account.id %>/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Transaction failed');
+    }
+});
+
+document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.transaction_type = 'withdrawal';
+
+    try {
+        const response = await fetch('/api/trust/<%= account.id %>/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Transaction failed');
+    }
+});
+
+document.getElementById('newLedgerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+
+    try {
+        const response = await fetch('/api/trust/<%= account.id %>/ledgers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to create ledger');
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

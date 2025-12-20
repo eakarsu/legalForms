@@ -1,0 +1,117 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'trust' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-balance-scale me-2"></i>Trust Reconciliation</h2>
+            <p class="text-muted mb-0">Reconcile trust account balances</p>
+        </div>
+        <a href="/trust" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Bank Balance</th>
+                        <th>Calculated Balance</th>
+                        <th>Difference</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (accounts.length === 0) { %>
+                    <tr><td colspan="6" class="text-center text-muted py-4">No accounts to reconcile</td></tr>
+                    <% } else { %>
+                    <% accounts.forEach(acct => {
+                        const diff = parseFloat(acct.current_balance || 0) - parseFloat(acct.calculated_balance || 0);
+                        const isBalanced = Math.abs(diff) < 0.01;
+                    %>
+                    <tr class="clickable-row" data-href="/trust/<%= acct.id %>/reconcile" data-id="<%= acct.id %>" style="cursor: pointer;">
+                        <td><strong><%= acct.account_name %></strong></td>
+                        <td>$<%= parseFloat(acct.current_balance || 0).toFixed(2) %></td>
+                        <td>$<%= parseFloat(acct.calculated_balance || 0).toFixed(2) %></td>
+                        <td class="<%= isBalanced ? 'text-success' : 'text-danger' %>">$<%= diff.toFixed(2) %></td>
+                        <td>
+                            <span class="badge bg-<%= isBalanced ? 'success' : 'warning' %>">
+                                <%= isBalanced ? 'Balanced' : 'Needs Review' %>
+                            </span>
+                        </td>
+                        <td onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-info btn-view" data-id="<%= acct.id %>" data-name="<%= acct.account_name %>" data-bank="<%= acct.current_balance %>" data-calc="<%= acct.calculated_balance %>" data-diff="<%= diff %>" title="Quick View">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Reconciliation Detail Modal -->
+<div class="modal fade" id="reconcileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-balance-scale me-2"></i>Reconciliation Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reconcileDetails"></div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" id="btnReconcile"><i class="fas fa-check-double me-1"></i>Reconcile</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentAccountId = null;
+
+// Row click handlers
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        window.location.href = this.dataset.href;
+    });
+});
+
+// View button handlers
+document.querySelectorAll('.btn-view').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showReconcileModal(this.dataset.id, this.dataset.name, this.dataset.bank, this.dataset.calc, this.dataset.diff);
+    });
+});
+
+function showReconcileModal(id, name, bank, calc, diff) {
+    currentAccountId = id;
+    const isBalanced = Math.abs(parseFloat(diff)) < 0.01;
+    document.getElementById('reconcileDetails').innerHTML = `
+        <div class="alert alert-${isBalanced ? 'success' : 'warning'} mb-3">
+            <i class="fas fa-${isBalanced ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+            <strong>${isBalanced ? 'Account is balanced' : 'Discrepancy detected'}</strong>
+        </div>
+        <table class="table table-borderless">
+            <tr><th width="150"><i class="fas fa-university text-muted me-2"></i>Account:</th><td><strong>${name}</strong></td></tr>
+            <tr><th><i class="fas fa-dollar-sign text-muted me-2"></i>Bank Balance:</th><td>$${parseFloat(bank || 0).toFixed(2)}</td></tr>
+            <tr><th><i class="fas fa-calculator text-muted me-2"></i>Calculated:</th><td>$${parseFloat(calc || 0).toFixed(2)}</td></tr>
+            <tr><th><i class="fas fa-exchange-alt text-muted me-2"></i>Difference:</th><td class="${isBalanced ? 'text-success' : 'text-danger'}"><strong>$${parseFloat(diff || 0).toFixed(2)}</strong></td></tr>
+        </table>
+    `;
+    document.getElementById('btnReconcile').href = '/trust/' + id + '/reconcile';
+    new bootstrap.Modal(document.getElementById('reconcileModal')).show();
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

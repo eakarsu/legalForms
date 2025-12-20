@@ -1,0 +1,234 @@
+<%- include('../base-pm', {
+    title: 'Conflict Checking',
+    description: 'Check for conflicts of interest'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-exclamation-triangle me-2"></i>Conflict Checking</h2>
+            <p class="text-muted mb-0">Check for conflicts of interest before taking new matters</p>
+        </div>
+        <div>
+            <a href="/conflicts/parties" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-users me-1"></i>Parties Database (<%= partyCount %>)
+            </a>
+            <a href="/conflicts/new" class="btn btn-primary">
+                <i class="fas fa-search me-1"></i>New Check
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3><%= stats.total_checks || 0 %></h3>
+                    <small>Total Checks</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3><%= stats.clear_count || 0 %></h3>
+                    <small>Clear</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3><%= stats.conflict_count || 0 %></h3>
+                    <small>Conflicts Found</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3><%= stats.waived_count || 0 %></h3>
+                    <small>Waived</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3><%= stats.recent_count || 0 %></h3>
+                    <small>Checks This Month</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Check -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Conflict Check</h5>
+        </div>
+        <div class="card-body">
+            <form id="quickCheckForm">
+                <div class="row">
+                    <div class="col-md-5">
+                        <label class="form-label">Names to Check</label>
+                        <input type="text" name="names" class="form-control" placeholder="Enter names, comma separated" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Companies (Optional)</label>
+                        <input type="text" name="companies" class="form-control" placeholder="Enter company names, comma separated">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Check
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div id="quickResults" class="mt-3 d-none"></div>
+        </div>
+    </div>
+
+    <!-- Recent Checks -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Conflict Checks</h5>
+        </div>
+        <div class="card-body">
+            <% if (checks.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Search Terms</th>
+                            <th>Client/Case</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% checks.forEach(check => { %>
+                        <tr class="clickable-row" data-href="/conflicts/<%= check.id %>" style="cursor: pointer;">
+                            <td><%= new Date(check.created_at).toLocaleDateString() %></td>
+                            <td><%= check.check_type %></td>
+                            <td>
+                                <%
+                                let terms = check.search_terms || {};
+                                if (typeof terms === 'string') {
+                                    try { terms = JSON.parse(terms); } catch(e) { terms = {}; }
+                                }
+                                %>
+                                <%= (terms.names || []).join(', ') %>
+                            </td>
+                            <td>
+                                <% if (check.first_name) { %><%= check.first_name %> <%= check.last_name %><% } %>
+                                <% if (check.case_title) { %><br><small><%= check.case_title %></small><% } %>
+                            </td>
+                            <td>
+                                <span class="badge bg-<%= check.status === 'clear' ? 'success' : check.status === 'conflict_found' ? 'danger' : check.status === 'waived' ? 'warning' : 'secondary' %>">
+                                    <%= check.status %>
+                                    <% if (check.conflict_count > 0) { %>(<%= check.conflict_count %>)<% } %>
+                                </span>
+                            </td>
+                            <td onclick="event.stopPropagation();">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/conflicts/<%= check.id %>" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-delete" data-id="<%= check.id %>">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } else { %>
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>No Conflict Checks</h5>
+                <p class="text-muted">Run a conflict check before taking new matters or clients.</p>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script>
+// Row click handlers
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        window.location.href = this.dataset.href;
+    });
+});
+
+// Delete handlers
+document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        if (!confirm('Delete this conflict check?')) return;
+        const id = this.dataset.id;
+        try {
+            const response = await fetch('/api/conflicts/' + id, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                this.closest('tr').remove();
+            } else {
+                alert('Error: ' + (result.error || 'Failed to delete'));
+            }
+        } catch (error) {
+            alert('Delete failed');
+        }
+    });
+});
+
+document.getElementById('quickCheckForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const names = form.names.value.split(',').map(n => n.trim()).filter(n => n);
+    const companies = form.companies.value.split(',').map(c => c.trim()).filter(c => c);
+
+    const resultsDiv = document.getElementById('quickResults');
+    resultsDiv.innerHTML = '<p class="text-center"><span class="spinner-border spinner-border-sm"></span> Checking...</p>';
+    resultsDiv.classList.remove('d-none');
+
+    try {
+        const response = await fetch('/api/conflicts/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ names, companies, check_type: 'new_matter' })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            if (result.conflicts.length === 0) {
+                resultsDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No conflicts found!</div>';
+            } else {
+                let html = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i><strong>' + result.conflicts.length + ' potential conflict(s) found!</strong></div>';
+                html += '<ul class="list-group">';
+                result.conflicts.forEach(c => {
+                    html += '<li class="list-group-item d-flex justify-content-between"><span>' + (c.name || c.first_name + ' ' + c.last_name || c.title || 'Unknown') + '</span><span class="badge bg-secondary">' + c.source + '</span></li>';
+                });
+                html += '</ul>';
+                html += '<a href="/conflicts/' + result.check.id + '" class="btn btn-outline-primary mt-3">View Full Report</a>';
+                resultsDiv.innerHTML = html;
+            }
+        } else {
+            resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + result.error + '</div>';
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = '<div class="alert alert-danger">Check failed. Please try again.</div>';
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

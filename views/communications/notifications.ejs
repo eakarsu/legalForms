@@ -1,0 +1,171 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'notifications' }) %>
+    <div class="pm-container">
+        <div class="pm-header">
+            <div class="pm-header-content"><h1><i class="fas fa-bell me-2"></i>Notifications</h1></div>
+            <button class="btn btn-outline-secondary" id="btnMarkAllRead"><i class="fas fa-check-double me-2"></i>Mark All Read</button>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <% if (notifications.length === 0) { %>
+                    <div class="text-center py-5"><i class="fas fa-bell-slash fa-3x text-muted mb-3"></i><p class="text-muted">No notifications</p></div>
+                <% } else { %>
+                    <div class="list-group list-group-flush">
+                        <% notifications.forEach(n => {
+                            const icon = n.notification_type === 'deadline' ? 'exclamation-circle text-danger' :
+                                         n.notification_type === 'payment' ? 'dollar-sign text-success' :
+                                         n.notification_type === 'document' ? 'file-alt text-primary' :
+                                         n.notification_type === 'message' ? 'envelope text-info' : 'info-circle text-secondary';
+                        %>
+                            <div class="list-group-item d-flex align-items-center clickable-notification <%= !n.is_read ? 'bg-light' : '' %>" style="cursor: pointer;" data-id="<%= n.id %>">
+                                <div class="me-3"><i class="fas fa-<%= icon %> fa-lg"></i></div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 <%= !n.is_read ? 'fw-bold' : '' %>"><%= n.title %></h6>
+                                    <% if (n.message) { %><p class="mb-1 text-muted small"><%= n.message %></p><% } %>
+                                    <small class="text-muted"><%= new Date(n.created_at).toLocaleString() %></small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <% if (!n.is_read) { %>
+                                        <button class="btn btn-outline-primary btn-mark-read" data-id="<%= n.id %>" title="Mark as Read"><i class="fas fa-check"></i></button>
+                                    <% } %>
+                                    <button class="btn btn-outline-danger btn-delete-notification" data-id="<%= n.id %>" title="Delete"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Notification Modal -->
+    <div class="modal fade" id="viewNotificationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Notification Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="notificationDetails"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" id="btnDeleteNotification"><i class="fas fa-trash me-1"></i>Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var currentNotificationId = null;
+
+        // Clickable notification items
+        document.querySelectorAll('.clickable-notification').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-group') || e.target.closest('button')) return;
+                if (this.dataset.id) {
+                    viewNotification(this.dataset.id);
+                }
+            });
+        });
+
+        // Mark all read button
+        document.getElementById('btnMarkAllRead').addEventListener('click', function() {
+            markAllRead();
+        });
+
+        // Mark read buttons
+        document.querySelectorAll('.btn-mark-read').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                markRead(this.dataset.id);
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.btn-delete-notification').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deleteNotification(this.dataset.id);
+            });
+        });
+
+        function markRead(id) {
+            fetch('/api/notifications/' + id + '/read', { method: 'PUT' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else console.error('Error marking notification read');
+            })
+            .catch(function(err) { console.error(err); });
+        }
+        function markAllRead() {
+            fetch('/api/notifications/read-all', { method: 'PUT' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else alert('Error marking all as read: ' + (data.error || 'Unknown error'));
+            })
+            .catch(function(err) { alert('Failed to mark all as read'); console.error(err); });
+        }
+
+        function viewNotification(id) {
+            currentNotificationId = id;
+            fetch('/api/notifications/' + id)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.notification) {
+                    var n = data.notification;
+                    var typeIcons = {
+                        'deadline': 'exclamation-circle text-danger',
+                        'payment': 'dollar-sign text-success',
+                        'document': 'file-alt text-primary',
+                        'message': 'envelope text-info',
+                        'system': 'info-circle text-secondary'
+                    };
+                    var typeLabels = {
+                        'deadline': 'Deadline Alert',
+                        'payment': 'Payment',
+                        'document': 'Document',
+                        'message': 'Message',
+                        'system': 'System'
+                    };
+                    var icon = typeIcons[n.notification_type] || 'info-circle text-secondary';
+                    var html = '<div class="text-center mb-3"><i class="fas fa-' + icon + ' fa-3x"></i></div>' +
+                        '<h5 class="text-center mb-3">' + n.title + '</h5>' +
+                        '<table class="table table-borderless">' +
+                        '<tr><th width="100"><i class="fas fa-tag text-muted me-2"></i>Type:</th><td><span class="badge bg-secondary">' + (typeLabels[n.notification_type] || n.notification_type) + '</span></td></tr>' +
+                        '<tr><th><i class="fas fa-clock text-muted me-2"></i>Date:</th><td>' + new Date(n.created_at).toLocaleString() + '</td></tr>' +
+                        '<tr><th><i class="fas fa-check-circle text-muted me-2"></i>Status:</th><td>' + (n.is_read ? '<span class="badge bg-secondary">Read</span>' : '<span class="badge bg-primary">Unread</span>') + '</td></tr>' +
+                        '</table>';
+                    if (n.message) {
+                        html += '<div class="mt-3"><strong><i class="fas fa-align-left me-2"></i>Message:</strong><p class="mt-2 p-3 bg-light rounded">' + n.message + '</p></div>';
+                    }
+                    document.getElementById('notificationDetails').innerHTML = html;
+                    new bootstrap.Modal(document.getElementById('viewNotificationModal')).show();
+                    if (!n.is_read) markRead(id);
+                }
+            });
+        }
+
+        function deleteNotification(id) {
+            if (confirm('Are you sure you want to delete this notification?')) {
+                fetch('/api/notifications/' + id, { method: 'DELETE' })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) location.reload();
+                    else alert('Error: ' + (data.error || 'Failed to delete'));
+                })
+                .catch(function(err) { alert('Error: ' + err.message); });
+            }
+        }
+
+        // Modal button handlers
+        document.getElementById('btnDeleteNotification').onclick = function() {
+            bootstrap.Modal.getInstance(document.getElementById('viewNotificationModal')).hide();
+            deleteNotification(currentNotificationId);
+        };
+    </script>
+</body>
+</html>

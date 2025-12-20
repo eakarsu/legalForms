@@ -1,0 +1,191 @@
+<%- include('../base-pm', {
+    title: 'Waiver Details',
+    description: 'Conflict waiver details'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/conflicts">Conflict Checking</a></li>
+                    <li class="breadcrumb-item"><a href="/conflicts/waivers">Waivers</a></li>
+                    <li class="breadcrumb-item active">Waiver Details</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-file-signature me-2"></i>Conflict Waiver</h2>
+            <p class="text-muted mb-0">Created on <%= new Date(waiver.created_at).toLocaleString() %></p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print
+            </button>
+            <button class="btn btn-outline-danger" onclick="deleteWaiver()">
+                <i class="fas fa-trash me-1"></i>Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Waiver Info -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-file-signature me-2"></i>Waiver Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge bg-<%= waiver.status === 'signed' ? 'success' : waiver.status === 'pending' ? 'warning' : 'secondary' %>">
+                                    <%= waiver.status || 'Signed' %>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Type:</th>
+                            <td><%= waiver.waiver_type || 'Standard' %></td>
+                        </tr>
+                        <tr>
+                            <th>Obtained Date:</th>
+                            <td><%= waiver.obtained_date ? new Date(waiver.obtained_date).toLocaleDateString() : 'N/A' %></td>
+                        </tr>
+                        <% if (waiver.obtained_from) { %>
+                        <tr>
+                            <th>Obtained From:</th>
+                            <td><%= waiver.obtained_from %></td>
+                        </tr>
+                        <% } %>
+                    </table>
+                </div>
+            </div>
+
+            <% if (waiver.first_name || waiver.company_name) { %>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Client Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong><%= waiver.first_name %> <%= waiver.last_name %></strong></p>
+                    <% if (waiver.company_name) { %><p class="mb-1 text-muted"><%= waiver.company_name %></p><% } %>
+                    <% if (waiver.email) { %><p class="mb-1"><i class="fas fa-envelope me-2"></i><a href="mailto:<%= waiver.email %>"><%= waiver.email %></a></p><% } %>
+                    <% if (waiver.phone) { %><p class="mb-0"><i class="fas fa-phone me-2"></i><a href="tel:<%= waiver.phone %>"><%= waiver.phone %></a></p><% } %>
+                </div>
+            </div>
+            <% } %>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-link me-2"></i>Related Conflict Check</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Check Type:</strong> <%= waiver.check_type || 'N/A' %></p>
+                    <p><strong>Check Status:</strong>
+                        <span class="badge bg-<%= waiver.check_status === 'waived' ? 'warning' : 'secondary' %>">
+                            <%= waiver.check_status %>
+                        </span>
+                    </p>
+                    <a href="/conflicts/<%= waiver.conflict_check_id %>" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>View Conflict Check
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waiver Details -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Waiver Text</h5>
+                </div>
+                <div class="card-body">
+                    <% if (waiver.waiver_text) { %>
+                    <div style="white-space: pre-wrap;"><%= waiver.waiver_text %></div>
+                    <% } else { %>
+                    <p class="text-muted mb-0">No waiver text recorded.</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if (waiver.parties_involved) { %>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Parties Involved</h5>
+                </div>
+                <div class="card-body">
+                    <%
+                    const parties = typeof waiver.parties_involved === 'string'
+                        ? JSON.parse(waiver.parties_involved || '[]')
+                        : (waiver.parties_involved || []);
+                    %>
+                    <% if (parties.length > 0) { %>
+                    <ul class="list-group list-group-flush">
+                        <% parties.forEach(party => { %>
+                        <li class="list-group-item"><%= party %></li>
+                        <% }) %>
+                    </ul>
+                    <% } else { %>
+                    <p class="text-muted mb-0">No parties listed.</p>
+                    <% } %>
+                </div>
+            </div>
+            <% } %>
+
+            <%
+            const searchTerms = typeof waiver.search_terms === 'string'
+                ? JSON.parse(waiver.search_terms || '{}')
+                : (waiver.search_terms || {});
+            %>
+            <% if (searchTerms.names || searchTerms.companies) { %>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Original Search Terms</h5>
+                </div>
+                <div class="card-body">
+                    <% if (searchTerms.names && searchTerms.names.length > 0) { %>
+                    <p class="mb-2"><strong>Names:</strong></p>
+                    <ul class="list-unstyled ms-3 mb-3">
+                        <% searchTerms.names.forEach(name => { %>
+                        <li><i class="fas fa-user me-2 text-muted"></i><%= name %></li>
+                        <% }) %>
+                    </ul>
+                    <% } %>
+                    <% if (searchTerms.companies && searchTerms.companies.length > 0) { %>
+                    <p class="mb-2"><strong>Companies:</strong></p>
+                    <ul class="list-unstyled ms-3">
+                        <% searchTerms.companies.forEach(company => { %>
+                        <li><i class="fas fa-building me-2 text-muted"></i><%= company %></li>
+                        <% }) %>
+                    </ul>
+                    <% } %>
+                </div>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script>
+async function deleteWaiver() {
+    if (!confirm('Are you sure you want to delete this waiver?')) return;
+
+    try {
+        const response = await fetch('/api/conflicts/waivers/<%= waiver.id %>', { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+            window.location.href = '/conflicts/waivers';
+        } else {
+            alert('Error: ' + (result.error || 'Failed to delete'));
+        }
+    } catch (error) {
+        alert('Delete failed');
+    }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

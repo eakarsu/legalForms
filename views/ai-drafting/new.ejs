@@ -1,0 +1,235 @@
+<%- include('../base-pm', {
+    title: 'New AI Draft',
+    description: 'Generate a legal document with AI'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="/ai-drafting">AI Drafting</a></li>
+                <li class="breadcrumb-item active">New Draft</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-robot me-2"></i>New AI Draft</h2>
+        <p class="text-muted mb-0">Generate legal documents using AI</p>
+    </div>
+
+    <form id="draftForm">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Template Selection -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Template</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Document Type</label>
+                                <select name="document_type" class="form-select document-type" id="documentTypeSelect">
+                                    <option value="">Select type...</option>
+                                    <option value="letter">Letter</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="motion">Motion</option>
+                                    <option value="memo">Memo</option>
+                                    <option value="pleading">Pleading</option>
+                                    <option value="agreement">Agreement</option>
+                                    <option value="notice">Notice</option>
+                                    <option value="brief">Brief</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-select" id="categorySelect">
+                                    <option value="">Select category...</option>
+                                    <option value="letter">Letters</option>
+                                    <option value="contract">Contracts</option>
+                                    <option value="motion">Motions</option>
+                                    <option value="memo">Memos</option>
+                                    <option value="pleading">Pleadings</option>
+                                    <option value="agreement">Agreements</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Template</label>
+                                <select name="template_id" class="form-select" id="templateSelect">
+                                    <option value="">Select template or start from scratch...</option>
+                                    <% if (typeof templates !== 'undefined') { templates.forEach(t => { %>
+                                    <option value="<%= t.id %>" data-category="<%= t.category %>"><%= t.name %></option>
+                                    <% }) } %>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Document Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Document Title</label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g., Demand Letter - Smith v. Jones" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Instructions for AI</label>
+                            <textarea name="prompt" class="form-control" rows="5" placeholder="Describe what you want the document to include. Be specific about:
+- Key facts and dates
+- Legal arguments or points to address
+- Tone (formal, firm, conciliatory)
+- Any specific language or clauses to include" required></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Context Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-link me-2"></i>Context (Optional)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Client</label>
+                                <select name="client_id" class="form-select">
+                                    <option value="">Select client...</option>
+                                    <% if (typeof clients !== 'undefined') { clients.forEach(c => { %>
+                                    <option value="<%= c.id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                    <% }) } %>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Case</label>
+                                <select name="case_id" class="form-select">
+                                    <option value="">Select case...</option>
+                                    <% if (typeof cases !== 'undefined') { cases.forEach(cs => { %>
+                                    <option value="<%= cs.id %>"><%= cs.title %></option>
+                                    <% }) } %>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Additional Context</label>
+                            <textarea name="context" class="form-control" rows="3" placeholder="Paste any additional context, facts, or reference materials..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Generation Options -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Writing Style</label>
+                            <select name="style" class="form-select">
+                                <option value="formal">Formal/Professional</option>
+                                <option value="persuasive">Persuasive</option>
+                                <option value="neutral">Neutral/Objective</option>
+                                <option value="firm">Firm/Assertive</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Length</label>
+                            <select name="length" class="form-select">
+                                <option value="concise">Concise</option>
+                                <option value="standard" selected>Standard</option>
+                                <option value="detailed">Detailed</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="include_citations" class="form-check-input" id="includeCitations">
+                            <label class="form-check-label" for="includeCitations">Include legal citations</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="review_mode" class="form-check-input" id="reviewMode" checked>
+                            <label class="form-check-label" for="reviewMode">Generate for review (add [REVIEW] markers)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                        <i class="fas fa-magic me-2"></i>Generate Document
+                    </button>
+                    <a href="/ai-drafting" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+
+                <!-- Cost Estimate -->
+                <div class="card mt-4">
+                    <div class="card-body text-center">
+                        <small class="text-muted">Estimated cost: ~$0.02 - $0.10</small>
+                        <br><small class="text-muted">Using: OpenRouter AI</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Filter templates by category
+document.getElementById('categorySelect').addEventListener('change', function() {
+    const category = this.value;
+    const templateSelect = document.getElementById('templateSelect');
+    const options = templateSelect.querySelectorAll('option[data-category]');
+
+    options.forEach(opt => {
+        if (!category || opt.dataset.category === category) {
+            opt.style.display = '';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+    templateSelect.value = '';
+});
+
+// Submit form
+document.getElementById('draftForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('generateBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    btn.disabled = true;
+
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.include_citations = formData.has('include_citations');
+    data.review_mode = formData.has('review_mode');
+
+    try {
+        const response = await fetch('/api/ai-drafting/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/ai-drafting/sessions/' + result.session.id;
+        } else {
+            alert('Error: ' + result.error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (error) {
+        alert('Generation failed. Please try again.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

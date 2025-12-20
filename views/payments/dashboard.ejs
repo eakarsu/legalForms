@@ -1,0 +1,169 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'payments' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-credit-card me-2"></i>Payments Dashboard</h2>
+            <p class="text-muted mb-0">Online payment processing</p>
+        </div>
+        <a href="/payments/links/new" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create Payment Link
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3>$<%= parseFloat(stats.total_collected || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></h3>
+                    <small>Collected (30 days)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3><%= stats.successful_count || 0 %></h3>
+                    <small>Successful Payments</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h3>$<%= parseFloat(stats.total_fees || 0).toFixed(2) %></h3>
+                    <small>Processing Fees</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h3><%= stats.failed_count || 0 %></h3>
+                    <small>Failed Payments</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Payments -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Payments</h5>
+                    <a href="/payments/transactions" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Date</th><th>Client</th><th>Invoice</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% if (payments.length === 0) { %>
+                            <tr><td colspan="6" class="text-center text-muted py-3">No payments yet</td></tr>
+                            <% } else { %>
+                            <% payments.slice(0,10).forEach(p => { %>
+                            <tr class="clickable-row" data-id="<%= p.id %>" style="cursor: pointer;">
+                                <td><%= new Date(p.created_at).toLocaleDateString() %></td>
+                                <td><%= p.company_name || (p.first_name + ' ' + p.last_name) %></td>
+                                <td><%= p.invoice_number %></td>
+                                <td>$<%= parseFloat(p.amount).toFixed(2) %></td>
+                                <td><span class="badge bg-<%= p.status === 'succeeded' ? 'success' : 'warning' %>"><%= p.status %></span></td>
+                                <td onclick="event.stopPropagation();">
+                                    <button class="btn btn-sm btn-outline-primary btn-view" data-id="<%= p.id %>"><i class="fas fa-eye"></i></button>
+                                </td>
+                            </tr>
+                            <% }) %>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Payment Links -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Active Links</h5>
+                    <a href="/payments/links" class="btn btn-sm btn-outline-primary">Manage</a>
+                </div>
+                <div class="card-body">
+                    <% if (paymentLinks.length === 0) { %>
+                    <p class="text-muted text-center">No active payment links</p>
+                    <% } else { %>
+                    <% paymentLinks.slice(0,5).forEach(link => { %>
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded clickable-link" data-href="/payments/links" style="cursor: pointer;">
+                        <div>
+                            <strong><%= link.invoice_number %></strong>
+                            <br><small class="text-muted">$<%= parseFloat(link.amount).toFixed(2) %></small>
+                        </div>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                    <% }) %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Detail Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Payment Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="paymentDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Row click handlers
+document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', function() {
+        viewPayment(this.dataset.id);
+    });
+});
+
+document.querySelectorAll('.btn-view').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        viewPayment(this.dataset.id);
+    });
+});
+
+document.querySelectorAll('.clickable-link').forEach(el => {
+    el.addEventListener('click', function() {
+        window.location.href = this.dataset.href;
+    });
+});
+
+function viewPayment(id) {
+    const payments = <%- JSON.stringify(payments) %>;
+    const payment = payments.find(p => p.id == id);
+    if (payment) {
+        document.getElementById('paymentDetails').innerHTML = `
+            <table class="table table-borderless">
+                <tr><th width="120">Date:</th><td>${new Date(payment.created_at).toLocaleDateString()}</td></tr>
+                <tr><th>Client:</th><td>${payment.company_name || (payment.first_name + ' ' + payment.last_name)}</td></tr>
+                <tr><th>Invoice:</th><td>${payment.invoice_number}</td></tr>
+                <tr><th>Amount:</th><td><strong>$${parseFloat(payment.amount).toFixed(2)}</strong></td></tr>
+                <tr><th>Fee:</th><td>$${parseFloat(payment.fee_amount || 0).toFixed(2)}</td></tr>
+                <tr><th>Net:</th><td>$${(parseFloat(payment.amount) - parseFloat(payment.fee_amount || 0)).toFixed(2)}</td></tr>
+                <tr><th>Status:</th><td><span class="badge bg-${payment.status === 'succeeded' ? 'success' : 'warning'}">${payment.status}</span></td></tr>
+                ${payment.stripe_payment_id ? '<tr><th>Stripe ID:</th><td><code>' + payment.stripe_payment_id + '</code></td></tr>' : ''}
+            </table>
+        `;
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

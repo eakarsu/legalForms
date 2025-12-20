@@ -1,0 +1,62 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">My Documents</h4>
+        <small class="text-muted">Documents shared with you by your legal team</small>
+    </div>
+</div>
+
+<div class="portal-card">
+    ${documents.length > 0 ? `
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Type</th>
+                    <th>Related Case</th>
+                    <th>Date Added</th>
+                    <th>Access</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${documents.map(doc => `
+                <tr class="${doc.access_type === 'download' ? 'clickable-row' : ''}" ${doc.access_type === 'download' ? `data-href="/portal/documents/${doc.id}/download" style="cursor: pointer;"` : ''}>
+                    <td>
+                        <i class="fas fa-file-${doc.file_format === 'pdf' ? 'pdf text-danger' : doc.file_format === 'docx' ? 'word text-primary' : 'alt text-secondary'} me-2"></i>
+                        <strong>${doc.title}</strong>
+                    </td>
+                    <td>${doc.document_type}</td>
+                    <td>${doc.case_title ? `<a href="/portal/cases" onclick="event.stopPropagation();">${doc.case_number || doc.case_title}</a>` : '<span class="text-muted">N/A</span>'}</td>
+                    <td>${new Date(doc.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <span class="badge bg-${doc.access_type === 'download' ? 'success' : 'secondary'}">
+                            ${doc.access_type === 'download' ? 'Download' : 'View Only'}
+                        </span>
+                    </td>
+                    <td onclick="event.stopPropagation();">
+                        ${doc.access_type === 'download' ? `
+                        <a href="/portal/documents/${doc.id}/download" class="btn btn-sm btn-primary">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                        ` : `
+                        <button class="btn btn-sm btn-secondary" disabled>
+                            <i class="fas fa-eye"></i> View Only
+                        </button>
+                        `}
+                    </td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : `
+    <div class="text-center py-5">
+        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+        <h5>No Documents Available</h5>
+        <p class="text-muted">Your legal team hasn't shared any documents with you yet.</p>
+    </div>
+    `}
+</div>
+` }) %>

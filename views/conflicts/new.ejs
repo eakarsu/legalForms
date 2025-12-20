@@ -1,0 +1,279 @@
+<%- include('../base-pm', {
+    title: 'New Conflict Check',
+    description: 'Run a new conflict check'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="/conflicts">Conflict Checking</a></li>
+                <li class="breadcrumb-item active">New Check</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-search me-2"></i>New Conflict Check</h2>
+        <p class="text-muted mb-0">Check for conflicts of interest before taking new matters</p>
+    </div>
+
+    <form id="conflictCheckForm">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Search Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label class="form-label"><i class="fas fa-user me-2"></i>Individual Names</label>
+                            <div id="namesContainer">
+                                <div class="input-group mb-2">
+                                    <input type="text" name="names[]" class="form-control" placeholder="Enter full name">
+                                    <button type="button" class="btn btn-outline-success add-name-btn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Enter all party names to check (plaintiffs, defendants, witnesses, etc.)</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label"><i class="fas fa-building me-2"></i>Company/Entity Names</label>
+                            <div id="companiesContainer">
+                                <div class="input-group mb-2">
+                                    <input type="text" name="companies[]" class="form-control" placeholder="Enter company name">
+                                    <button type="button" class="btn btn-outline-success add-company-btn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Enter any corporate or entity names involved</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Check Type</label>
+                                    <select name="check_type" class="form-select" required>
+                                        <option value="new_client">New Client Intake</option>
+                                        <option value="new_matter">New Matter for Existing Client</option>
+                                        <option value="new_employee">New Employee/Lateral Hire</option>
+                                        <option value="general">General Check</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Practice Area</label>
+                                    <select name="practice_area" class="form-select">
+                                        <option value="">Any</option>
+                                        <option value="litigation">Litigation</option>
+                                        <option value="corporate">Corporate/Business</option>
+                                        <option value="family">Family Law</option>
+                                        <option value="real_estate">Real Estate</option>
+                                        <option value="estate">Estate Planning</option>
+                                        <option value="criminal">Criminal Defense</option>
+                                        <option value="personal_injury">Personal Injury</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Link to Client/Case (Optional)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Client</label>
+                                    <select name="client_id" class="form-select">
+                                        <option value="">Select client...</option>
+                                        <% if (typeof clients !== 'undefined') { clients.forEach(c => { %>
+                                        <option value="<%= c.id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                        <% }) } %>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Case</label>
+                                    <select name="case_id" class="form-select">
+                                        <option value="">Select case...</option>
+                                        <% if (typeof cases !== 'undefined') { cases.forEach(cs => { %>
+                                        <option value="<%= cs.id %>"><%= cs.title %></option>
+                                        <% }) } %>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Search Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="search_clients" class="form-check-input" id="searchClients" checked>
+                            <label class="form-check-label" for="searchClients">Search Clients</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="search_cases" class="form-check-input" id="searchCases" checked>
+                            <label class="form-check-label" for="searchCases">Search Cases</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="search_parties" class="form-check-input" id="searchParties" checked>
+                            <label class="form-check-label" for="searchParties">Search Parties Database</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="fuzzy_match" class="form-check-input" id="fuzzyMatch" checked>
+                            <label class="form-check-label" for="fuzzyMatch">Enable Fuzzy Matching</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search me-2"></i>Run Conflict Check
+                    </button>
+                    <a href="/conflicts" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Results Section (hidden initially) -->
+    <div id="resultsSection" class="d-none mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Check Results</h5>
+            </div>
+            <div class="card-body" id="resultsContent">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add more name fields
+document.querySelector('.add-name-btn').addEventListener('click', function() {
+    const container = document.getElementById('namesContainer');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" name="names[]" class="form-control" placeholder="Enter full name">
+        <button type="button" class="btn btn-outline-danger remove-btn" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    container.appendChild(div);
+});
+
+// Add more company fields
+document.querySelector('.add-company-btn').addEventListener('click', function() {
+    const container = document.getElementById('companiesContainer');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" name="companies[]" class="form-control" placeholder="Enter company name">
+        <button type="button" class="btn btn-outline-danger remove-btn" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    container.appendChild(div);
+});
+
+// Submit form
+document.getElementById('conflictCheckForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+    submitBtn.disabled = true;
+
+    const formData = new FormData(form);
+    const names = formData.getAll('names[]').filter(n => n.trim());
+    const companies = formData.getAll('companies[]').filter(c => c.trim());
+
+    const data = {
+        names,
+        companies,
+        check_type: formData.get('check_type'),
+        practice_area: formData.get('practice_area'),
+        client_id: formData.get('client_id') || null,
+        case_id: formData.get('case_id') || null,
+        options: {
+            search_clients: formData.has('search_clients'),
+            search_cases: formData.has('search_cases'),
+            search_parties: formData.has('search_parties'),
+            fuzzy_match: formData.has('fuzzy_match')
+        }
+    };
+
+    try {
+        const response = await fetch('/api/conflicts/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        resultsSection.classList.remove('d-none');
+
+        if (result.success) {
+            if (result.conflicts.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>No conflicts found!</strong> You may proceed with this matter.
+                        <a href="/conflicts/${result.check.id}" class="btn btn-sm btn-outline-success float-end">View Report</a>
+                    </div>
+                `;
+            } else {
+                let html = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>${result.conflicts.length} potential conflict(s) found!</strong>
+                        <a href="/conflicts/${result.check.id}" class="btn btn-sm btn-outline-danger float-end">View Full Report</a>
+                    </div>
+                    <table class="table">
+                        <thead><tr><th>Match</th><th>Source</th><th>Details</th></tr></thead>
+                        <tbody>
+                `;
+                result.conflicts.forEach(c => {
+                    html += `<tr>
+                        <td><strong>${c.name || c.first_name + ' ' + c.last_name || 'Unknown'}</strong></td>
+                        <td><span class="badge bg-secondary">${c.source}</span></td>
+                        <td>${c.case_title || c.role || ''}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                resultsContent.innerHTML = html;
+            }
+        } else {
+            resultsContent.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        alert('Check failed. Please try again.');
+    }
+
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

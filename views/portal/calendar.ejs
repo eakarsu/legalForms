@@ -1,0 +1,118 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">My Calendar</h4>
+        <small class="text-muted">Upcoming events and important dates</small>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i>All Events</h5>
+            ${events.length > 0 ? `
+            <div class="list-group">
+                ${events.map(evt => {
+                    const isPast = new Date(evt.start_time) < new Date();
+                    const eventDate = new Date(evt.start_time);
+                    return `
+                    <div class="list-group-item ${isPast ? 'bg-light' : ''} ${evt.status === 'cancelled' ? 'text-decoration-line-through' : ''}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex">
+                                <div class="text-center me-4" style="min-width: 60px;">
+                                    <div class="text-muted small">${eventDate.toLocaleDateString('en-US', {month: 'short'})}</div>
+                                    <div class="h3 mb-0">${eventDate.getDate()}</div>
+                                    <div class="text-muted small">${eventDate.toLocaleDateString('en-US', {weekday: 'short'})}</div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">${evt.title}</h6>
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        ${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        ${evt.end_time ? ' - ' + new Date(evt.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                                    </p>
+                                    ${evt.location ? `
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>${evt.location}
+                                    </p>
+                                    ` : ''}
+                                    ${evt.case_title ? `
+                                    <p class="mb-0">
+                                        <span class="badge bg-secondary">${evt.case_number || evt.case_title}</span>
+                                    </p>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-${evt.event_type === 'hearing' ? 'danger' : evt.event_type === 'deadline' ? 'warning' : evt.event_type === 'meeting' ? 'primary' : 'secondary'}">
+                                    ${evt.event_type || 'Event'}
+                                </span>
+                                ${isPast ? '<br><small class="text-muted">Past</small>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+            ` : `
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h5>No Events Scheduled</h5>
+                <p class="text-muted">You don't have any upcoming events.</p>
+            </div>
+            `}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Upcoming This Week -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-clock me-2 text-warning"></i>This Week</h5>
+            ${(() => {
+                const now = new Date();
+                const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const thisWeekEvents = events.filter(e => {
+                    const d = new Date(e.start_time);
+                    return d >= now && d <= weekEnd;
+                });
+                if (thisWeekEvents.length > 0) {
+                    return thisWeekEvents.map(evt => `
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary text-white rounded p-2 me-3 text-center" style="min-width: 50px;">
+                            <div class="small">${new Date(evt.start_time).toLocaleDateString('en-US', {weekday: 'short'})}</div>
+                            <div class="fw-bold">${new Date(evt.start_time).getDate()}</div>
+                        </div>
+                        <div>
+                            <strong>${evt.title}</strong>
+                            <br><small class="text-muted">${new Date(evt.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                        </div>
+                    </div>
+                    `).join('');
+                }
+                return '<p class="text-muted text-center">No events this week</p>';
+            })()}
+        </div>
+
+        <!-- Event Types Legend -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Event Types</h5>
+            <div class="mb-2">
+                <span class="badge bg-danger me-2">Hearing</span>
+                Court appearances and hearings
+            </div>
+            <div class="mb-2">
+                <span class="badge bg-warning me-2">Deadline</span>
+                Filing deadlines and due dates
+            </div>
+            <div class="mb-2">
+                <span class="badge bg-primary me-2">Meeting</span>
+                Meetings and consultations
+            </div>
+            <div class="mb-2">
+                <span class="badge bg-secondary me-2">Other</span>
+                Other events and reminders
+            </div>
+        </div>
+    </div>
+</div>
+` }) %>

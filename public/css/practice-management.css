@@ -1,0 +1,513 @@
+/* Practice Management CSS - Professional Compact Design */
+
+:root {
+    --pm-primary: #667eea;
+    --pm-primary-dark: #5a67d8;
+    --pm-secondary: #764ba2;
+    --pm-success: #28a745;
+    --pm-warning: #ffc107;
+    --pm-danger: #dc3545;
+    --pm-info: #17a2b8;
+    --pm-light: #f8f9fa;
+    --pm-dark: #343a40;
+    --pm-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --pm-font-xs: 0.7rem;
+    --pm-font-sm: 0.75rem;
+    --pm-font-base: 0.8rem;
+    --pm-font-md: 0.85rem;
+    --pm-font-lg: 0.9rem;
+}
+
+/* Base Typography */
+body {
+    font-size: var(--pm-font-base);
+    line-height: 1.4;
+}
+
+/* All headings - compact professional sizing */
+h1, .h1 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+h2, .h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+h3, .h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem; }
+h4, .h4 { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem; }
+h5, .h5 { font-size: 0.75rem; font-weight: 600; margin-bottom: 0.15rem; }
+h6, .h6 { font-size: 0.7rem; font-weight: 600; margin-bottom: 0.15rem; }
+
+/* Paragraphs and text */
+p { font-size: var(--pm-font-base); margin-bottom: 0.5rem; }
+small, .small, .text-muted { font-size: var(--pm-font-xs); }
+
+/* Container adjustments */
+.container-fluid { padding: 0.75rem 1rem; }
+.container-fluid.py-4 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+
+/* Page headers */
+.container-fluid h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.15rem; }
+.container-fluid h2 i { font-size: 0.8rem; }
+.container-fluid > .d-flex { margin-bottom: 0.75rem !important; }
+.container-fluid p.text-muted,
+.container-fluid > .d-flex p { font-size: var(--pm-font-xs); margin-bottom: 0; }
+
+/* Navigation - Compact */
+.pm-navbar, .pm-nav {
+    background: var(--pm-gradient);
+    padding: 0;
+    min-height: auto;
+}
+
+.pm-navbar .navbar-brand,
+.navbar-brand {
+    font-size: var(--pm-font-md);
+    padding: 0.4rem 0;
+}
+
+.pm-navbar .navbar-brand .brand-icon,
+.brand-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+}
+
+.brand-text { font-size: var(--pm-font-md); }
+
+.pm-navbar .nav-link,
+.navbar-nav .nav-link {
+    font-size: var(--pm-font-sm);
+    padding: 0.5rem 0.6rem !important;
+}
+
+.pm-navbar .nav-link i,
+.navbar-nav .nav-link i {
+    font-size: 0.7rem;
+}
+
+.dropdown-menu {
+    font-size: var(--pm-font-sm);
+    padding: 0.25rem 0;
+    min-width: 10rem;
+}
+
+.dropdown-item {
+    font-size: var(--pm-font-sm);
+    padding: 0.35rem 0.75rem;
+}
+
+.dropdown-item i {
+    font-size: 0.7rem;
+    width: 16px;
+}
+
+/* Cards - Compact */
+.card {
+    margin-bottom: 0.75rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--pm-font-sm);
+    font-weight: 600;
+    background: #f8f9fa;
+}
+
+.card-header h5,
+.card-header h4,
+.card-header .h5 {
+    font-size: var(--pm-font-sm);
+    font-weight: 600;
+    margin: 0;
+}
+
+.card-body {
+    padding: 0.6rem 0.75rem;
+}
+
+.card-footer {
+    padding: 0.4rem 0.75rem;
+    font-size: var(--pm-font-xs);
+}
+
+/* Stats Cards - Very Compact */
+.stats-card,
+.card.bg-primary,
+.card.bg-success,
+.card.bg-warning,
+.card.bg-danger,
+.card.bg-info,
+.card.bg-secondary {
+    border-radius: 6px;
+}
+
+.stats-card .card-body,
+.card.bg-primary .card-body,
+.card.bg-success .card-body,
+.card.bg-warning .card-body,
+.card.bg-danger .card-body,
+.card.bg-info .card-body,
+.card.bg-secondary .card-body {
+    padding: 0.5rem 0.6rem;
+}
+
+.card-body h3,
+.card-body h4,
+.card-body .h3,
+.card-body .h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.card-body.text-center h3,
+.card-body.text-center h4,
+.card-body.text-white h3,
+.card-body.text-white h4,
+.card-body.text-dark h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.card-body small,
+.card-body .small {
+    font-size: 0.65rem;
+}
+
+/* Row cards spacing */
+.row.mb-4 { margin-bottom: 0.6rem !important; }
+.row.mb-3 { margin-bottom: 0.5rem !important; }
+.row.g-3, .row.g-4 { --bs-gutter-y: 0.5rem; --bs-gutter-x: 0.5rem; }
+
+/* Tables - Compact Professional */
+.table {
+    font-size: var(--pm-font-sm);
+    margin-bottom: 0;
+}
+
+.table thead th {
+    font-size: var(--pm-font-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 0.4rem 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 0.35rem 0.5rem;
+    vertical-align: middle;
+    font-size: var(--pm-font-sm);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.04);
+}
+
+.table-responsive { font-size: var(--pm-font-sm); }
+
+/* Badges - Small */
+.badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    font-weight: 500;
+    border-radius: 3px;
+}
+
+/* Buttons - Compact */
+.btn {
+    font-size: var(--pm-font-sm);
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+}
+
+.btn-sm {
+    font-size: var(--pm-font-xs);
+    padding: 0.2rem 0.4rem;
+}
+
+.btn-lg {
+    font-size: var(--pm-font-base);
+    padding: 0.4rem 0.8rem;
+}
+
+.btn i { font-size: 0.7rem; }
+.btn-sm i { font-size: 0.65rem; }
+
+.btn-group-sm .btn {
+    font-size: var(--pm-font-xs);
+    padding: 0.15rem 0.35rem;
+}
+
+/* Forms - Compact */
+.form-label {
+    font-size: var(--pm-font-sm);
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+}
+
+.form-control,
+.form-select {
+    font-size: var(--pm-font-sm);
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+}
+
+.form-control-sm,
+.form-select-sm {
+    font-size: var(--pm-font-xs);
+    padding: 0.2rem 0.4rem;
+}
+
+.form-text,
+.form-check-label {
+    font-size: var(--pm-font-xs);
+}
+
+.input-group-text {
+    font-size: var(--pm-font-sm);
+    padding: 0.3rem 0.5rem;
+}
+
+/* Modals - Compact */
+.modal-header {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-title {
+    font-size: var(--pm-font-md);
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: 0.75rem;
+    font-size: var(--pm-font-sm);
+}
+
+.modal-footer {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.modal-content {
+    border-radius: 6px;
+}
+
+/* Alerts */
+.alert {
+    font-size: var(--pm-font-sm);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+}
+
+/* Lists */
+.list-group-item {
+    font-size: var(--pm-font-sm);
+    padding: 0.4rem 0.6rem;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    font-size: var(--pm-font-xs);
+    margin-bottom: 0.5rem;
+    padding: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    font-size: var(--pm-font-xs);
+}
+
+/* Pagination */
+.pagination {
+    font-size: var(--pm-font-xs);
+}
+
+.page-link {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Tabs and Nav */
+.nav-tabs .nav-link,
+.nav-pills .nav-link {
+    font-size: var(--pm-font-sm);
+    padding: 0.35rem 0.6rem;
+}
+
+/* Timer Display */
+.timer-display,
+#timerDisplay {
+    font-size: 1.1rem !important;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    padding: 0.5rem;
+}
+
+/* Charts */
+.chart-container {
+    height: 200px;
+}
+
+/* Calendar */
+.fc-toolbar-title {
+    font-size: var(--pm-font-lg) !important;
+}
+
+.fc-button {
+    font-size: var(--pm-font-xs) !important;
+    padding: 0.2rem 0.4rem !important;
+}
+
+.fc-event {
+    font-size: var(--pm-font-xs) !important;
+}
+
+/* Empty states */
+.empty-state {
+    padding: 2rem 1rem;
+}
+
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state h5 {
+    font-size: var(--pm-font-md);
+}
+
+.empty-state p {
+    font-size: var(--pm-font-sm);
+}
+
+/* Tooltips and Popovers */
+.tooltip-inner {
+    font-size: var(--pm-font-xs);
+    padding: 0.2rem 0.4rem;
+}
+
+.popover {
+    font-size: var(--pm-font-sm);
+}
+
+.popover-header {
+    font-size: var(--pm-font-sm);
+    padding: 0.4rem 0.6rem;
+}
+
+.popover-body {
+    font-size: var(--pm-font-sm);
+    padding: 0.5rem 0.6rem;
+}
+
+/* Icons in content */
+.fa, .fas, .far, .fab {
+    font-size: inherit;
+}
+
+h2 i, h3 i, h4 i {
+    font-size: 0.85em;
+}
+
+/* Spacing utilities override */
+.py-4 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+.py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+.py-5 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 0.6rem !important; }
+.mb-3 { margin-bottom: 0.5rem !important; }
+.mt-4 { margin-top: 0.6rem !important; }
+.mt-3 { margin-top: 0.5rem !important; }
+
+/* Specific component overrides */
+
+/* Activity feed */
+.activity-feed-item {
+    padding: 0.5rem;
+    font-size: var(--pm-font-sm);
+    margin-bottom: 0.4rem;
+}
+
+/* Timeline */
+.timeline-item {
+    padding-bottom: 0.5rem;
+    font-size: var(--pm-font-sm);
+}
+
+/* Task cards */
+.task-card {
+    padding: 0.5rem;
+    font-size: var(--pm-font-sm);
+}
+
+/* Kanban */
+.kanban-column .card-header {
+    font-size: var(--pm-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kanban-item {
+    padding: 0.5rem;
+    font-size: var(--pm-font-sm);
+}
+
+/* Priority badges */
+.priority-badge {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.35rem;
+}
+
+/* Avatar sizes */
+.avatar-sm { width: 24px; height: 24px; font-size: 0.6rem; }
+.avatar-md { width: 32px; height: 32px; font-size: 0.7rem; }
+.avatar-lg { width: 48px; height: 48px; font-size: 1rem; }
+
+/* Filter bar */
+.filter-bar {
+    padding: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+/* Quick actions */
+.quick-action-btn {
+    font-size: var(--pm-font-xs);
+    padding: 0.25rem 0.5rem;
+}
+
+/* Invoice status */
+.invoice-status {
+    font-size: var(--pm-font-xs);
+}
+
+/* Notification badge */
+.notification-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
+    min-width: 14px;
+}
+
+/* Print */
+@media print {
+    body { font-size: 9pt; }
+    .pm-navbar, .btn, .modal, .filter-bar { display: none !important; }
+    .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+
+/* Responsive - even smaller on mobile */
+@media (max-width: 768px) {
+    :root {
+        --pm-font-xs: 0.65rem;
+        --pm-font-sm: 0.7rem;
+        --pm-font-base: 0.75rem;
+        --pm-font-md: 0.8rem;
+        --pm-font-lg: 0.85rem;
+    }
+
+    .container-fluid { padding: 0.5rem; }
+
+    h1, .h1 { font-size: 0.9rem; }
+    h2, .h2 { font-size: 0.85rem; }
+
+    .card-body h3, .card-body h4 { font-size: 0.85rem; }
+
+    .timer-display, #timerDisplay { font-size: 1rem !important; }
+}

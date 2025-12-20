@@ -1,0 +1,166 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">My Profile</h4>
+        <small class="text-muted">Manage your account settings</small>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Profile Information -->
+        <div class="portal-card">
+            <h5 class="mb-4"><i class="fas fa-user me-2 text-primary"></i>Personal Information</h5>
+            <form action="/portal/profile" method="POST">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control" value="${profile.first_name || ''}" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control" value="${profile.last_name || ''}" disabled>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" value="${profile.email || ''}" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" name="phone" class="form-control" value="${profile.phone || ''}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <input type="text" name="address" class="form-control" value="${profile.address || ''}" placeholder="Street address">
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label">City</label>
+                        <input type="text" name="city" class="form-control" value="${profile.city || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">State</label>
+                        <input type="text" name="state" class="form-control" value="${profile.state || ''}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ZIP Code</label>
+                        <input type="text" name="zip" class="form-control" value="${profile.zip || ''}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-portal">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
+            </form>
+        </div>
+
+        <!-- Change Password -->
+        <div class="portal-card">
+            <h5 class="mb-4"><i class="fas fa-lock me-2 text-warning"></i>Change Password</h5>
+            <form id="passwordForm">
+                <div class="mb-3">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" name="current_password" class="form-control" required>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="new_password" class="form-control" minlength="8" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" name="confirm_password" class="form-control" minlength="8" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key me-2"></i>Change Password
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Account Status -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Account Status</h5>
+            <p><strong>Portal Email:</strong><br>${profile.portal_email}</p>
+            <p><strong>Last Login:</strong><br>${profile.last_login ? new Date(profile.last_login).toLocaleString() : 'N/A'}</p>
+            <p><strong>Two-Factor Auth:</strong><br>
+                <span class="badge bg-${profile.two_factor_enabled ? 'success' : 'secondary'}">
+                    ${profile.two_factor_enabled ? 'Enabled' : 'Disabled'}
+                </span>
+            </p>
+        </div>
+
+        <!-- Notification Preferences -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-bell me-2"></i>Notifications</h5>
+            <form action="/portal/profile" method="POST">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="notification_preferences[email]" id="emailNotif"
+                        ${profile.notification_preferences?.email ? 'checked' : ''}>
+                    <label class="form-check-label" for="emailNotif">
+                        Email notifications
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="notification_preferences[sms]" id="smsNotif"
+                        ${profile.notification_preferences?.sms ? 'checked' : ''}>
+                    <label class="form-check-label" for="smsNotif">
+                        SMS notifications
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    Save Preferences
+                </button>
+            </form>
+        </div>
+
+        <!-- Support -->
+        <div class="portal-card">
+            <h5 class="mb-3"><i class="fas fa-life-ring me-2"></i>Need Help?</h5>
+            <p class="text-muted small">If you're having trouble with your account, please contact your attorney's office.</p>
+            <a href="/portal/messages" class="btn btn-outline-primary w-100">
+                <i class="fas fa-envelope me-2"></i>Contact Support
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+
+    if (form.new_password.value !== form.confirm_password.value) {
+        alert('New passwords do not match');
+        return;
+    }
+
+    const data = {
+        current_password: form.current_password.value,
+        new_password: form.new_password.value,
+        confirm_password: form.confirm_password.value
+    };
+
+    try {
+        const response = await fetch('/portal/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('Password changed successfully!');
+            form.reset();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to change password. Please try again.');
+    }
+});
+</script>
+` }) %>

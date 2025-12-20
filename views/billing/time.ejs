@@ -1,0 +1,357 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'billing' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-stopwatch me-2"></i>Time Tracking</h2>
+            <p class="text-muted mb-0">Track billable and non-billable hours</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTimeModal">
+            <i class="fas fa-plus me-2"></i>Log Time
+        </button>
+    </div>
+
+    <!-- Timer -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 id="timerDisplay" class="mb-0 font-monospace">00:00:00</h2>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button id="startTimer" class="btn btn-success me-2"><i class="fas fa-play me-1"></i>Start</button>
+                    <button id="stopTimer" class="btn btn-danger me-2" disabled><i class="fas fa-stop me-1"></i>Stop</button>
+                    <button id="resetTimer" class="btn btn-secondary"><i class="fas fa-redo me-1"></i>Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Case</label>
+                    <select name="case_id" class="form-select">
+                        <option value="">All Cases</option>
+                        <% cases.forEach(c => { %>
+                            <option value="<%= c.id %>" <%= filters.case_id === c.id ? 'selected' : '' %>><%= c.title %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Client</label>
+                    <select name="client_id" class="form-select">
+                        <option value="">All Clients</option>
+                        <% clients.forEach(c => { %>
+                            <option value="<%= c.id %>" <%= filters.client_id === c.id ? 'selected' : '' %>><%= c.company_name || c.first_name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From</label>
+                    <input type="date" name="date_from" class="form-control" value="<%= filters.date_from || '' %>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">To</label>
+                    <input type="date" name="date_to" class="form-control" value="<%= filters.date_to || '' %>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="is_billed" class="form-select">
+                        <option value="all">All</option>
+                        <option value="false" <%= filters.is_billed === 'false' ? 'selected' : '' %>>Unbilled</option>
+                        <option value="true" <%= filters.is_billed === 'true' ? 'selected' : '' %>>Billed</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-search me-1"></i>Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Time Entries Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <% if (timeEntries.length === 0) { %>
+                <div class="text-center py-5"><i class="fas fa-clock fa-3x text-muted mb-3"></i><p class="text-muted">No time entries found</p></div>
+            <% } else { %>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Date</th><th>Case</th><th>Client</th><th>Description</th><th>Duration</th><th>Rate</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% timeEntries.forEach(te => { %>
+                                <tr class="clickable-row" data-id="<%= te.id %>" style="cursor: pointer;">
+                                    <td><%= new Date(te.date).toLocaleDateString() %></td>
+                                    <td><%= te.case_title || '-' %></td>
+                                    <td><%= te.company_name || (te.first_name ? te.first_name + ' ' + te.last_name : '-') %></td>
+                                    <td><%= te.description.substring(0, 40) %><%= te.description.length > 40 ? '...' : '' %></td>
+                                    <td><%= (te.duration_minutes / 60).toFixed(2) %>h</td>
+                                    <td>$<%= parseFloat(te.hourly_rate || 0).toFixed(0) %></td>
+                                    <td>$<%= parseFloat(te.amount || 0).toFixed(2) %></td>
+                                    <td><span class="badge bg-<%= te.is_billed ? 'success' : 'warning' %>"><%= te.is_billed ? 'Billed' : 'Unbilled' %></span></td>
+                                    <td onclick="event.stopPropagation();">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary btn-edit" data-id="<%= te.id %>" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-outline-danger btn-delete" data-id="<%= te.id %>" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Modal -->
+<div class="modal fade" id="addTimeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Log Time Entry</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Case</label>
+                    <select id="timeCase" name="case_id" class="form-select">
+                        <option value="">Select Case</option>
+                        <% cases.forEach(c => { %><option value="<%= c.id %>"><%= c.title %></option><% }) %>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description *</label>
+                    <textarea id="timeDescription" name="description" class="form-control" rows="2" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-4 mb-3">
+                        <label class="form-label">Hours</label>
+                        <input type="number" id="timeHours" name="hours" class="form-control" min="0" value="0">
+                    </div>
+                    <div class="col-4 mb-3">
+                        <label class="form-label">Minutes</label>
+                        <input type="number" id="timeMinutes" name="minutes" class="form-control" min="0" max="59" value="0">
+                    </div>
+                    <div class="col-4 mb-3">
+                        <label class="form-label">Rate ($/hr)</label>
+                        <input type="number" id="timeRate" name="rate" class="form-control" value="250">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" id="timeDate" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Activity</label>
+                        <select id="timeActivity" class="form-select">
+                            <option value="research">Research</option>
+                            <option value="drafting">Drafting</option>
+                            <option value="review">Review</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="call">Phone Call</option>
+                            <option value="court">Court</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveTime">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Time Entry Modal -->
+<div class="modal fade" id="viewTimeEntryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-stopwatch me-2"></i>Time Entry Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="timeEntryDetails"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="btnDeleteEntry"><i class="fas fa-trash me-1"></i>Delete</button>
+                <button type="button" class="btn btn-outline-primary" id="btnEditEntry"><i class="fas fa-edit me-1"></i>Edit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    let timerInterval, timerSeconds = 0;
+    var currentEntryId = null;
+
+    // Clickable rows event listeners
+    document.querySelectorAll('.clickable-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-group') || e.target.closest('button')) return;
+            if (this.dataset.id) {
+                viewTimeEntry(this.dataset.id);
+            }
+        });
+    });
+
+    // Button event listeners
+    document.querySelectorAll('.btn-edit').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            editTime(this.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deleteTime(this.dataset.id);
+        });
+    });
+
+    function updateDisplay() {
+        const h = Math.floor(timerSeconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((timerSeconds % 3600) / 60).toString().padStart(2, '0');
+        const s = (timerSeconds % 60).toString().padStart(2, '0');
+        document.getElementById('timerDisplay').textContent = h + ':' + m + ':' + s;
+    }
+
+    document.getElementById('startTimer').addEventListener('click', function() {
+        timerInterval = setInterval(function() { timerSeconds++; updateDisplay(); }, 1000);
+        this.disabled = true;
+        document.getElementById('stopTimer').disabled = false;
+    });
+
+    document.getElementById('stopTimer').addEventListener('click', function() {
+        clearInterval(timerInterval);
+        this.disabled = true;
+        document.getElementById('startTimer').disabled = false;
+        document.getElementById('timeHours').value = Math.floor(timerSeconds / 3600);
+        document.getElementById('timeMinutes').value = Math.floor((timerSeconds % 3600) / 60);
+        new bootstrap.Modal(document.getElementById('addTimeModal')).show();
+    });
+
+    document.getElementById('resetTimer').addEventListener('click', function() {
+        clearInterval(timerInterval);
+        timerSeconds = 0;
+        updateDisplay();
+        document.getElementById('startTimer').disabled = false;
+        document.getElementById('stopTimer').disabled = true;
+    });
+
+    function saveTime() {
+        var editId = document.getElementById('addTimeModal').dataset.editId;
+        var url = editId ? '/api/time-entries/' + editId : '/api/time-entries';
+        var method = editId ? 'PUT' : 'POST';
+        var hours = parseInt(document.getElementById('timeHours').value) || 0;
+        var minutes = parseInt(document.getElementById('timeMinutes').value) || 0;
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                case_id: document.getElementById('timeCase').value || null,
+                description: document.getElementById('timeDescription').value,
+                duration_minutes: hours * 60 + minutes,
+                hourly_rate: document.getElementById('timeRate').value,
+                date: document.getElementById('timeDate').value,
+                activity_type: document.getElementById('timeActivity').value
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                timerSeconds = 0;
+                updateDisplay();
+                location.reload();
+            } else {
+                alert('Error saving time entry: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) { alert('Failed to save time entry'); console.error(err); });
+    }
+
+    function deleteTime(id) {
+        if (confirm('Are you sure you want to delete this time entry?')) {
+            fetch('/api/time-entries/' + id, { method: 'DELETE' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else alert('Error: ' + (data.error || 'Failed to delete'));
+            });
+        }
+    }
+
+    function viewTimeEntry(id) {
+        currentEntryId = id;
+        fetch('/api/time-entries/' + id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var te = data.entry || data.timeEntry;
+            if (te) {
+                var html = '<table class="table table-borderless">' +
+                    '<tr><th width="140"><i class="fas fa-calendar text-muted me-2"></i>Date:</th><td>' + new Date(te.date).toLocaleDateString() + '</td></tr>' +
+                    '<tr><th><i class="fas fa-clock text-muted me-2"></i>Duration:</th><td><strong>' + (te.duration_minutes / 60).toFixed(2) + ' hours</strong></td></tr>' +
+                    '<tr><th><i class="fas fa-dollar-sign text-muted me-2"></i>Rate:</th><td>$' + parseFloat(te.hourly_rate || 0).toFixed(2) + '/hr</td></tr>' +
+                    '<tr><th><i class="fas fa-money-bill text-muted me-2"></i>Amount:</th><td><strong>$' + parseFloat(te.amount || 0).toFixed(2) + '</strong></td></tr>' +
+                    '<tr><th><i class="fas fa-briefcase text-muted me-2"></i>Case:</th><td>' + (te.case_title || 'N/A') + '</td></tr>' +
+                    '<tr><th><i class="fas fa-tasks text-muted me-2"></i>Activity:</th><td><span class="badge bg-info">' + (te.activity_type || 'N/A') + '</span></td></tr>' +
+                    '<tr><th><i class="fas fa-check-circle text-muted me-2"></i>Billable:</th><td>' + (te.is_billable ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>') + '</td></tr>' +
+                    '<tr><th><i class="fas fa-file-invoice text-muted me-2"></i>Billed:</th><td>' + (te.is_billed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-warning">Not yet</span>') + '</td></tr>' +
+                    '</table>' +
+                    '<div class="mt-3"><strong><i class="fas fa-align-left me-2"></i>Description:</strong><p class="mt-2 p-3 bg-light rounded">' + (te.description || 'No description') + '</p></div>';
+                document.getElementById('timeEntryDetails').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('viewTimeEntryModal')).show();
+            }
+        });
+    }
+
+    document.getElementById('btnEditEntry').onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById('viewTimeEntryModal')).hide();
+        editTime(currentEntryId);
+    };
+
+    document.getElementById('btnDeleteEntry').onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById('viewTimeEntryModal')).hide();
+        deleteTime(currentEntryId);
+    };
+
+    function editTime(id) {
+        fetch('/api/time-entries/' + id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var e = data.entry || data.timeEntry;
+            if (e) {
+                document.getElementById('timeCase').value = e.case_id || '';
+                document.getElementById('timeDescription').value = e.description;
+                document.getElementById('timeHours').value = Math.floor(e.duration_minutes / 60);
+                document.getElementById('timeMinutes').value = e.duration_minutes % 60;
+                document.getElementById('timeRate').value = e.hourly_rate;
+                document.getElementById('timeDate').value = e.date.split('T')[0];
+                document.getElementById('timeActivity').value = e.activity_type || 'research';
+                document.getElementById('addTimeModal').dataset.editId = id;
+                document.querySelector('#addTimeModal .modal-title').textContent = 'Edit Time Entry';
+                new bootstrap.Modal(document.getElementById('addTimeModal')).show();
+            }
+        });
+    }
+
+    // Clear form on modal close
+    document.getElementById('addTimeModal').addEventListener('hidden.bs.modal', function() {
+        delete this.dataset.editId;
+        document.querySelector('#addTimeModal .modal-title').textContent = 'Log Time Entry';
+    });
+
+    // Save button event listener
+    document.getElementById('btnSaveTime').addEventListener('click', function() {
+        saveTime();
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<%- include('../base-pm', {
+    title: session.title || 'AI Draft',
+    description: 'AI-generated document'
+}) %>
+
+<%- include('../partials/pm-nav') %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/ai-drafting">AI Drafting</a></li>
+                    <li class="breadcrumb-item active"><%= session.title || 'Draft' %></li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-file-alt me-2"></i><%= session.title || 'Untitled Draft' %></h2>
+            <p class="text-muted mb-0">
+                <% if (session.template_name) { %>Template: <%= session.template_name %> | <% } %>
+                Created: <%= new Date(session.created_at).toLocaleString() %>
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-success me-2" onclick="saveDocument()">
+                <i class="fas fa-save me-1"></i>Save as Document
+            </button>
+            <button class="btn btn-outline-primary me-2" onclick="regenerate()">
+                <i class="fas fa-sync me-1"></i>Regenerate
+            </button>
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Document Content -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Document Content</h5>
+                    <div>
+                        <% if (versions && versions.length > 1) { %>
+                        <select class="form-select form-select-sm d-inline-block w-auto" id="versionSelect">
+                            <% versions.forEach((v, i) => { %>
+                            <option value="<%= v.id %>" <%= i === 0 ? 'selected' : '' %>>Version <%= v.version_number %> - <%= new Date(v.created_at).toLocaleString() %></option>
+                            <% }) %>
+                        </select>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="documentContent" class="document-content" contenteditable="true">
+                        <%= (versions && versions.length > 0) ? versions[0].content : session.content || 'No content generated yet.' %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Session Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Session Info</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong>
+                        <span class="badge bg-<%= session.status === 'completed' ? 'success' : session.status === 'generating' ? 'warning' : 'secondary' %>">
+                            <%= session.status %>
+                        </span>
+                    </p>
+                    <% if (session.first_name) { %>
+                    <p><strong>Client:</strong> <%= session.first_name %> <%= session.last_name %></p>
+                    <% } %>
+                    <% if (session.case_title) { %>
+                    <p><strong>Case:</strong> <%= session.case_title %></p>
+                    <% } %>
+                    <p><strong>Versions:</strong> <%= versions ? versions.length : 0 %></p>
+                </div>
+            </div>
+
+            <!-- Original Prompt -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-comment me-2"></i>Original Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0" style="white-space: pre-wrap;"><%= session.prompt || 'No prompt recorded' %></p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-magic me-2"></i>AI Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Refine with AI</label>
+                        <textarea id="refinePrompt" class="form-control" rows="3" placeholder="e.g., Make the tone more firm, add a deadline of 30 days..."></textarea>
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="refineDocument()">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i>Refine Document
+                    </button>
+                </div>
+            </div>
+
+            <!-- Usage Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Usage</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Tokens Used:</strong> <%= session.tokens_used || 0 %></p>
+                    <p class="mb-0"><strong>Estimated Cost:</strong> $<%= parseFloat(session.cost || 0).toFixed(4) %></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.document-content {
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    line-height: 1.8;
+    padding: 20px;
+    min-height: 500px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #fff;
+    white-space: pre-wrap;
+}
+
+.document-content:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+@media print {
+    .card-header, .col-md-4, nav, .btn {
+        display: none !important;
+    }
+    .col-md-8 {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+</style>
+
+<script>
+async function saveDocument() {
+    const content = document.getElementById('documentContent').innerText;
+
+    try {
+        const response = await fetch('/api/ai-drafting/sessions/<%= session.id %>/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Document saved successfully!');
+            if (result.document_id) {
+                window.location.href = '/documents/' + result.document_id;
+            }
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Save failed');
+    }
+}
+
+async function regenerate() {
+    if (!confirm('This will generate a new version. Continue?')) return;
+
+    const btn = event.target;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai-drafting/sessions/<%= session.id %>/regenerate', {
+            method: 'POST'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Regeneration failed');
+    }
+
+    btn.innerHTML = '<i class="fas fa-sync me-1"></i>Regenerate';
+    btn.disabled = false;
+}
+
+async function refineDocument() {
+    const prompt = document.getElementById('refinePrompt').value;
+    if (!prompt.trim()) {
+        alert('Please enter refinement instructions');
+        return;
+    }
+
+    const content = document.getElementById('documentContent').innerText;
+
+    try {
+        const response = await fetch('/api/ai-drafting/sessions/<%= session.id %>/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, current_content: content })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Refinement failed');
+    }
+}
+
+// Version switcher
+document.getElementById('versionSelect')?.addEventListener('change', async function() {
+    const versionId = this.value;
+    try {
+        const response = await fetch('/api/ai-drafting/versions/' + versionId);
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById('documentContent').innerText = result.version.content;
+        }
+    } catch (error) {
+        alert('Failed to load version');
+    }
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

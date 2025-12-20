@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+        }
+        .login-info {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3142 100%);
+            color: white;
+            padding: 60px 40px;
+            width: 45%;
+        }
+        .login-info h2 {
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .login-info p {
+            color: rgba(255,255,255,0.8);
+            line-height: 1.8;
+        }
+        .login-info ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 30px;
+        }
+        .login-info ul li {
+            padding: 10px 0;
+            color: rgba(255,255,255,0.8);
+        }
+        .login-info ul li i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        .login-form {
+            padding: 60px 40px;
+            width: 55%;
+        }
+        .login-form h3 {
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: none;
+        }
+        .btn-login {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+        }
+        .btn-login:hover {
+            opacity: 0.9;
+            color: white;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column;
+            }
+            .login-info, .login-form {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-info">
+            <h2><i class="fas fa-balance-scale me-2"></i>Client Portal</h2>
+            <p>Access your case information, documents, invoices, and communicate with your legal team securely.</p>
+            <ul>
+                <li><i class="fas fa-check"></i> View case status and updates</li>
+                <li><i class="fas fa-check"></i> Download shared documents</li>
+                <li><i class="fas fa-check"></i> Review and pay invoices</li>
+                <li><i class="fas fa-check"></i> Message your attorney</li>
+                <li><i class="fas fa-check"></i> Track important deadlines</li>
+            </ul>
+        </div>
+        <div class="login-form">
+            <h3>Sign In to Your Portal</h3>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <% if (typeof success !== 'undefined' && success === 'logged_out') { %>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    You have been successfully logged out.
+                </div>
+            <% } %>
+
+            <form action="/portal/login" method="POST">
+                <div class="mb-4">
+                    <label class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember this device</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-login">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <a href="/portal/forgot-password" class="text-muted">Forgot your password?</a>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="text-center text-muted">
+                <small>Need access? Contact your attorney to set up your portal account.</small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

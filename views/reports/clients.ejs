@@ -1,0 +1,242 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'reports' }) %>
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+            <li class="breadcrumb-item active">Clients</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-users me-2"></i>Client Analytics</h2>
+            <p class="text-muted mb-0">Insights into your client base</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary" onclick="downloadCSV()"><i class="fas fa-file-csv me-1"></i>CSV</button>
+            <button class="btn btn-outline-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary"><%= summary.totalClients || 0 %></h3>
+                    <small>Total Clients</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success"><%= summary.activeClients || 0 %></h3>
+                    <small>Active Clients</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3><%= summary.newThisMonth || 0 %></h3>
+                    <small>New This Month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3>$<%= ((summary.avgRevenue || 0) / 1000).toFixed(1) %>K</h3>
+                    <small>Avg Revenue/Client</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Client Type Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Client Types</h5></div>
+                <div class="card-body">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Acquisition Trend -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Client Acquisition (Last 12 Months)</h5></div>
+                <div class="card-body">
+                    <canvas id="acquisitionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Clients -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Top Clients by Revenue</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Type</th>
+                            <th class="text-end">Cases</th>
+                            <th class="text-end">Hours</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Outstanding</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% topClients.forEach((c, i) => { %>
+                        <tr>
+                            <td>
+                                <span class="badge bg-<%= i < 3 ? 'warning' : 'secondary' %> me-2"><%= i + 1 %></span>
+                                <a href="/clients/<%= c.id %>"><%= c.company_name || (c.first_name + ' ' + c.last_name) %></a>
+                            </td>
+                            <td><%= c.client_type %></td>
+                            <td class="text-end"><%= c.case_count || 0 %></td>
+                            <td class="text-end"><%= parseFloat(c.total_hours || 0).toFixed(1) %></td>
+                            <td class="text-end text-success">$<%= parseFloat(c.total_revenue || 0).toLocaleString() %></td>
+                            <td class="text-end text-warning">$<%= parseFloat(c.outstanding || 0).toLocaleString() %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Clients -->
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Recent Clients</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Type</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Added</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% recentClients.forEach(c => { %>
+                        <tr>
+                            <td><a href="/clients/<%= c.id %>"><%= c.company_name || (c.first_name + ' ' + c.last_name) %></a></td>
+                            <td><%= c.client_type %></td>
+                            <td><%= c.email || '-' %></td>
+                            <td><span class="badge bg-<%= c.status === 'active' ? 'success' : 'secondary' %>"><%= c.status %></span></td>
+                            <td><%= new Date(c.created_at).toLocaleDateString() %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    async function downloadCSV() {
+        let csv = 'Client Analytics Report\n';
+        csv += 'Generated: ' + new Date().toLocaleString() + '\n\n';
+
+        csv += 'Summary\n';
+        csv += 'Total Clients,Active Clients,New This Month,Avg Revenue/Client\n';
+        csv += '<%= summary.totalClients || 0 %>,<%= summary.activeClients || 0 %>,<%= summary.newThisMonth || 0 %>,$<%= summary.avgRevenue || 0 %>\n\n';
+
+        csv += 'Top Clients by Revenue\n';
+        csv += 'Client Name,Type,Cases,Hours,Revenue,Outstanding\n';
+        <% topClients.forEach(c => { %>
+        csv += '"<%= (c.company_name || (c.first_name + " " + c.last_name)).replace(/"/g, "\'\'") %>","<%= c.client_type %>",<%= c.case_count || 0 %>,<%= parseFloat(c.total_hours || 0).toFixed(1) %>,$<%= c.total_revenue || 0 %>,$<%= c.outstanding || 0 %>\n';
+        <% }) %>
+
+        csv += '\nRecent Clients\n';
+        csv += 'Client Name,Type,Email,Status,Added\n';
+        <% recentClients.forEach(c => { %>
+        csv += '"<%= (c.company_name || (c.first_name + " " + c.last_name)).replace(/"/g, "\'\'") %>","<%= c.client_type %>","<%= c.email || "" %>","<%= c.status %>","<%= new Date(c.created_at).toLocaleDateString() %>"\n';
+        <% }) %>
+
+        const filename = 'client-analytics-' + new Date().toISOString().split('T')[0] + '.csv';
+
+        // Use blob download (works in all browsers including incognito)
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+
+    function exportPDF() {
+        const pdfContent = document.createElement('div');
+        pdfContent.style.cssText = 'padding: 20px; background: white; font-family: Arial, sans-serif;';
+        pdfContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 15px;">
+                <h1 style="color: #667eea; margin: 0;">Client Analytics Report</h1>
+                <p style="color: #666; margin: 5px 0 0 0;">Generated: ${new Date().toLocaleString()}</p>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <h3>Summary</h3>
+                <p>Total Clients: <%= summary.totalClients || 0 %> | Active: <%= summary.activeClients || 0 %> | New This Month: <%= summary.newThisMonth || 0 %></p>
+            </div>
+            <div style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">
+                LegalFormsAI - Practice Management System
+            </div>
+        `;
+        document.body.appendChild(pdfContent);
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'client-analytics-' + new Date().toISOString().split('T')[0] + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(pdfContent).save().then(() => {
+            document.body.removeChild(pdfContent);
+        });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    try {
+        const typeData = <%- JSON.stringify(byType || []) %>;
+        new Chart(document.getElementById('typeChart'), {
+            type: 'pie',
+            data: {
+                labels: typeData.map(d => d.client_type),
+                datasets: [{ data: typeData.map(d => d.count), backgroundColor: ['#667eea', '#28a745', '#ffc107', '#dc3545'] }]
+            },
+            options: { responsive: true }
+        });
+
+        const acquisitionData = <%- JSON.stringify(acquisition || []) %>;
+        new Chart(document.getElementById('acquisitionChart'), {
+            type: 'line',
+            data: {
+                labels: acquisitionData.map(d => d.month),
+                datasets: [{ label: 'New Clients', data: acquisitionData.map(d => d.count), borderColor: '#667eea', tension: 0.3, fill: true, backgroundColor: 'rgba(102, 126, 234, 0.1)' }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    } catch(e) {
+        console.error('Chart error:', e);
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

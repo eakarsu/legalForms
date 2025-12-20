@@ -1,0 +1,106 @@
+<%- include('base', { body: `
+<div class="portal-header">
+    <div>
+        <h4 class="mb-0">Messages</h4>
+        <small class="text-muted">Communicate with your legal team</small>
+    </div>
+    <button class="btn btn-portal" data-bs-toggle="modal" data-bs-target="#composeModal">
+        <i class="fas fa-plus me-2"></i>New Message
+    </button>
+</div>
+
+<div class="portal-card">
+    ${messages.length > 0 ? `
+    <div class="list-group">
+        ${messages.map(msg => `
+        <div class="list-group-item ${!msg.is_read ? 'bg-light' : ''}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="d-flex align-items-center mb-1">
+                        ${!msg.is_read ? '<span class="badge bg-primary me-2">New</span>' : ''}
+                        <h6 class="mb-0">${msg.subject || 'No Subject'}</h6>
+                    </div>
+                    <p class="text-muted mb-1">${msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content}</p>
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>
+                        ${msg.sender_first_name ? msg.sender_first_name + ' ' + msg.sender_last_name : 'Your Attorney'}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">${new Date(msg.created_at).toLocaleDateString()}</small>
+                    <br><small class="text-muted">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                </div>
+            </div>
+        </div>
+        `).join('')}
+    </div>
+    ` : `
+    <div class="text-center py-5">
+        <i class="fas fa-envelope-open fa-3x text-muted mb-3"></i>
+        <h5>No Messages</h5>
+        <p class="text-muted">You don't have any messages yet.</p>
+        <button class="btn btn-portal" data-bs-toggle="modal" data-bs-target="#composeModal">
+            <i class="fas fa-paper-plane me-2"></i>Send a Message
+        </button>
+    </div>
+    `}
+</div>
+
+<!-- Compose Message Modal -->
+<div class="modal fade" id="composeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-paper-plane me-2"></i>New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="messageForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input type="text" name="subject" class="form-control" placeholder="Enter subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea name="content" class="form-control" rows="6" placeholder="Type your message here..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-portal">
+                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('messageForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        subject: form.subject.value,
+        content: form.content.value
+    };
+
+    try {
+        const response = await fetch('/portal/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('Message sent successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to send message. Please try again.');
+    }
+});
+</script>
+` }) %>

@@ -6,6 +6,10 @@ const db = require('../config/database');
 const requireAuth = async (req, res, next) => {
     try {
         if (!req.session.userId) {
+            // Return JSON for API requests, redirect for page requests
+            if (req.path.startsWith('/api/')) {
+                return res.status(401).json({ error: 'Not authenticated', redirect: '/login' });
+            }
             return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
         }
 

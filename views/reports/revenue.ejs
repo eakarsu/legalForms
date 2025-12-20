@@ -1,0 +1,278 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'reports' }) %>
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+            <li class="breadcrumb-item active">Revenue</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-line me-2"></i>Revenue Report</h2>
+            <p class="text-muted mb-0">Analyze your firm's revenue performance</p>
+        </div>
+        <div>
+            <div class="btn-group me-2">
+                <a href="/reports/revenue/export-csv?start_date=<%= filters.start_date || '' %>&end_date=<%= filters.end_date || '' %>&group_by=<%= filters.group_by || 'month' %>" class="btn btn-outline-secondary" download="revenue-report.csv"><i class="fas fa-file-csv me-1"></i>CSV</a>
+                <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+            </div>
+            <button class="btn btn-outline-primary" onclick="saveReport()"><i class="fas fa-star me-1"></i>Save</button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="<%= filters.start_date || '' %>">
+                </div>
+                <div class="col-md-3">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="<%= filters.end_date || '' %>">
+                </div>
+                <div class="col-md-3">
+                    <label>Group By</label>
+                    <select name="group_by" class="form-select">
+                        <option value="month" <%= filters.group_by === 'month' ? 'selected' : '' %>>Month</option>
+                        <option value="client" <%= filters.group_by === 'client' ? 'selected' : '' %>>Client</option>
+                        <option value="case" <%= filters.group_by === 'case' ? 'selected' : '' %>>Case</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Generate Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>$<%= (summary.totalRevenue || 0).toLocaleString() %></h3>
+                    <small>Total Revenue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>$<%= (summary.totalBilled || 0).toLocaleString() %></h3>
+                    <small>Total Billed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3>$<%= (summary.totalOutstanding || 0).toLocaleString() %></h3>
+                    <small>Outstanding</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Revenue Trend</h5></div>
+        <div class="card-body">
+            <canvas id="revenueChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Revenue Details</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th><%= filters.group_by === 'month' ? 'Month' : filters.group_by === 'client' ? 'Client' : 'Case' %></th>
+                            <th class="text-end">Billed</th>
+                            <th class="text-end">Collected</th>
+                            <th class="text-end">Outstanding</th>
+                            <th class="text-end">Collection Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% data.forEach(row => { %>
+                        <tr>
+                            <td><%= row.label %></td>
+                            <td class="text-end">$<%= parseFloat(row.billed || 0).toLocaleString() %></td>
+                            <td class="text-end text-success">$<%= parseFloat(row.collected || 0).toLocaleString() %></td>
+                            <td class="text-end text-warning">$<%= parseFloat(row.outstanding || 0).toLocaleString() %></td>
+                            <td class="text-end"><%= row.billed > 0 ? Math.round((row.collected / row.billed) * 100) : 0 %>%</td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    try {
+        const chartData = <%- JSON.stringify(data) %>;
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.label),
+                datasets: [
+                    { label: 'Billed', data: chartData.map(d => d.billed || 0), backgroundColor: 'rgba(102, 126, 234, 0.7)' },
+                    { label: 'Collected', data: chartData.map(d => d.collected || 0), backgroundColor: 'rgba(40, 167, 69, 0.7)' }
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    } catch(e) {
+        console.error('Chart error:', e);
+    }
+
+    function exportCSV() {
+        let csv = 'Revenue Report\n';
+        csv += 'Generated: ' + new Date().toLocaleString() + '\n\n';
+
+        csv += 'Summary\n';
+        csv += 'Total Revenue,Total Billed,Outstanding\n';
+        csv += '$<%= summary.totalRevenue || 0 %>,$<%= summary.totalBilled || 0 %>,$<%= summary.totalOutstanding || 0 %>\n\n';
+
+        csv += 'Revenue Details\n';
+        csv += '<%= filters.group_by === "month" ? "Month" : filters.group_by === "client" ? "Client" : "Case" %>,Billed,Collected,Outstanding,Collection Rate\n';
+        <% data.forEach(row => { %>
+        csv += '"<%= (row.label || "").replace(/"/g, "\'\'") %>",$<%= row.billed || 0 %>,$<%= row.collected || 0 %>,$<%= row.outstanding || 0 %>,<%= row.billed > 0 ? Math.round((row.collected / row.billed) * 100) : 0 %>%\n';
+        <% }) %>
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'revenue-report-' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function exportPDF() {
+        // Create a PDF-specific container
+        const pdfContent = document.createElement('div');
+        pdfContent.style.cssText = 'padding: 20px; background: white; font-family: Arial, sans-serif;';
+
+        // Add header
+        pdfContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 15px;">
+                <h1 style="color: #667eea; margin: 0;">Revenue Report</h1>
+                <p style="color: #666; margin: 5px 0 0 0;">Generated: ${new Date().toLocaleString()}</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 15px; background: #28a745; color: white; border-radius: 8px; min-width: 150px;">
+                    <h2 style="margin: 0;">$${(<%= summary.totalRevenue || 0 %>).toLocaleString()}</h2>
+                    <small>Total Revenue</small>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #667eea; color: white; border-radius: 8px; min-width: 150px;">
+                    <h2 style="margin: 0;">$${(<%= summary.totalBilled || 0 %>).toLocaleString()}</h2>
+                    <small>Total Billed</small>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #ffc107; color: #333; border-radius: 8px; min-width: 150px;">
+                    <h2 style="margin: 0;">$${(<%= summary.totalOutstanding || 0 %>).toLocaleString()}</h2>
+                    <small>Outstanding</small>
+                </div>
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Revenue Chart</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${document.getElementById('revenueChart').toDataURL('image/png')}" style="max-width: 100%; height: auto;">
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Revenue Details</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;"><%= filters.group_by === 'month' ? 'Month' : filters.group_by === 'client' ? 'Client' : 'Case' %></th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Billed</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Collected</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Outstanding</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Collection Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% data.forEach(row => { %>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= row.label %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$<%= parseFloat(row.billed || 0).toLocaleString() %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #28a745;">$<%= parseFloat(row.collected || 0).toLocaleString() %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #ffc107;">$<%= parseFloat(row.outstanding || 0).toLocaleString() %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= row.billed > 0 ? Math.round((row.collected / row.billed) * 100) : 0 %>%</td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <div style="text-align: center; color: #999; font-size: 12px; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
+                LegalFormsAI - Practice Management System
+            </div>
+        `;
+
+        document.body.appendChild(pdfContent);
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'revenue-report-' + new Date().toISOString().split('T')[0] + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(pdfContent).save().then(() => {
+            document.body.removeChild(pdfContent);
+        });
+    }
+    function saveReport() {
+        const name = prompt('Report name:');
+        if (name) {
+            fetch('/api/reports/saved', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, report_type: 'revenue', filters: <%- JSON.stringify(filters) %> })
+            }).then(() => alert('Report saved!'));
+        }
+    }
+
+    async function downloadCSV() {
+        let csv = 'Revenue Report\n';
+        csv += 'Generated: ' + new Date().toLocaleString() + '\n\n';
+        csv += 'Summary\n';
+        csv += 'Total Revenue,Total Billed,Outstanding\n';
+        csv += '$<%= summary.totalRevenue || 0 %>,$<%= summary.totalBilled || 0 %>,$<%= summary.totalOutstanding || 0 %>\n\n';
+        csv += 'Revenue Details\n';
+        csv += 'Label,Billed,Collected,Outstanding,Collection Rate\n';
+        <% data.forEach(row => { %>
+        csv += '"<%= (row.label || "").replace(/"/g, "\'\'") %>",$<%= row.billed || 0 %>,$<%= row.collected || 0 %>,$<%= row.outstanding || 0 %>,<%= row.billed > 0 ? Math.round((row.collected / row.billed) * 100) : 0 %>%\n';
+        <% }) %>
+
+        const filename = 'revenue-report-' + new Date().toISOString().split('T')[0] + '.csv';
+
+        // Use blob download (works in all browsers including incognito)
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'calendar-sync' }) %>
+
+<div class="container-fluid py-4">
+    <h2><i class="fab fa-google me-2"></i>Connect Google Calendar</h2>
+    <p class="text-muted">Sync your Google Calendar with LegalFormsAI</p>
+
+    <div class="card mt-4">
+        <div class="card-body text-center py-5">
+            <i class="fab fa-google fa-4x text-primary mb-4"></i>
+            <h4>Connect Your Google Account</h4>
+            <p class="text-muted">Click below to authorize access to your Google Calendar</p>
+            <% if (googleClientId) { %>
+            <a href="/api/calendar-sync/google/auth" class="btn btn-lg btn-primary">
+                <i class="fab fa-google me-2"></i>Sign in with Google
+            </a>
+            <% } else { %>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>Google Calendar integration is not configured.
+                <br>Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment variables.
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'reports' }) %>
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+            <li class="breadcrumb-item active">Productivity</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-user-clock me-2"></i>Productivity Report</h2>
+            <p class="text-muted mb-0">Track attorney time and utilization</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary" onclick="downloadCSV()"><i class="fas fa-file-csv me-1"></i>CSV</button>
+            <button class="btn btn-outline-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="<%= filters.start_date || '' %>">
+                </div>
+                <div class="col-md-3">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="<%= filters.end_date || '' %>">
+                </div>
+                <div class="col-md-3">
+                    <label>View By</label>
+                    <select name="view_by" class="form-select">
+                        <option value="attorney" <%= filters.view_by === 'attorney' ? 'selected' : '' %>>By Attorney</option>
+                        <option value="activity" <%= filters.view_by === 'activity' ? 'selected' : '' %>>By Activity Type</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Generate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3><%= summary.totalHours || 0 %></h3>
+                    <small class="text-muted">Total Hours</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3><%= summary.billableHours || 0 %></h3>
+                    <small class="text-muted">Billable Hours</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3><%= summary.utilizationRate || 0 %>%</h3>
+                    <small class="text-muted">Utilization Rate</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3>$<%= (summary.billableValue || 0).toLocaleString() %></h3>
+                    <small class="text-muted">Billable Value</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Hours Distribution</h5></div>
+                <div class="card-body">
+                    <canvas id="productivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Breakdown -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Activity Breakdown</h5></div>
+                <div class="card-body">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Detailed Breakdown</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th><%= filters.view_by === 'attorney' ? 'Attorney' : 'Activity Type' %></th>
+                            <th class="text-end">Total Hours</th>
+                            <th class="text-end">Billable Hours</th>
+                            <th class="text-end">Non-Billable</th>
+                            <th class="text-end">Billable %</th>
+                            <th class="text-end">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% data.forEach(row => { %>
+                        <tr>
+                            <td><%= row.label %></td>
+                            <td class="text-end"><%= parseFloat(row.totalHours || 0).toFixed(1) %></td>
+                            <td class="text-end"><%= parseFloat(row.billableHours || 0).toFixed(1) %></td>
+                            <td class="text-end text-muted"><%= parseFloat(row.nonBillableHours || 0).toFixed(1) %></td>
+                            <td class="text-end"><%= row.totalHours > 0 ? Math.round((row.billableHours / row.totalHours) * 100) : 0 %>%</td>
+                            <td class="text-end">$<%= parseFloat(row.value || 0).toLocaleString() %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    try {
+        const chartData = <%- JSON.stringify(data) %>;
+        new Chart(document.getElementById('productivityChart'), {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.label),
+                datasets: [
+                    { label: 'Billable', data: chartData.map(d => d.billableHours || 0), backgroundColor: 'rgba(40, 167, 69, 0.7)' },
+                    { label: 'Non-Billable', data: chartData.map(d => d.nonBillableHours || 0), backgroundColor: 'rgba(108, 117, 125, 0.7)' }
+                ]
+            },
+            options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+        });
+
+        const activityData = <%- JSON.stringify(activityBreakdown || []) %>;
+        new Chart(document.getElementById('activityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: activityData.map(d => d.type),
+                datasets: [{ data: activityData.map(d => d.hours), backgroundColor: ['#667eea', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d'] }]
+            },
+            options: { responsive: true }
+        });
+    } catch(e) {
+        console.error('Chart error:', e);
+    }
+
+    async function downloadCSV() {
+        let csv = 'Productivity Report\n';
+        csv += 'Generated: ' + new Date().toLocaleString() + '\n\n';
+
+        csv += 'Summary\n';
+        csv += 'Total Hours,Billable Hours,Utilization Rate,Billable Value\n';
+        csv += '<%= summary.totalHours || 0 %>,<%= summary.billableHours || 0 %>,<%= summary.utilizationRate || 0 %>%,$<%= summary.billableValue || 0 %>\n\n';
+
+        csv += 'Detailed Breakdown\n';
+        csv += '<%= filters.view_by === "attorney" ? "Attorney" : "Activity Type" %>,Total Hours,Billable Hours,Non-Billable,Billable %,Value\n';
+        <% data.forEach(row => { %>
+        csv += '"<%= (row.label || "").replace(/"/g, "\'\'") %>",<%= row.totalHours || 0 %>,<%= row.billableHours || 0 %>,<%= row.nonBillableHours || 0 %>,<%= row.totalHours > 0 ? Math.round((row.billableHours / row.totalHours) * 100) : 0 %>%,$<%= row.value || 0 %>\n';
+        <% }) %>
+
+        const filename = 'productivity-report-' + new Date().toISOString().split('T')[0] + '.csv';
+
+        // Use blob download (works in all browsers including incognito)
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportPDF() {
+        const pdfContent = document.createElement('div');
+        pdfContent.style.cssText = 'padding: 20px; background: white; font-family: Arial, sans-serif;';
+
+        pdfContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 15px;">
+                <h1 style="color: #667eea; margin: 0;">Productivity Report</h1>
+                <p style="color: #666; margin: 5px 0 0 0;">Generated: ${new Date().toLocaleString()}</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; min-width: 120px; margin: 5px;">
+                    <h2 style="margin: 0; color: #333;"><%= summary.totalHours || 0 %></h2>
+                    <small>Total Hours</small>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; min-width: 120px; margin: 5px;">
+                    <h2 style="margin: 0; color: #28a745;"><%= summary.billableHours || 0 %></h2>
+                    <small>Billable Hours</small>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; min-width: 120px; margin: 5px;">
+                    <h2 style="margin: 0; color: #667eea;"><%= summary.utilizationRate || 0 %>%</h2>
+                    <small>Utilization Rate</small>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; min-width: 120px; margin: 5px;">
+                    <h2 style="margin: 0; color: #28a745;">$<%= (summary.billableValue || 0).toLocaleString() %></h2>
+                    <small>Billable Value</small>
+                </div>
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Hours Distribution</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${document.getElementById('productivityChart').toDataURL('image/png')}" style="max-width: 100%; height: auto;">
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Activity Breakdown</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${document.getElementById('activityChart').toDataURL('image/png')}" style="max-width: 300px; height: auto;">
+            </div>
+
+            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Detailed Breakdown</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;"><%= filters.view_by === 'attorney' ? 'Attorney' : 'Activity Type' %></th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Total Hours</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Billable Hours</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Non-Billable</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Billable %</th>
+                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% data.forEach(row => { %>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><%= row.label %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= parseFloat(row.totalHours || 0).toFixed(1) %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #28a745;"><%= parseFloat(row.billableHours || 0).toFixed(1) %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: #6c757d;"><%= parseFloat(row.nonBillableHours || 0).toFixed(1) %></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;"><%= row.totalHours > 0 ? Math.round((row.billableHours / row.totalHours) * 100) : 0 %>%</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$<%= parseFloat(row.value || 0).toLocaleString() %></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <div style="text-align: center; color: #999; font-size: 12px; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
+                LegalFormsAI - Practice Management System
+            </div>
+        `;
+
+        document.body.appendChild(pdfContent);
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'productivity-report-' + new Date().toISOString().split('T')[0] + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(pdfContent).save().then(() => {
+            document.body.removeChild(pdfContent);
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
