@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact LegalFormsAI - Legal Document Generation Support</title>
+    <title>Contact LegalPracticeAI - Legal Document Generation Support</title>
     <meta name="description" content="Contact our legal document generation experts. Get help with AI-powered legal forms, business documents, and professional legal templates.">
     <meta name="keywords" content="legal forms support, contact legal AI, legal document help">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://legalaiforms.com/contact">
+    <link rel="canonical" href="https://legalpracticeai.com/contact">
     
     <!-- Open Graph -->
-    <meta property="og:title" content="Contact LegalFormsAI - Legal Document Generation Support">
+    <meta property="og:title" content="Contact LegalPracticeAI - Legal Document Generation Support">
     <meta property="og:description" content="Contact our legal document generation experts. Get help with AI-powered legal forms, business documents, and professional legal templates.">
-    <meta property="og:url" content="https://legalaiforms.com/contact">
+    <meta property="og:url" content="https://legalpracticeai.com/contact">
     <meta property="og:type" content="website">
     
     <!-- Bootstrap CSS -->
@@ -25,36 +25,7 @@
     <link href="/css/custom.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <div class="brand-icon me-2">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <span class="brand-text">LegalForms<span class="text-primary">AI</span></span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/#form-types">Services</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/#features">Features</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/contact">Contact</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <%- include('partials/header') %>
 
     <!-- Main Content -->
     <main class="container my-5">
@@ -81,7 +52,7 @@
                 <div class="contact-info-card">
                     <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
                     <h5>Email Support</h5>
-                    <p class="text-muted">support@legalaiforms.com</p>
+                    <p class="text-muted">support@legalpracticeai.com</p>
                     <small>Response within 24 hours</small>
                 </div>
             </div>
@@ -89,19 +60,18 @@
                 <div class="contact-info-card">
                     <i class="fas fa-phone fa-2x text-primary mb-3"></i>
                     <h5>Phone Support</h5>
-                    <p class="text-muted">1-800-LEGAL-AI</p>
+                    <p class="text-muted">804-360-1129</p>
                     <small>Mon-Fri 9AM-6PM EST</small>
                 </div>
             </div>
             <div class="col-md-4 text-center mb-4">
                 <div class="contact-info-card">
-                    <i class="fas fa-comments fa-2x text-primary mb-3"></i>
-                    <h5>Live Chat</h5>
-                    <p class="text-muted">Available on website</p>
-                    <small>Mon-Fri 9AM-6PM EST</small>
+                    <i class="fas fa-map-marker-alt fa-2x text-primary mb-3"></i>
+                    <h5>Office Address</h5>
+                    <p class="text-muted">2807 Hampton Woods Dr<br>Richmond, VA 23233</p>
                 </div>
             </div>
-        </div>
+                    </div>
 
         <div class="row">
             <div class="col-lg-8 mx-auto">
@@ -198,7 +168,7 @@
                     </div>
                     <div class="modal-body">
                         <p>Thank you for contacting us! We have received your message and will respond within 24 hours.</p>
-                        <p class="mb-0">For urgent matters, please call us at <strong>1-800-LEGAL-AI</strong>.</p>
+                        <p class="mb-0">For urgent matters, please call us at <strong>804-360-1129</strong>.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-success" data-bs-dismiss="modal">Close</button>
@@ -208,30 +178,7 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="brand-icon me-2 text-white">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <span class="brand-text text-white">LegalForms<span class="text-primary">AI</span></span>
-                    </div>
-                    <p class="text-muted">Professional legal document generation powered by advanced AI technology.</p>
-                </div>
-                <div class="col-lg-8 mb-4">
-                    <h6 class="text-white mb-3">Important Legal Disclaimer</h6>
-                    <p class="text-muted small">
-                        This tool generates legal document templates for informational purposes only. 
-                        All generated documents should be reviewed by a qualified attorney before use. 
-                        Laws vary by jurisdiction, and professional legal advice is recommended for all legal matters.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <%- include('partials/footer') %>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

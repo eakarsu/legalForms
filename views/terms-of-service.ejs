@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - LegalPracticeAI</title>
+    <%- include('partials/seo-head', {
+        title: 'Terms of Service - LegalPracticeAI',
+        description: 'Read our Terms of Service to understand the rules and regulations governing the use of LegalPracticeAI.',
+        canonical: 'https://legalpracticeai.com/terms-of-service'
+    }) %>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/custom.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('partials/header') %>
+
+    <main class="py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <nav aria-label="breadcrumb" class="mb-4">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/">Home</a></li>
+                            <li class="breadcrumb-item active">Terms of Service</li>
+                        </ol>
+                    </nav>
+
+                    <h1 class="mb-4">Terms of Service</h1>
+                    <p class="text-muted mb-4">Last Updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">1. Acceptance of Terms</h2>
+                            <p>By accessing or using LegalPracticeAI ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">2. Description of Service</h2>
+                            <p>LegalPracticeAI provides AI-powered legal document generation services. Our Service creates document templates based on user input using artificial intelligence technology.</p>
+                            <p><strong>Important:</strong> Our Service provides legal document templates for informational purposes only. We are NOT a law firm and do NOT provide legal advice.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">3. User Accounts</h2>
+                            <ul>
+                                <li>You must provide accurate and complete registration information</li>
+                                <li>You are responsible for maintaining the security of your account</li>
+                                <li>You must notify us immediately of any unauthorized access</li>
+                                <li>You may not share your account credentials with others</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">4. Acceptable Use</h2>
+                            <p>You agree NOT to:</p>
+                            <ul>
+                                <li>Use the Service for any unlawful purpose</li>
+                                <li>Generate fraudulent or misleading documents</li>
+                                <li>Attempt to reverse engineer our AI technology</li>
+                                <li>Resell or redistribute generated documents commercially without permission</li>
+                                <li>Violate any applicable laws or regulations</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">5. Intellectual Property</h2>
+                            <p>The Service, including all content, features, and functionality, is owned by LegalPracticeAI and protected by copyright, trademark, and other intellectual property laws.</p>
+                            <p>You retain ownership of the information you input. Generated documents are licensed for your personal or business use.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">6. Disclaimer of Warranties</h2>
+                            <p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DO NOT GUARANTEE THAT DOCUMENTS WILL BE LEGALLY VALID IN YOUR JURISDICTION OR SUITABLE FOR YOUR SPECIFIC NEEDS.</p>
+                            <p><strong>ALWAYS CONSULT WITH A QUALIFIED ATTORNEY BEFORE USING ANY LEGAL DOCUMENT.</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">7. Limitation of Liability</h2>
+                            <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, LEGALFORMSAI SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">8. Indemnification</h2>
+                            <p>You agree to indemnify and hold harmless LegalPracticeAI from any claims, damages, or expenses arising from your use of the Service or violation of these Terms.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">9. Changes to Terms</h2>
+                            <p>We reserve the right to modify these Terms at any time. We will notify users of significant changes via email or through the Service.</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h2 class="h4">10. Contact Information</h2>
+                            <p>For questions about these Terms, contact us at:</p>
+                            <p><strong>Email:</strong> legal@legalpracticeai.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('partials/footer') %>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!-- Primary Meta Tags -->
+<meta name="title" content="<%= typeof title !== 'undefined' ? title : 'LegalPracticeAI - AI-Powered Legal Practice Management' %>">
+<meta name="description" content="<%= typeof description !== 'undefined' ? description : 'Complete AI-powered legal practice management. Client & case management, billing, calendar, documents & more. Trusted by law firms nationwide.' %>">
+<meta name="keywords" content="<%= typeof keywords !== 'undefined' ? keywords : 'legal practice management, law firm software, AI legal documents, case management, client management, legal billing, trust accounting' %>">
+<meta name="author" content="LegalPracticeAI">
+<meta name="robots" content="index, follow">
+<meta name="language" content="English">
+<meta name="revisit-after" content="7 days">
+<link rel="canonical" href="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalpracticeai.com' %>">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalpracticeai.com' %>">
+<meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'LegalPracticeAI - AI-Powered Legal Practice Management' %>">
+<meta property="og:description" content="<%= typeof description !== 'undefined' ? description : 'Complete AI-powered legal practice management. Trusted by law firms nationwide.' %>">
+<meta property="og:image" content="https://legalpracticeai.com/images/og-image.jpg">
+<meta property="og:site_name" content="LegalPracticeAI">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="<%= typeof canonical !== 'undefined' ? canonical : 'https://legalpracticeai.com' %>">
+<meta property="twitter:title" content="<%= typeof title !== 'undefined' ? title : 'LegalPracticeAI - AI-Powered Legal Practice Management' %>">
+<meta property="twitter:description" content="<%= typeof description !== 'undefined' ? description : 'Complete AI-powered legal practice management.' %>">
+<meta property="twitter:image" content="https://legalpracticeai.com/images/twitter-image.jpg">
+
+<!-- Structured Data -->
+<% if (typeof structuredData !== 'undefined' && structuredData) { %>
+<script type="application/ld+json">
+<%- JSON.stringify(structuredData) %>
+</script>
+<% } else { %>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "LegalService",
+    "name": "LegalPracticeAI",
+    "description": "AI-powered legal practice management platform",
+    "url": "https://legalpracticeai.com",
+    "logo": "https://legalpracticeai.com/images/logo.png",
+    "sameAs": [
+        "https://facebook.com/legalpracticeai",
+        "https://twitter.com/legalpracticeai",
+        "https://linkedin.com/company/legalpracticeai"
+    ],
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "2807 Hampton Woods Dr",
+        "addressLocality": "Richmond",
+        "addressRegion": "VA",
+        "postalCode": "23233",
+        "addressCountry": "US"
+    },
+    "telephone": "804-360-1129",
+    "priceRange": "$$",
+    "areaServed": "United States"
+}
+</script>
+<% } %>
+
+<!-- Favicon -->
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">

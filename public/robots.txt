@@ -3,5 +3,7 @@ Allow: /
 Disallow: /uploads/
 Disallow: /api/
 Disallow: /download/
+Disallow: /admin/
+Disallow: /dashboard/
 
-Sitemap: https://legalaiforms.com/sitemap.xml
+Sitemap: https://legalpracticeai.com/sitemap.xml

@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legal Forms Generator - AI-Powered Legal Documents | LegalFormsAI</title>
-    <meta name="description" content="Generate professional legal documents instantly with AI. Business formation, real estate contracts, family law, estate planning & more. Trusted by 10,000+ users.">
-    <meta name="keywords" content="legal forms generator, AI legal documents, business formation documents, real estate contracts, family law forms, estate planning documents, legal document templates">
-    <meta name="author" content="LegalFormsAI">
+    <title>LegalPracticeAI - AI-Powered Legal Practice Management Software</title>
+    <meta name="description" content="Complete AI-powered legal practice management. Client & case management, billing, trust accounting, calendar, document generation, conflict checking & more. Built for law firms.">
+    <meta name="keywords" content="legal practice management, law firm software, case management, client management, legal billing, trust accounting, AI legal documents, conflict checking">
+    <meta name="author" content="LegalPracticeAI">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://legalaiforms.com/">
+    <link rel="canonical" href="https://legalpracticeai.com/">
     
     <!-- Open Graph -->
-    <meta property="og:title" content="Legal Forms Generator - AI-Powered Legal Documents | LegalFormsAI">
-    <meta property="og:description" content="Generate professional legal documents instantly with AI. Business formation, real estate contracts, family law, estate planning & more. Trusted by 10,000+ users.">
-    <meta property="og:url" content="https://legalaiforms.com/">
+    <meta property="og:title" content="LegalPracticeAI - AI-Powered Legal Practice Management">
+    <meta property="og:description" content="Complete AI-powered legal practice management. Client & case management, billing, trust accounting, calendar, document generation & more.">
+    <meta property="og:url" content="https://legalpracticeai.com/">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://legalaiforms.com/images/og-homepage.jpg">
+    <meta property="og:image" content="https://legalpracticeai.com/images/og-homepage.jpg">
     
     <!-- Twitter -->
-    <meta name="twitter:title" content="Legal Forms Generator - AI-Powered Legal Documents | LegalFormsAI">
-    <meta name="twitter:description" content="Generate professional legal documents instantly with AI. Business formation, real estate contracts, family law, estate planning & more. Trusted by 10,000+ users.">
-    <meta name="twitter:image" content="https://legalaiforms.com/images/twitter-homepage.jpg">
+    <meta name="twitter:title" content="LegalPracticeAI - AI-Powered Legal Practice Management">
+    <meta name="twitter:description" content="Complete AI-powered legal practice management. Client & case management, billing, trust accounting, calendar, document generation & more.">
+    <meta name="twitter:image" content="https://legalpracticeai.com/images/twitter-homepage.jpg">
     <meta name="twitter:card" content="summary_large_image">
     
     <!-- Bootstrap CSS -->
@@ -38,36 +38,196 @@
 <body>
 
     <% if (!req.user) { %>
-        <!-- Login Page Only (no homepage content) -->
-        <div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
-            <div class="card shadow-sm p-4" style="max-width: 400px; width: 100%;">
-                <h2 class="mb-4 text-center">Sign In</h2>
-                <% if (typeof error !== 'undefined' && error) { %>
-                    <div class="alert alert-danger"><%= error %></div>
-                <% } %>
-                <form method="POST" action="/login">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email address</label>
-                        <input type="email" class="form-control" id="email" name="email" required autofocus>
+        <!-- Public Landing Page for Non-Logged-In Users -->
+        <%- include('partials/public-nav') %>
+
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="container">
+                <div class="row align-items-center min-vh-50">
+                    <div class="col-lg-6">
+                        <h1 class="hero-title">AI-Powered Legal Practice Management</h1>
+                        <p class="hero-subtitle">Complete practice management for modern law firms. Manage clients, cases, billing, documents, and more - all powered by AI.</p>
+                        <div class="hero-features">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Client & Case Management</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Billing & Trust Accounting</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>AI Document Drafting</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Conflict Checking & Calendar</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <a href="/register" class="btn btn-primary btn-lg me-2">
+                                <i class="fas fa-rocket me-2"></i>Get Started Free
+                            </a>
+                            <a href="/login" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </a>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="col-lg-6">
+                        <div class="hero-image">
+                            <div class="floating-card">
+                                <i class="fas fa-gavel fa-3x text-primary mb-3"></i>
+                                <h5>Complete Practice Management</h5>
+                                <p class="text-muted">Built for modern law firms</p>
+                            </div>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
-                <div class="text-center mt-3">
-                    <span>Don't have an account?</span>
-                    <a href="/register">Sign Up</a>
                 </div>
             </div>
         </div>
+
+        <!-- Features Section -->
+        <section id="services" class="py-5 bg-light">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h2 class="section-title">Complete Practice Management Suite</h2>
+                    <p class="section-subtitle">Everything you need to run your law firm efficiently</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h5>Client Management</h5>
+                            <p class="text-muted">Track clients, contacts, and communications in one place</p>
+                            <a href="/features/client-management" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-briefcase fa-3x text-primary mb-3"></i>
+                            <h5>Case Management</h5>
+                            <p class="text-muted">Manage cases, deadlines, tasks, and documents</p>
+                            <a href="/features/case-management" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-file-invoice-dollar fa-3x text-primary mb-3"></i>
+                            <h5>Billing & Invoicing</h5>
+                            <p class="text-muted">Time tracking, invoicing, and payment processing</p>
+                            <a href="/features/billing" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-university fa-3x text-primary mb-3"></i>
+                            <h5>Trust Accounting</h5>
+                            <p class="text-muted">IOLTA compliant trust account management</p>
+                            <a href="/features/trust-accounting" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-exclamation-triangle fa-3x text-primary mb-3"></i>
+                            <h5>Conflict Checking</h5>
+                            <p class="text-muted">Automated conflict of interest detection</p>
+                            <a href="/features/conflict-checking" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                            <h5>AI Document Drafting</h5>
+                            <p class="text-muted">Generate legal documents with AI assistance</p>
+                            <a href="/features/ai-drafting" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-calendar-alt fa-3x text-primary mb-3"></i>
+                            <h5>Calendar & Deadlines</h5>
+                            <p class="text-muted">Never miss a deadline with smart reminders</p>
+                            <a href="/features/calendar" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                            <h5>Lead Management</h5>
+                            <p class="text-muted">Capture and convert leads with intake forms</p>
+                            <a href="/features/lead-management" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm text-center p-4">
+                            <i class="fas fa-door-open fa-3x text-primary mb-3"></i>
+                            <h5>Client Portal</h5>
+                            <p class="text-muted">Secure portal for client communication</p>
+                            <a href="/features/client-portal" class="btn btn-outline-primary btn-sm">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Choose Section -->
+        <section class="py-5">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h2 class="section-title">Why Choose LegalPracticeAI?</h2>
+                    <p class="section-subtitle">Built for modern law firms</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="text-center">
+                            <div class="feature-icon-large mb-4">
+                                <i class="fas fa-robot fa-3x text-primary"></i>
+                            </div>
+                            <h4>AI-Powered Efficiency</h4>
+                            <p class="text-muted">Automate routine tasks with AI. Draft documents, analyze contracts, and extract data automatically.</p>
+                            <a href="/features/ai-efficiency" class="btn btn-outline-primary btn-sm mt-2">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="text-center">
+                            <div class="feature-icon-large mb-4">
+                                <i class="fas fa-lock fa-3x text-primary"></i>
+                            </div>
+                            <h4>Secure & Compliant</h4>
+                            <p class="text-muted">Bank-level encryption, IOLTA compliant trust accounting, and secure client portal.</p>
+                            <a href="/features/security" class="btn btn-outline-primary btn-sm mt-2">Learn More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="text-center">
+                            <div class="feature-icon-large mb-4">
+                                <i class="fas fa-chart-line fa-3x text-primary"></i>
+                            </div>
+                            <h4>Grow Your Practice</h4>
+                            <p class="text-muted">Lead management, intake forms, and analytics help you acquire and retain more clients.</p>
+                            <a href="/features/grow-practice" class="btn btn-outline-primary btn-sm mt-2">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-5 bg-primary text-white">
+            <div class="container text-center">
+                <h2 class="mb-4">Ready to Transform Your Practice?</h2>
+                <p class="lead mb-4">Join law firms using AI-powered practice management to work smarter</p>
+                <a href="/register" class="btn btn-light btn-lg me-2">Start Free Trial</a>
+                <a href="/pricing" class="btn btn-outline-light btn-lg">View Pricing</a>
+            </div>
+        </section>
+
+        <%- include('partials/footer') %>
+
     <% } else { %>
         <!-- Full Homepage Content for Logged-in Users -->
-     
-          <!-- Place all your original homepage content here -->
-        <!-- Example: Hero Section, Document Types, Features, Testimonials, Footer, etc. -->
-        <!-- ... (your original homepage HTML goes here, unchanged) ... -->
 
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
@@ -76,7 +236,7 @@
                 <div class="brand-icon me-2">
                     <i class="fas fa-balance-scale"></i>
                 </div>
-                <span class="brand-text">LegalForms<span class="text-primary">AI</span></span>
+                <span class="brand-text">LegalPractice<span class="text-primary">AI</span></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -307,7 +467,7 @@
                                 <i class="fas fa-star"></i>
                                 <i class="fas fa-star"></i>
                             </div>
-                            <p>"LegalFormsAI saved me hours of work. The LLC formation documents were perfect and state-compliant."</p>
+                            <p>"LegalPracticeAI saved me hours of work. The LLC formation documents were perfect and state-compliant."</p>
                             <div class="testimonial-author">Sarah Johnson</div>
                             <div class="testimonial-title">Small Business Owner</div>
                         </div>
@@ -362,62 +522,7 @@
         </section>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="brand-icon me-2 text-white">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <span class="brand-text text-white">LegalForms<span class="text-primary">AI</span></span>
-                    </div>
-                    <p class="text-muted">Professional legal document generation powered by advanced AI technology. Trusted by legal professionals worldwide.</p>
-                    <div class="social-links">
-                        <a href="#" class="text-muted me-3"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="fab fa-linkedin"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="fab fa-facebook"></i></a>
-                    </div>
-                </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="text-white mb-3">Services</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="/form/business_formation" class="text-muted">Business Formation</a></li>
-                        <li><a href="/form/real_estate" class="text-muted">Real Estate</a></li>
-                        <li><a href="/form/family_law" class="text-muted">Family Law</a></li>
-                        <li><a href="/form/estate_planning" class="text-muted">Estate Planning</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="text-white mb-3">Legal</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="/privacy" class="text-muted">Privacy Policy</a></li>
-                        <li><a href="/terms" class="text-muted">Terms of Service</a></li>
-                        <li><a href="/disclaimer" class="text-muted">Disclaimer</a></li>
-                        <li><a href="/cookies" class="text-muted">Cookie Policy</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-4 mb-4">
-                    <h6 class="text-white mb-3">Important Legal Disclaimer</h6>
-                    <p class="text-muted small">
-                        This tool generates legal document templates for informational purposes only. 
-                        All generated documents should be reviewed by a qualified attorney before use. 
-                        Laws vary by jurisdiction, and professional legal advice is recommended for all legal matters.
-                    </p>
-                </div>
-            </div>
-            <hr class="my-4" style="border-color: rgba(255,255,255,0.1);">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="text-muted small mb-0">&copy; 2024 LegalFormsAI. All rights reserved.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="text-muted small mb-0">Powered by OpenRouter AI</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <%- include('partials/footer') %>
      <% } %>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

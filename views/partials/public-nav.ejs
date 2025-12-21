@@ -1,0 +1,102 @@
+<style>
+.public-navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.public-navbar .navbar-brand .brand-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.public-navbar .brand-text {
+    color: #fff !important;
+}
+.public-navbar .brand-text .text-primary {
+    color: rgba(255,255,255,0.9) !important;
+}
+.public-navbar .nav-link {
+    color: rgba(255,255,255,0.85) !important;
+}
+.public-navbar .nav-link:hover {
+    color: #fff !important;
+}
+.public-navbar .dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+.public-navbar .btn-outline-primary {
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.5) !important;
+}
+.public-navbar .btn-outline-primary:hover {
+    background: rgba(255,255,255,0.2) !important;
+    border-color: #fff !important;
+}
+.public-navbar .btn-primary {
+    background: rgba(255,255,255,0.2) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+    color: #fff !important;
+}
+.public-navbar .btn-primary:hover {
+    background: rgba(255,255,255,0.3) !important;
+}
+.public-navbar .navbar-toggler {
+    border-color: rgba(255,255,255,0.5);
+}
+.public-navbar .navbar-toggler-icon {
+    filter: invert(1);
+}
+</style>
+<nav class="navbar navbar-expand-lg public-navbar sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <div class="brand-icon me-2">
+                <i class="fas fa-balance-scale text-white"></i>
+            </div>
+            <span class="brand-text fw-bold">LegalPractice<span class="text-primary">AI</span></span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="publicNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Services</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/form/business_formation"><i class="fas fa-building me-2"></i>Business Formation</a></li>
+                        <li><a class="dropdown-item" href="/form/real_estate"><i class="fas fa-home me-2"></i>Real Estate</a></li>
+                        <li><a class="dropdown-item" href="/form/family_law"><i class="fas fa-users me-2"></i>Family Law</a></li>
+                        <li><a class="dropdown-item" href="/form/estate_planning"><i class="fas fa-file-contract me-2"></i>Estate Planning</a></li>
+                        <li><a class="dropdown-item" href="/form/contracts"><i class="fas fa-handshake me-2"></i>Contracts</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/services"><i class="fas fa-th me-2"></i>View All Services</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pricing">Pricing</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/faq">FAQ</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/contact">Contact</a>
+                </li>
+                <li class="nav-item ms-lg-3">
+                    <a class="btn btn-outline-primary" href="/login">Login</a>
+                </li>
+                <li class="nav-item ms-2">
+                    <a class="btn btn-primary" href="/register">Get Started</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

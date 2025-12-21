@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' ? title : 'Legal Forms Generator' %></title>
     <meta name="description" content="Generate professional legal documents quickly and accurately using AI-powered templates.">
-    
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -15,16 +15,21 @@
     <!-- Custom CSS -->
     <link href="/css/custom.css" rel="stylesheet">
     <link href="/css/enhanced-features.css" rel="stylesheet">
+    <link href="/css/practice-management.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
+    <% if (typeof user !== 'undefined' && user) { %>
+    <!-- Practice Management Navigation for logged in users -->
+    <%- include('partials/pm-nav', { active: 'documents', user: user }) %>
+    <% } else { %>
+    <!-- Public Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <div class="brand-icon me-2">
                     <i class="fas fa-balance-scale"></i>
                 </div>
-                <span class="brand-text">LegalForms<span class="text-primary">AI</span></span>
+                <span class="brand-text">LegalPractice<span class="text-primary">AI</span></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -53,6 +58,7 @@
             </div>
         </div>
     </nav>
+    <% } %>
 
     <!-- Main Content -->
     <main class="container my-4">
@@ -277,7 +283,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-primary" id="downloadBtn">
+                    <button type="button" class="btn btn-primary" id="downloadBtn" onclick="downloadDocument()">
                         <i class="fas fa-download me-2"></i>Download Document
                     </button>
                     <button type="button" class="btn btn-outline-primary" id="regenerateBtn">
@@ -303,7 +309,7 @@
                         <div class="brand-icon me-2 text-white">
                             <i class="fas fa-balance-scale"></i>
                         </div>
-                        <span class="brand-text text-white">LegalForms<span class="text-primary">AI</span></span>
+                        <span class="brand-text text-white">LegalPractice<span class="text-primary">AI</span></span>
                     </div>
                     <p class="text-muted">Professional legal document generation powered by advanced AI technology.</p>
                 </div>
@@ -544,16 +550,32 @@
             },
             error: function(xhr) {
                 $('#loadingModal').modal('hide');
-                alert('Error generating document. Please try again.');
+                const response = xhr.responseJSON;
+                if (response && response.error) {
+                    alert('Error: ' + response.error);
+                } else {
+                    alert('Error generating document (Status: ' + xhr.status + '). Please try again.');
+                }
+                console.error('Generate error:', xhr.status, response);
             }
         });
     });
 
-    // Handle download
-    $(document).on('click', '#downloadBtn', function() {
+    // Global download function (called by onclick)
+    window.downloadDocument = function() {
+        console.log('Download function called, filename:', currentFilename);
         if (currentFilename) {
-            window.location.href = `/download/${currentFilename}`;
+            // Direct download - browser will use Content-Disposition header
+            window.location.href = '/download/' + currentFilename;
+        } else {
+            alert('No document available for download. Please generate a document first.');
         }
+    };
+
+    // Handle download (jQuery backup)
+    $(document).on('click', '#downloadBtn', function(e) {
+        e.preventDefault();
+        window.downloadDocument();
     });
     
     // Handle regenerate with different format
@@ -664,46 +686,61 @@
     // Enhanced form submission with review results
     function handleGenerationSuccess(response) {
         $('#loadingModal').modal('hide');
-        
+
         if (response.success) {
             $('#documentContent').text(response.document);
             currentFilename = response.filename;
             currentDocumentId = response.documentId;
-            
-            // Update download button text based on format
-            const formatText = response.format.toUpperCase();
-            $('#downloadBtn').html(`<i class="fas fa-download me-2"></i>Download ${formatText} Document`);
-            
+            console.log('Document generated successfully. Filename:', currentFilename);
+
+            // Update download button - ensure it's enabled and clickable
+            const formatText = (response.format || 'txt').toUpperCase();
+            const $downloadBtn = $('#downloadBtn');
+            $downloadBtn.html(`<i class="fas fa-download me-2"></i>Download ${formatText} Document`);
+            $downloadBtn.prop('disabled', false);
+            $downloadBtn.removeClass('disabled');
+            $downloadBtn.css('pointer-events', 'auto');
+
             // Show e-signature button if document was saved
             if (currentDocumentId) {
                 $('#esignBtn').show();
             }
-            
-            // Display review results if available
-            if (response.reviewResults) {
+
+            // Display review results if available (won't break if null)
+            if (response.reviewResults && response.reviewResults.score !== undefined) {
                 displayReviewResults(response.reviewResults);
+            } else {
+                // Hide review section if no results
+                $('#reviewResults').hide();
             }
-            
+
             // Display compliance validation if available
-            if (response.complianceValidation && response.complianceValidation.issues.length > 0) {
+            if (response.complianceValidation && response.complianceValidation.issues && response.complianceValidation.issues.length > 0) {
                 displayComplianceResults(response.complianceValidation);
             }
-            
+
             $('#resultsModal').modal('show');
         } else {
-            alert('Error generating document: ' + response.error);
+            alert('Error generating document: ' + (response.error || 'Unknown error'));
         }
     }
 
     // Display document review results
     function displayReviewResults(reviewResults) {
+        if (!reviewResults) return;
+
         const reviewDiv = $('#reviewResults');
         const scoreDiv = $('#reviewScore');
         const issuesDiv = $('#reviewIssues');
         const suggestionsDiv = $('#reviewSuggestions');
-        
-        // Display score
-        const score = Math.round(reviewResults.score * 100);
+
+        // Clear previous results
+        scoreDiv.empty();
+        issuesDiv.empty();
+        suggestionsDiv.empty();
+
+        // Display score (default to 75 if missing)
+        const score = Math.round((reviewResults.score || 0.75) * 100);
         const scoreClass = score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'poor';
         scoreDiv.html(`
             <div class="review-score">
@@ -714,22 +751,25 @@
                 <span>${score}%</span>
             </div>
         `);
-        
+
         // Display issues
-        if (reviewResults.issues && reviewResults.issues.length > 0) {
-            const issuesHtml = reviewResults.issues.map(issue => `
-                <div class="review-issue ${issue.severity}">
-                    <strong>${issue.type.replace(/_/g, ' ').toUpperCase()}:</strong> ${issue.message}
-                </div>
-            `).join('');
+        if (reviewResults.issues && Array.isArray(reviewResults.issues) && reviewResults.issues.length > 0) {
+            const issuesHtml = reviewResults.issues.map(issue => {
+                const issueType = (issue.type || 'note').replace(/_/g, ' ').toUpperCase();
+                const issueMessage = issue.message || String(issue);
+                const issueSeverity = issue.severity || 'medium';
+                return `<div class="review-issue ${issueSeverity}">
+                    <strong>${issueType}:</strong> ${issueMessage}
+                </div>`;
+            }).join('');
             issuesDiv.html('<h6>Issues Found:</h6>' + issuesHtml);
         }
-        
+
         // Display suggestions
-        if (reviewResults.suggestions && reviewResults.suggestions.length > 0) {
-            const suggestionsHtml = reviewResults.suggestions.map(suggestion => `
-                <li>${suggestion}</li>
-            `).join('');
+        if (reviewResults.suggestions && Array.isArray(reviewResults.suggestions) && reviewResults.suggestions.length > 0) {
+            const suggestionsHtml = reviewResults.suggestions.map(suggestion =>
+                `<li>${typeof suggestion === 'string' ? suggestion : String(suggestion)}</li>`
+            ).join('');
             suggestionsDiv.html(`
                 <div class="review-suggestions">
                     <h6><i class="fas fa-lightbulb"></i> Suggestions:</h6>
@@ -737,7 +777,7 @@
                 </div>
             `);
         }
-        
+
         reviewDiv.show();
     }
 
@@ -792,7 +832,7 @@
                 <div class="alert alert-info mb-3">
                     <i class="fas fa-info-circle"></i> <strong>Free Tier - Platform Account</strong><br>
                     Documents remaining this month: <strong>${platformUsage.remaining.documents}</strong> of ${platformUsage.limits.free_tier_monthly_limit}<br>
-                    <small class="text-muted">Using LegalFormsAI's DocuSign account</small>
+                    <small class="text-muted">Using LegalPracticeAI's DocuSign account</small>
                 </div>
             `;
         } else if (platformUsage && !canUsePlatform) {
@@ -1139,9 +1179,12 @@
                 const response = xhr.responseJSON;
                 if (response && response.complianceIssues) {
                     alert('Compliance issues found:\n' + response.complianceIssues.map(issue => issue.message).join('\n'));
+                } else if (response && response.error) {
+                    alert('Error: ' + response.error);
                 } else {
-                    alert('Error generating document. Please try again.');
+                    alert('Error generating document (Status: ' + xhr.status + '). Please try again.');
                 }
+                console.error('Generate error:', xhr.status, response);
             }
         });
     });
@@ -1156,40 +1199,64 @@
 
     // Define examples for each form type
     const examples = {
-        'business': {
+        'business_formation': {
             example1: `I want to form a Limited Liability Company (LLC) for my consulting business. The company name is TechConsult Solutions LLC. The business will be registered in California. The registered agent is Sarah Johnson located at 456 Business Ave, Suite 200, Los Angeles, CA 90012. The business purpose is to provide technology consulting and software development services. There are two members: Michael Chen who owns 60% and holds the title of Managing Member, and Lisa Wong who owns 40% and is a Member. The company will be member-managed. The initial capital contribution is $50,000. The fiscal year will be calendar year. The business address is 789 Tech Park Drive, San Francisco, CA 94105.`,
             example2: `I need to create a Corporation for my manufacturing business. The corporation name is Advanced Manufacturing Inc. It will be registered in Delaware. The registered agent is Corporate Services LLC at 100 Corporate Blvd, Wilmington, DE 19801. The corporation purpose is to manufacture and distribute industrial equipment. The corporation will issue 10,000 shares of common stock with a par value of $1.00 per share. The incorporator is David Martinez. There are three directors: Jennifer Lee, Robert Brown, and Susan Taylor. The principal office is located at 500 Industrial Way, Chicago, IL 60601. The fiscal year ends on December 31.`
         },
-        'real-estate': {
+        'real_estate': {
             example1: `I need to create a residential lease agreement for a property located at 123 Main Street, Apartment 4B, New York, NY 10001. The monthly rent is $2,500 and the security deposit is $2,500. The lease term is 12 months starting on January 1, 2026 and ending on December 31, 2026. The landlord is John Smith, phone number 555-123-4567, email john.smith@email.com. The tenant is Jane Doe, phone number 555-987-6543, email jane.doe@email.com. Utilities included are water and trash removal. Tenant is responsible for electricity and internet. Pets are allowed with a $300 pet deposit. No smoking is allowed on the property.`,
             example2: `I want to create a real estate purchase agreement. The property is a single-family home located at 456 Oak Avenue, Los Angeles, CA 90015. The purchase price is $750,000. The buyer is Mark Thompson and spouse Emily Thompson. The seller is Patricia Williams. The earnest money deposit is $25,000 to be held in escrow by ABC Title Company. The closing date is March 15, 2026. The sale includes all appliances, window treatments, and garage door openers. The property is being sold as-is. The buyer will obtain conventional financing. Contingencies include home inspection within 10 days and loan approval within 30 days.`
         },
-        'family-law': {
-            example1: `I need to file for divorce. My name is Amanda Roberts and my spouse is James Roberts. We were married on June 15, 2015 in Miami, Florida. We have been separated since January 1, 2025. We have two minor children: Emma Roberts age 8 and Noah Roberts age 5. We agree on joint legal custody with primary physical custody to me. We own a home at 789 Maple Drive, Miami, FL 33101 valued at $400,000 with a mortgage of $250,000. We have a joint savings account with $30,000 and a joint checking account with $5,000. My spouse has a 401k worth $80,000. We agree to divide assets equally. I am requesting child support based on state guidelines. No spousal support is being requested.`,
-            example2: `I want to create a prenuptial agreement. My name is Christopher Davis and my future spouse is Rachel Martinez. We plan to marry on August 20, 2026 in Austin, Texas. I own a business called Davis Tech Solutions valued at $500,000. I also own a rental property at 234 River Road, Austin, TX 78701. My future spouse owns a home at 567 Hill Street, Austin, TX 78702 valued at $350,000. We agree that all property owned before marriage will remain separate property. Any property acquired during marriage will be community property. We each have separate retirement accounts that will remain separate. In case of divorce, no spousal support will be paid by either party. We each have consulted with independent legal counsel.`
+        'family_law': {
+            example1: `I need to file for divorce. My name is Amanda Roberts and my spouse is James Roberts. We were married on June 15, 2015 in Miami, Florida. We have been separated since January 1, 2025. We have two minor children: Emma Roberts age 8 and Noah Roberts age 5. We agree on joint legal custody with primary physical custody to me. We own a home at 789 Maple Drive, Miami, FL 33101 valued at $400,000 with a mortgage of $250,000. We have a joint savings account with $30,000 and a joint checking account with $5,000. My spouse has a 401k worth $80,000. We agree to divide assets equally. I am requesting child support based on state guidelines.`,
+            example2: `I want to create a prenuptial agreement. My name is Christopher Davis and my future spouse is Rachel Martinez. We plan to marry on August 20, 2026 in Austin, Texas. I own a business called Davis Tech Solutions valued at $500,000. I also own a rental property at 234 River Road, Austin, TX 78701. My future spouse owns a home at 567 Hill Street, Austin, TX 78702 valued at $350,000. We agree that all property owned before marriage will remain separate property. Any property acquired during marriage will be community property. We each have separate retirement accounts that will remain separate.`
         },
-        'employment': {
-            example1: `I need an employment agreement for a new hire. The company is Tech Innovations LLC located at 100 Tech Plaza, San Jose, CA 95101. The employee is Alex Morgan. The position is Senior Software Engineer. The start date is February 1, 2026. The annual salary is $120,000 paid bi-weekly. The employee is eligible for health insurance, dental insurance, and 401k with 4% company match. The employee will receive 15 days of PTO per year. The employment is at-will. The employee must sign a confidentiality agreement and non-compete for 12 months within a 50 mile radius. The employee will work Monday through Friday, 9am to 5pm, with option for remote work 2 days per week. The probationary period is 90 days.`,
-            example2: `I want to create an independent contractor agreement. The company is Marketing Plus Inc located at 200 Commerce Street, Dallas, TX 75201. The contractor is Jordan Lee doing business as JL Creative Services. The services to be provided are graphic design and marketing materials creation. The contract term is 6 months from January 1, 2026 to June 30, 2026 with option to renew. The compensation is $5,000 per month paid on the first of each month. The contractor will provide their own equipment and software. The contractor can work for other clients. All work product will be owned by the company. The contractor must maintain liability insurance of at least $1 million. Either party can terminate with 30 days written notice.`
+        'estate_planning': {
+            example1: `I need to create a Last Will and Testament. My name is Robert Wilson, residing at 123 Oak Lane, Chicago, IL 60601. I am 65 years old, married to Helen Wilson. I have two adult children: Jennifer Wilson and Michael Wilson. I want to leave my estate as follows: 50% to my spouse Helen, 25% to Jennifer, and 25% to Michael. I own a home valued at $500,000, investment accounts totaling $300,000, and personal property valued at $50,000. I name my spouse Helen as executor, with my son Michael as alternate executor. I want my daughter Jennifer to be guardian of any minor grandchildren.`,
+            example2: `I want to create a Living Trust. My name is Elizabeth Taylor, residing at 456 Maple Street, San Diego, CA 92101. I want to create a revocable living trust to avoid probate. I am single with three adult children: David, Sarah, and Thomas. I want to transfer my home at 456 Maple Street, my investment accounts at Fidelity and Schwab, and my rental property at 789 Beach Road into the trust. Upon my death, assets should be distributed equally among my three children. I name myself as initial trustee, with my daughter Sarah as successor trustee.`
+        },
+        'civil_litigation': {
+            example1: `I need to file a civil complaint. I am the plaintiff, Thomas Anderson, residing at 700 Elm Street, Phoenix, AZ 85001. The defendant is Global Services Corp located at 800 Corporate Drive, Phoenix, AZ 85002. On September 15, 2025, I entered into a contract with the defendant to provide consulting services for $50,000. I completed all services by November 1, 2025 as agreed. Despite multiple demands, the defendant has refused to pay the agreed amount. I am owed $50,000 plus interest. I am requesting judgment for $60,000 plus interest, costs, and attorney fees.`,
+            example2: `I want to send a demand letter. I am Maria Garcia at 900 Main Avenue, Miami, FL 33101. The recipient is Quick Fix Repairs owned by Tom Wilson at 1000 Service Road, Miami, FL 33102. On July 20, 2025, I paid $3,500 for roof repair. The work was incomplete and substandard. The roof still leaks. I demand a full refund of $3,500 within 10 business days or I will file a lawsuit and seek additional damages.`
+        },
+        'employment_law': {
+            example1: `I need an employment agreement for a new hire. The company is Tech Innovations LLC located at 100 Tech Plaza, San Jose, CA 95101. The employee is Alex Morgan. The position is Senior Software Engineer. The start date is February 1, 2026. The annual salary is $120,000 paid bi-weekly. The employee is eligible for health insurance, dental insurance, and 401k with 4% company match. The employee will receive 15 days of PTO per year. The employment is at-will. The employee must sign a confidentiality agreement. The probationary period is 90 days.`,
+            example2: `I want to create a Non-Disclosure Agreement. The company is Innovation Labs Inc at 200 Tech Center, Austin, TX 78701. The employee/contractor is Jordan Lee. The agreement covers all proprietary information including software code, customer lists, business strategies, and financial data. The NDA is effective for 3 years after employment ends. Violations may result in injunctive relief and damages.`
         },
         'contracts': {
-            example1: `I need a service agreement between my company and a client. My company is ABC Services LLC located at 300 Business Park, Seattle, WA 98101. The client is XYZ Corporation at 400 Corporate Center, Portland, OR 97201. We will provide IT support and maintenance services. The contract term is one year starting March 1, 2026. The monthly fee is $3,000 for up to 40 hours of service per month. Additional hours are billed at $100 per hour. Payment is due within 15 days of invoice. We will provide 24/7 emergency support. Response time for critical issues is 2 hours. The contract automatically renews unless either party gives 60 days notice. We provide a 99% uptime guarantee. Liability is limited to the amount paid in the previous 3 months.`,
-            example2: `I want to create a non-disclosure agreement. The disclosing party is Innovation Tech Inc located at 500 Startup Way, Boston, MA 02101. The receiving party is Venture Partners LLC at 600 Investment Plaza, New York, NY 10001. The purpose is to discuss a potential business partnership and investment opportunity. The confidential information includes business plans, financial projections, customer lists, and proprietary technology. The receiving party agrees not to disclose the information to third parties and to use it only for evaluation purposes. The NDA term is 3 years from the date of signing. The receiving party must return or destroy all confidential materials upon request. The agreement is governed by Massachusetts law.`
+            example1: `I need a service agreement between my company and a client. My company is ABC Services LLC located at 300 Business Park, Seattle, WA 98101. The client is XYZ Corporation at 400 Corporate Center, Portland, OR 97201. We will provide IT support and maintenance services. The contract term is one year starting March 1, 2026. The monthly fee is $3,000 for up to 40 hours of service per month. Additional hours are billed at $100 per hour. Payment is due within 15 days of invoice.`,
+            example2: `I want to create a consulting agreement. The consultant is Jennifer Adams doing business as Adams Consulting at 500 Professional Plaza, Denver, CO 80201. The client is Mountain Corp at 600 Corporate Way, Boulder, CO 80301. The consulting services include business strategy and marketing advisory. The engagement is for 6 months at $10,000 per month. The consultant will provide monthly reports and attend bi-weekly meetings.`
         },
-        'litigation': {
-            example1: `I need to file a civil complaint. I am the plaintiff, Thomas Anderson, residing at 700 Elm Street, Phoenix, AZ 85001. The defendant is Global Services Corp located at 800 Corporate Drive, Phoenix, AZ 85002. On September 15, 2025, I entered into a contract with the defendant to provide consulting services for $50,000. I completed all services by November 1, 2025 as agreed. Despite multiple demands, the defendant has refused to pay the agreed amount. I am owed $50,000 plus interest. I have suffered damages including lost business opportunities valued at $10,000. I am requesting judgment for $60,000 plus interest, costs, and attorney fees. I have attached the signed contract and proof of completed work.`,
-            example2: `I want to file a small claims complaint. I am the plaintiff, Maria Garcia, at 900 Main Avenue, Miami, FL 33101. The defendant is Quick Fix Repairs, a sole proprietorship owned by Tom Wilson at 1000 Service Road, Miami, FL 33102. On July 20, 2025, I paid the defendant $3,500 to repair my roof. The defendant did incomplete and substandard work. The roof still leaks and other contractors estimate it will cost $4,000 to properly repair. I contacted the defendant multiple times but they refused to fix the problems or provide a refund. I am requesting $3,500 refund plus $500 for additional damages to interior ceiling. Total claim amount is $4,000.`
+        'intellectual_property': {
+            example1: `I need a trademark application. My company is Bright Ideas Inc at 100 Innovation Drive, San Francisco, CA 94102. I want to register the trademark "BRIGHTTECH" for software products and technology consulting services. The mark has been in use since January 2024. The mark is a word mark in standard characters. The goods/services fall under Class 9 (software) and Class 42 (consulting).`,
+            example2: `I want to create an IP License Agreement. The licensor is Creative Works LLC owning copyright in a software application called "TaskMaster Pro". The licensee is Enterprise Solutions Inc. The license is non-exclusive for North America. The license fee is $50,000 upfront plus 5% royalty on net sales. The license term is 5 years with option to renew.`
+        },
+        'immigration': {
+            example1: `I need an employer sponsorship letter for H-1B visa. The employer is TechCorp USA Inc at 100 Silicon Way, Palo Alto, CA 94301, EIN 12-3456789. The beneficiary is Raj Patel from India. The position is Software Engineer at $95,000 annual salary. The job requires a Bachelor's degree in Computer Science. The position involves developing web applications using Python and JavaScript.`,
+            example2: `I need an employment verification letter for visa application. The employee is Maria Santos who has worked at Global Finance Corp since March 2020. Her current position is Senior Financial Analyst with annual salary of $85,000. The letter should confirm her full-time permanent employment status and good standing.`
+        },
+        'healthcare': {
+            example1: `I need a HIPAA Authorization Form. The patient is John Smith, DOB 05/15/1975, residing at 123 Health Way, Boston, MA 02101. I authorize Dr. Sarah Johnson at Boston Medical Center to release my complete medical records to Attorney Mark Brown at Brown Law Firm for a personal injury claim. This authorization is valid until December 31, 2026.`,
+            example2: `I need a Business Associate Agreement. The covered entity is City Medical Group at 200 Healthcare Plaza, Chicago, IL 60601. The business associate is MedTech Solutions providing electronic health records management services. The agreement covers access to patient health information for system maintenance and support purposes.`
+        },
+        'nonprofit': {
+            example1: `I need to create nonprofit bylaws. The organization is Community Youth Foundation, a California nonprofit corporation. The purpose is to provide educational programs and mentorship for underprivileged youth. The board will have 7 directors serving 3-year terms. Board meetings will be held quarterly. A quorum is a majority of directors. The fiscal year ends December 31.`,
+            example2: `I need a 501(c)(3) application package. The organization is Green Earth Alliance incorporated in Oregon on January 15, 2025. Our mission is environmental conservation and education. Activities include tree planting programs, recycling initiatives, and environmental education workshops. We expect annual revenue of $100,000 from donations and grants. Initial board members are Jane Green (President), Mark Rivers (Treasurer), and Lisa Forest (Secretary).`
+        },
+        'bankruptcy': {
+            example1: `I need to prepare Chapter 7 bankruptcy documents. My name is David Miller at 456 Main Street, Detroit, MI 48201, SSN 123-45-6789. My total unsecured debt is $75,000 including $40,000 in credit cards, $25,000 in medical bills, and $10,000 in personal loans. My monthly income is $3,500 and monthly expenses are $3,200. I own a car worth $8,000 with $5,000 owed. I rent my apartment.`,
+            example2: `I need a debt settlement agreement. The debtor is Susan Clark. The creditor is First National Bank. The original debt was $15,000 on a credit card. The debtor offers to pay $7,500 as full settlement. Payment will be made in 3 monthly installments of $2,500. Upon receipt of final payment, the creditor agrees to report the account as "settled in full" to credit bureaus.`
         }
     };
 
     $(document).on('click', '#example1Btn', function() {
-        let exampleText = examples[formType]?.example1 || examples['business'].example1;
+        let exampleText = examples[formType]?.example1 || examples['business_formation'].example1;
         $('#naturalLanguageInput').val(exampleText);
         $('#naturalLanguageInput').focus();
     });
 
     $(document).on('click', '#example2Btn', function() {
-        let exampleText = examples[formType]?.example2 || examples['business'].example2;
+        let exampleText = examples[formType]?.example2 || examples['business_formation'].example2;
         $('#naturalLanguageInput').val(exampleText);
         $('#naturalLanguageInput').focus();
     });

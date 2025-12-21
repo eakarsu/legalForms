@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookie Policy - LegalFormsAI</title>
-    <meta name="description" content="LegalFormsAI Cookie Policy - Learn about how we use cookies and similar technologies to improve your experience on our website.">
+    <title>Cookie Policy - LegalPracticeAI</title>
+    <meta name="description" content="LegalPracticeAI Cookie Policy - Learn about how we use cookies and similar technologies to improve your experience on our website.">
     <meta name="keywords" content="cookie policy, cookies, tracking, website analytics, user experience">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://legalaiforms.com/cookies">
+    <link rel="canonical" href="https://legalpracticeai.com/cookies">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -19,39 +19,7 @@
     <link href="/css/custom.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <div class="brand-icon me-2">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <span class="brand-text">LegalForms<span class="text-primary">AI</span></span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/#form-types">Services</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/faq">FAQ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/contact">Contact</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <%- include('partials/header') %>
 
     <!-- Main Content -->
     <main class="container my-5">
@@ -62,7 +30,7 @@
                 
                 <div class="alert alert-info">
                     <h5><i class="fas fa-cookie-bite me-2"></i>About Cookies</h5>
-                    <p class="mb-0">This policy explains how LegalFormsAI uses cookies and similar technologies to enhance your experience on our website.</p>
+                    <p class="mb-0">This policy explains how LegalPracticeAI uses cookies and similar technologies to enhance your experience on our website.</p>
                 </div>
 
                 <h2>1. What Are Cookies?</h2>
@@ -72,12 +40,12 @@
                 <ul>
                     <li><strong>Session Cookies:</strong> Temporary cookies that are deleted when you close your browser</li>
                     <li><strong>Persistent Cookies:</strong> Cookies that remain on your device for a set period or until manually deleted</li>
-                    <li><strong>First-Party Cookies:</strong> Cookies set by LegalFormsAI directly</li>
+                    <li><strong>First-Party Cookies:</strong> Cookies set by LegalPracticeAI directly</li>
                     <li><strong>Third-Party Cookies:</strong> Cookies set by external services we use</li>
                 </ul>
 
                 <h2>2. How We Use Cookies</h2>
-                <p>LegalFormsAI uses cookies for several purposes:</p>
+                <p>LegalPracticeAI uses cookies for several purposes:</p>
 
                 <h3>Essential Cookies</h3>
                 <p>These cookies are necessary for the website to function properly:</p>
@@ -280,10 +248,10 @@
                 <h2>11. Contact Us</h2>
                 <p>For questions about our Cookie Policy or to exercise your rights:</p>
                 <div class="bg-light p-3 rounded">
-                    <p class="mb-1"><strong>Email:</strong> privacy@legalaiforms.com</p>
+                    <p class="mb-1"><strong>Email:</strong> privacy@legalpracticeai.com</p>
                     <p class="mb-1"><strong>Subject:</strong> Cookie Policy Inquiry</p>
-                    <p class="mb-1"><strong>Address:</strong> LegalFormsAI Privacy Office</p>
-                    <p class="mb-0"><strong>Phone:</strong> 1-800-LEGAL-AI</p>
+                    <p class="mb-1"><strong>Address:</strong> LegalPracticeAI Privacy Office</p>
+                    <p class="mb-0"><strong>Phone:</strong> 804-360-1129</p>
                 </div>
 
                 <div class="alert alert-success mt-4">
@@ -294,30 +262,7 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="brand-icon me-2 text-white">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <span class="brand-text text-white">LegalForms<span class="text-primary">AI</span></span>
-                    </div>
-                    <p class="text-muted">Professional legal document generation powered by advanced AI technology.</p>
-                </div>
-                <div class="col-lg-8 mb-4">
-                    <h6 class="text-white mb-3">Important Legal Disclaimer</h6>
-                    <p class="text-muted small">
-                        This tool generates legal document templates for informational purposes only. 
-                        All generated documents should be reviewed by a qualified attorney before use. 
-                        Laws vary by jurisdiction, and professional legal advice is recommended for all legal matters.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <%- include('partials/footer') %>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

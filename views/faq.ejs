@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAQ - Legal Forms Generator | LegalFormsAI</title>
-    <meta name="description" content="Frequently asked questions about LegalFormsAI's legal document generation service. Get answers about pricing, legal compliance, document formats, and more.">
+    <title>FAQ - Legal Forms Generator | LegalPracticeAI</title>
+    <meta name="description" content="Frequently asked questions about LegalPracticeAI's legal document generation service. Get answers about pricing, legal compliance, document formats, and more.">
     <meta name="keywords" content="legal forms FAQ, legal document questions, AI legal help, legal template questions">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://legalaiforms.com/faq">
+    <link rel="canonical" href="https://legalpracticeai.com/faq">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -61,39 +61,7 @@
     </script>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <div class="brand-icon me-2">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <span class="brand-text">LegalForms<span class="text-primary">AI</span></span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/#form-types">Services</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/faq">FAQ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/contact">Contact</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <%- include('partials/header') %>
 
     <!-- Main Content -->
     <main class="container my-5">
@@ -217,7 +185,7 @@
                         </h2>
                         <div id="collapse8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body">
-                                No, LegalFormsAI is not a law firm and does not provide legal advice. We provide document templates and generation services only. For legal advice, please consult with a qualified attorney in your jurisdiction.
+                                No, LegalPracticeAI is not a law firm and does not provide legal advice. We provide document templates and generation services only. For legal advice, please consult with a qualified attorney in your jurisdiction.
                             </div>
                         </div>
                     </div>
@@ -232,30 +200,7 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="brand-icon me-2 text-white">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <span class="brand-text text-white">LegalForms<span class="text-primary">AI</span></span>
-                    </div>
-                    <p class="text-muted">Professional legal document generation powered by advanced AI technology.</p>
-                </div>
-                <div class="col-lg-8 mb-4">
-                    <h6 class="text-white mb-3">Important Legal Disclaimer</h6>
-                    <p class="text-muted small">
-                        This tool generates legal document templates for informational purposes only. 
-                        All generated documents should be reviewed by a qualified attorney before use. 
-                        Laws vary by jurisdiction, and professional legal advice is recommended for all legal matters.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <%- include('partials/footer') %>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -181,8 +181,10 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+    },
+    proxy: true
 }));
 
 // Add optional auth middleware to all routes
@@ -250,39 +252,136 @@ fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 // Form types configuration
 const FORM_TYPES = {
   business_formation: {
-    name: 'Business Formation',
-    description: 'LLC and Corporation formation documents',
+    name: 'Business Entity Formation',
+    description: 'Comprehensive LLC, Corporation, and Partnership formation with state-specific compliance requirements',
+    icon: 'fa-building',
     promptFile: 'prompts/business_formation.txt'
   },
   real_estate: {
-    name: 'Real Estate',
-    description: 'Purchase agreements, deeds, and property documents',
+    name: 'Real Estate & Property',
+    description: 'Residential and commercial transactions including purchase agreements, leases, deeds, and title transfers',
+    icon: 'fa-home',
     promptFile: 'prompts/real_estate.txt'
   },
   family_law: {
-    name: 'Family Law',
-    description: 'Divorce, custody, and family-related documents',
+    name: 'Family Law & Domestic Relations',
+    description: 'Divorce petitions, custody agreements, prenuptial contracts, child support, and adoption documents',
+    icon: 'fa-users',
     promptFile: 'prompts/family_law.txt'
   },
   estate_planning: {
-    name: 'Estate Planning',
-    description: 'Wills, trusts, and estate documents',
+    name: 'Estate Planning & Asset Protection',
+    description: 'Wills, living trusts, powers of attorney, healthcare directives, and comprehensive estate administration',
+    icon: 'fa-file-contract',
     promptFile: 'prompts/estate_planning.txt'
   },
   civil_litigation: {
-    name: 'Civil Litigation',
-    description: 'Complaints, motions, and litigation documents',
+    name: 'Civil Litigation & Disputes',
+    description: 'Court filings, complaints, motions, discovery requests, settlement agreements, and judgment enforcement',
+    icon: 'fa-gavel',
     promptFile: 'prompts/civil_litigation.txt'
   },
-  employment_contracts: {
-    name: 'Employment Contracts',
-    description: 'Employment agreements and workplace documents',
+  employment_law: {
+    name: 'Employment & Labor Law',
+    description: 'Employment contracts, NDAs, non-compete agreements, termination documents, and HR compliance policies',
+    icon: 'fa-briefcase',
     promptFile: 'prompts/employment_contracts.txt'
   },
-  general_contracts: {
-    name: 'General Contracts',
-    description: 'Service agreements and commercial contracts',
+  contracts: {
+    name: 'Commercial Contracts & Agreements',
+    description: 'Service agreements, vendor contracts, licensing deals, consulting arrangements, and business partnerships',
+    icon: 'fa-handshake',
     promptFile: 'prompts/general_contracts.txt'
+  },
+  intellectual_property: {
+    name: 'Intellectual Property',
+    description: 'Trademark applications, copyright registrations, licensing agreements, IP assignments, and protection strategies',
+    icon: 'fa-lightbulb',
+    promptFile: 'prompts/intellectual_property.txt'
+  },
+  immigration: {
+    name: 'Immigration & Visa Documents',
+    description: 'Visa applications, sponsorship letters, employment authorization, and immigration compliance documentation',
+    icon: 'fa-globe',
+    promptFile: 'prompts/immigration.txt'
+  },
+  healthcare: {
+    name: 'Healthcare & Medical',
+    description: 'HIPAA compliance, patient consent forms, medical practice agreements, and healthcare provider contracts',
+    icon: 'fa-heartbeat',
+    promptFile: 'prompts/healthcare.txt'
+  },
+  nonprofit: {
+    name: 'Nonprofit & Tax-Exempt Organizations',
+    description: '501(c)(3) applications, bylaws, governance documents, and nonprofit compliance requirements',
+    icon: 'fa-hand-holding-heart',
+    promptFile: 'prompts/nonprofit.txt'
+  },
+  bankruptcy: {
+    name: 'Bankruptcy & Debt Relief',
+    description: 'Chapter 7 and Chapter 13 filings, debt restructuring, creditor negotiations, and financial reorganization',
+    icon: 'fa-balance-scale',
+    promptFile: 'prompts/bankruptcy.txt'
+  },
+  criminal_law: {
+    name: 'Criminal Law & Defense',
+    description: 'Defense motions, plea agreements, expungement petitions, bail applications, and criminal appeals',
+    icon: 'fa-shield-alt',
+    promptFile: 'prompts/criminal_law.txt'
+  },
+  tax_law: {
+    name: 'Tax Law & IRS Matters',
+    description: 'Tax appeals, IRS responses, installment agreements, offer in compromise, and tax controversy documents',
+    icon: 'fa-calculator',
+    promptFile: 'prompts/tax_law.txt'
+  },
+  securities_law: {
+    name: 'Securities & Investment Law',
+    description: 'Private placements, investor agreements, SEC filings, subscription agreements, and securities compliance',
+    icon: 'fa-chart-line',
+    promptFile: 'prompts/securities_law.txt'
+  },
+  insurance_law: {
+    name: 'Insurance Law & Claims',
+    description: 'Insurance claims, coverage disputes, bad faith letters, policy appeals, and settlement demands',
+    icon: 'fa-umbrella',
+    promptFile: 'prompts/insurance_law.txt'
+  },
+  environmental_law: {
+    name: 'Environmental Law & Compliance',
+    description: 'Environmental permits, compliance documentation, remediation agreements, and regulatory filings',
+    icon: 'fa-leaf',
+    promptFile: 'prompts/environmental_law.txt'
+  },
+  maritime_law: {
+    name: 'Maritime & Admiralty Law',
+    description: 'Shipping contracts, cargo claims, vessel documentation, maritime liens, and charter agreements',
+    icon: 'fa-ship',
+    promptFile: 'prompts/maritime_law.txt'
+  },
+  consumer_protection: {
+    name: 'Consumer Protection',
+    description: 'FDCPA violation letters, warranty claims, consumer complaints, and deceptive practices actions',
+    icon: 'fa-user-shield',
+    promptFile: 'prompts/consumer_protection.txt'
+  },
+  landlord_tenant: {
+    name: 'Landlord-Tenant Law',
+    description: 'Eviction notices, rent demands, lease violations, security deposit disputes, and habitability claims',
+    icon: 'fa-key',
+    promptFile: 'prompts/landlord_tenant.txt'
+  },
+  debt_collection: {
+    name: 'Debt Collection',
+    description: 'Collection letters, payment agreements, debt validation, judgment collection, and garnishment forms',
+    icon: 'fa-money-bill-wave',
+    promptFile: 'prompts/debt_collection.txt'
+  },
+  entertainment_law: {
+    name: 'Sports & Entertainment Law',
+    description: 'Talent contracts, licensing agreements, performance deals, royalty arrangements, and media rights',
+    icon: 'fa-star',
+    promptFile: 'prompts/entertainment_law.txt'
   }
 };
 
@@ -407,7 +506,9 @@ const getSpecificFormTypes = (formType) => {
       { value: 'llc_operating_agreement', label: 'LLC Operating Agreement' },
       { value: 'corp_bylaws', label: 'Corporate Bylaws' },
       { value: 'partnership_agreement', label: 'Partnership Agreement' },
-      { value: 'dba_filing', label: 'DBA (Doing Business As) Filing' }
+      { value: 'dba_filing', label: 'DBA (Doing Business As) Filing' },
+      { value: 'shareholder_agreement', label: 'Shareholder Agreement' },
+      { value: 'minutes_meeting', label: 'Corporate Minutes' }
     ],
     real_estate: [
       { value: 'purchase_agreement', label: 'Real Estate Purchase Agreement' },
@@ -417,47 +518,215 @@ const getSpecificFormTypes = (formType) => {
       { value: 'disclosure_form', label: 'Property Disclosure Form' },
       { value: 'listing_agreement', label: 'Real Estate Listing Agreement' },
       { value: 'rental_application', label: 'Rental Application' },
-      { value: 'lease_termination', label: 'Lease Termination Notice' }
+      { value: 'lease_termination', label: 'Lease Termination Notice' },
+      { value: 'eviction_notice', label: 'Eviction Notice' },
+      { value: 'sublease_agreement', label: 'Sublease Agreement' }
     ],
     family_law: [
       { value: 'divorce_petition', label: 'Divorce Petition' },
       { value: 'custody_agreement', label: 'Child Custody Agreement' },
       { value: 'support_order', label: 'Child Support Order' },
       { value: 'prenuptial_agreement', label: 'Prenuptial Agreement' },
+      { value: 'postnuptial_agreement', label: 'Postnuptial Agreement' },
       { value: 'adoption_petition', label: 'Adoption Petition' },
-      { value: 'separation_agreement', label: 'Legal Separation Agreement' }
+      { value: 'separation_agreement', label: 'Legal Separation Agreement' },
+      { value: 'parenting_plan', label: 'Parenting Plan' },
+      { value: 'name_change', label: 'Name Change Petition' }
     ],
     estate_planning: [
       { value: 'last_will', label: 'Last Will and Testament' },
-      { value: 'living_trust', label: 'Living Trust' },
-      { value: 'power_of_attorney', label: 'Power of Attorney' },
-      { value: 'healthcare_directive', label: 'Healthcare Directive' },
+      { value: 'living_trust', label: 'Revocable Living Trust' },
+      { value: 'irrevocable_trust', label: 'Irrevocable Trust' },
+      { value: 'power_of_attorney', label: 'General Power of Attorney' },
+      { value: 'financial_poa', label: 'Financial Power of Attorney' },
+      { value: 'healthcare_directive', label: 'Healthcare Directive / Living Will' },
+      { value: 'healthcare_poa', label: 'Healthcare Power of Attorney' },
       { value: 'guardianship_nomination', label: 'Guardianship Nomination' },
-      { value: 'beneficiary_designation', label: 'Beneficiary Designation' }
+      { value: 'beneficiary_designation', label: 'Beneficiary Designation Form' },
+      { value: 'asset_protection_trust', label: 'Asset Protection Trust' }
     ],
     civil_litigation: [
       { value: 'civil_complaint', label: 'Civil Complaint' },
+      { value: 'answer_complaint', label: 'Answer to Complaint' },
       { value: 'motion_dismiss', label: 'Motion to Dismiss' },
+      { value: 'motion_summary_judgment', label: 'Motion for Summary Judgment' },
       { value: 'discovery_request', label: 'Discovery Request' },
+      { value: 'interrogatories', label: 'Interrogatories' },
+      { value: 'request_production', label: 'Request for Production of Documents' },
       { value: 'settlement_agreement', label: 'Settlement Agreement' },
       { value: 'subpoena', label: 'Subpoena' },
-      { value: 'judgment_collection', label: 'Judgment Collection Documents' }
+      { value: 'demand_letter', label: 'Demand Letter' },
+      { value: 'cease_desist', label: 'Cease and Desist Letter' }
     ],
-    employment_contracts: [
+    employment_law: [
       { value: 'employment_agreement', label: 'Employment Agreement' },
-      { value: 'nda_agreement', label: 'Non-Disclosure Agreement' },
+      { value: 'offer_letter', label: 'Employment Offer Letter' },
+      { value: 'nda_agreement', label: 'Non-Disclosure Agreement (NDA)' },
       { value: 'noncompete_agreement', label: 'Non-Compete Agreement' },
+      { value: 'nonsolicitation', label: 'Non-Solicitation Agreement' },
       { value: 'severance_agreement', label: 'Severance Agreement' },
       { value: 'contractor_agreement', label: 'Independent Contractor Agreement' },
-      { value: 'employee_handbook', label: 'Employee Handbook' }
+      { value: 'employee_handbook', label: 'Employee Handbook' },
+      { value: 'termination_letter', label: 'Termination Letter' },
+      { value: 'workplace_policy', label: 'Workplace Policy Document' }
     ],
-    general_contracts: [
+    contracts: [
       { value: 'service_agreement', label: 'Service Agreement' },
       { value: 'purchase_contract', label: 'Purchase Contract' },
       { value: 'licensing_agreement', label: 'Licensing Agreement' },
       { value: 'vendor_contract', label: 'Vendor Contract' },
       { value: 'consulting_agreement', label: 'Consulting Agreement' },
-      { value: 'partnership_contract', label: 'Partnership Contract' }
+      { value: 'partnership_contract', label: 'Partnership Contract' },
+      { value: 'master_service_agreement', label: 'Master Service Agreement (MSA)' },
+      { value: 'sow', label: 'Statement of Work (SOW)' },
+      { value: 'joint_venture', label: 'Joint Venture Agreement' },
+      { value: 'distribution_agreement', label: 'Distribution Agreement' }
+    ],
+    intellectual_property: [
+      { value: 'trademark_application', label: 'Trademark Application' },
+      { value: 'copyright_registration', label: 'Copyright Registration' },
+      { value: 'ip_assignment', label: 'IP Assignment Agreement' },
+      { value: 'ip_license', label: 'IP License Agreement' },
+      { value: 'work_for_hire', label: 'Work for Hire Agreement' },
+      { value: 'invention_assignment', label: 'Invention Assignment Agreement' },
+      { value: 'trademark_license', label: 'Trademark License Agreement' },
+      { value: 'software_license', label: 'Software License Agreement' }
+    ],
+    immigration: [
+      { value: 'sponsorship_letter', label: 'Employer Sponsorship Letter' },
+      { value: 'support_affidavit', label: 'Affidavit of Support (I-864)' },
+      { value: 'employment_verification', label: 'Employment Verification Letter' },
+      { value: 'invitation_letter', label: 'Visa Invitation Letter' },
+      { value: 'adjustment_status', label: 'Adjustment of Status Application' },
+      { value: 'naturalization', label: 'Naturalization Application Support' }
+    ],
+    healthcare: [
+      { value: 'hipaa_authorization', label: 'HIPAA Authorization Form' },
+      { value: 'patient_consent', label: 'Patient Consent Form' },
+      { value: 'medical_release', label: 'Medical Records Release' },
+      { value: 'provider_agreement', label: 'Healthcare Provider Agreement' },
+      { value: 'baa', label: 'Business Associate Agreement (BAA)' },
+      { value: 'informed_consent', label: 'Informed Consent Document' },
+      { value: 'telemedicine_consent', label: 'Telemedicine Consent Form' }
+    ],
+    nonprofit: [
+      { value: '501c3_application', label: '501(c)(3) Application Package' },
+      { value: 'nonprofit_bylaws', label: 'Nonprofit Bylaws' },
+      { value: 'nonprofit_articles', label: 'Nonprofit Articles of Incorporation' },
+      { value: 'board_resolution', label: 'Board Resolution' },
+      { value: 'conflict_interest', label: 'Conflict of Interest Policy' },
+      { value: 'donation_agreement', label: 'Donation Agreement' },
+      { value: 'grant_agreement', label: 'Grant Agreement' },
+      { value: 'volunteer_agreement', label: 'Volunteer Agreement' }
+    ],
+    bankruptcy: [
+      { value: 'chapter7_petition', label: 'Chapter 7 Bankruptcy Petition' },
+      { value: 'chapter13_petition', label: 'Chapter 13 Bankruptcy Petition' },
+      { value: 'means_test', label: 'Means Test Calculation' },
+      { value: 'creditor_matrix', label: 'Creditor Matrix' },
+      { value: 'reaffirmation', label: 'Reaffirmation Agreement' },
+      { value: 'debt_settlement', label: 'Debt Settlement Agreement' },
+      { value: 'payment_plan', label: 'Payment Plan Agreement' }
+    ],
+    criminal_law: [
+      { value: 'motion_dismiss_criminal', label: 'Motion to Dismiss (Criminal)' },
+      { value: 'motion_suppress', label: 'Motion to Suppress Evidence' },
+      { value: 'plea_agreement', label: 'Plea Agreement' },
+      { value: 'bail_motion', label: 'Bail/Bond Motion' },
+      { value: 'expungement_petition', label: 'Expungement Petition' },
+      { value: 'record_sealing', label: 'Record Sealing Motion' },
+      { value: 'appeal_brief', label: 'Criminal Appeal Brief' },
+      { value: 'habeas_corpus', label: 'Habeas Corpus Petition' }
+    ],
+    tax_law: [
+      { value: 'tax_appeal', label: 'Tax Appeal Letter' },
+      { value: 'irs_response', label: 'IRS Response Letter' },
+      { value: 'installment_agreement', label: 'IRS Installment Agreement Request' },
+      { value: 'offer_compromise', label: 'Offer in Compromise' },
+      { value: 'penalty_abatement', label: 'Penalty Abatement Request' },
+      { value: 'innocent_spouse', label: 'Innocent Spouse Relief Request' },
+      { value: 'tax_protest', label: 'Tax Protest Letter' },
+      { value: 'audit_response', label: 'Audit Response Letter' }
+    ],
+    securities_law: [
+      { value: 'private_placement', label: 'Private Placement Memorandum' },
+      { value: 'subscription_agreement', label: 'Subscription Agreement' },
+      { value: 'investor_questionnaire', label: 'Investor Questionnaire' },
+      { value: 'accredited_investor', label: 'Accredited Investor Verification' },
+      { value: 'stock_purchase', label: 'Stock Purchase Agreement' },
+      { value: 'shareholder_rights', label: 'Shareholder Rights Agreement' },
+      { value: 'convertible_note', label: 'Convertible Note Agreement' },
+      { value: 'safe_agreement', label: 'SAFE Agreement' }
+    ],
+    insurance_law: [
+      { value: 'insurance_claim', label: 'Insurance Claim Letter' },
+      { value: 'claim_appeal', label: 'Claim Denial Appeal' },
+      { value: 'bad_faith_letter', label: 'Bad Faith Demand Letter' },
+      { value: 'coverage_dispute', label: 'Coverage Dispute Letter' },
+      { value: 'proof_of_loss', label: 'Proof of Loss Statement' },
+      { value: 'subrogation_waiver', label: 'Subrogation Waiver' },
+      { value: 'settlement_demand', label: 'Insurance Settlement Demand' }
+    ],
+    environmental_law: [
+      { value: 'permit_application', label: 'Environmental Permit Application' },
+      { value: 'compliance_plan', label: 'Environmental Compliance Plan' },
+      { value: 'remediation_agreement', label: 'Remediation Agreement' },
+      { value: 'environmental_audit', label: 'Environmental Audit Report' },
+      { value: 'impact_assessment', label: 'Environmental Impact Assessment' },
+      { value: 'waste_disposal', label: 'Waste Disposal Agreement' },
+      { value: 'pollution_control', label: 'Pollution Control Plan' }
+    ],
+    maritime_law: [
+      { value: 'charter_agreement', label: 'Charter Party Agreement' },
+      { value: 'bill_of_lading', label: 'Bill of Lading' },
+      { value: 'cargo_claim', label: 'Cargo Damage Claim' },
+      { value: 'maritime_lien', label: 'Maritime Lien Notice' },
+      { value: 'vessel_purchase', label: 'Vessel Purchase Agreement' },
+      { value: 'crew_agreement', label: 'Crew Employment Agreement' },
+      { value: 'salvage_agreement', label: 'Salvage Agreement' },
+      { value: 'marine_insurance', label: 'Marine Insurance Claim' }
+    ],
+    consumer_protection: [
+      { value: 'fdcpa_violation', label: 'FDCPA Violation Letter' },
+      { value: 'fcra_dispute', label: 'FCRA Credit Dispute Letter' },
+      { value: 'warranty_claim', label: 'Warranty Claim Letter' },
+      { value: 'lemon_law', label: 'Lemon Law Demand Letter' },
+      { value: 'consumer_complaint', label: 'Consumer Protection Complaint' },
+      { value: 'class_action_notice', label: 'Class Action Notice' },
+      { value: 'refund_demand', label: 'Refund Demand Letter' },
+      { value: 'deceptive_practice', label: 'Deceptive Practice Complaint' }
+    ],
+    landlord_tenant: [
+      { value: 'eviction_notice_pay', label: 'Pay or Quit Notice' },
+      { value: 'eviction_notice_cure', label: 'Cure or Quit Notice' },
+      { value: 'eviction_notice_unconditional', label: 'Unconditional Quit Notice' },
+      { value: 'rent_demand', label: 'Rent Demand Letter' },
+      { value: 'lease_violation', label: 'Lease Violation Notice' },
+      { value: 'security_deposit_demand', label: 'Security Deposit Demand' },
+      { value: 'habitability_complaint', label: 'Habitability Complaint' },
+      { value: 'rent_increase', label: 'Rent Increase Notice' },
+      { value: 'lease_renewal', label: 'Lease Renewal Offer' }
+    ],
+    debt_collection: [
+      { value: 'collection_letter', label: 'Collection Demand Letter' },
+      { value: 'payment_agreement', label: 'Payment Plan Agreement' },
+      { value: 'debt_validation', label: 'Debt Validation Request' },
+      { value: 'settlement_offer', label: 'Debt Settlement Offer' },
+      { value: 'judgment_collection', label: 'Judgment Collection Letter' },
+      { value: 'garnishment_notice', label: 'Wage Garnishment Notice' },
+      { value: 'lien_filing', label: 'Lien Filing Notice' },
+      { value: 'final_demand', label: 'Final Demand Before Legal Action' }
+    ],
+    entertainment_law: [
+      { value: 'talent_agreement', label: 'Talent/Artist Agreement' },
+      { value: 'management_contract', label: 'Management Contract' },
+      { value: 'recording_contract', label: 'Recording Contract' },
+      { value: 'performance_agreement', label: 'Performance Agreement' },
+      { value: 'royalty_agreement', label: 'Royalty Agreement' },
+      { value: 'media_rights', label: 'Media Rights Agreement' },
+      { value: 'appearance_release', label: 'Appearance Release' },
+      { value: 'merchandising', label: 'Merchandising Agreement' },
+      { value: 'sponsorship_agreement', label: 'Sponsorship Agreement' }
     ]
   };
   
@@ -466,397 +735,114 @@ const getSpecificFormTypes = (formType) => {
   return result;
 };
 
-// Form field configurations
+// Form field configurations - Simplified version (details collected via natural language)
 const getFormFields = (formType, specificType) => {
+  // Minimal base fields - just contact info
   const baseFields = [
-    { name: 'client_name', label: 'Full Legal Name', type: 'text', required: true },
-    { name: 'client_address', label: 'Address', type: 'textarea', required: true },
-    { name: 'client_phone', label: 'Phone Number', type: 'tel', required: true },
+    { name: 'client_name', label: 'Your Full Legal Name', type: 'text', required: true },
     { name: 'client_email', label: 'Email Address', type: 'email', required: true }
   ];
 
+  // Simple fields - AI extracts details from natural language input
   const specificFields = {
-    // Business Formation Fields
-    llc_articles: [
-      ...baseFields,
-      // Basic LLC Information
-      { name: 'llc_name', label: 'Exact LLC Name (as it will appear on filing)', type: 'text', required: true, placeholder: 'Example: ABC Consulting Services, LLC' },
-      { name: 'alternate_names', label: 'Alternative Names or DBAs', type: 'textarea', required: false, placeholder: 'List any alternate names or "doing business as" names' },
-      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'], required: true },
-      { name: 'county_formation', label: 'County of Formation', type: 'text', required: true, placeholder: 'County where LLC is being formed' },
-      
-      // Detailed Business Purpose
-      { name: 'business_purpose', label: 'Detailed Business Purpose and Activities', type: 'textarea', required: true, placeholder: 'Describe in detail what your LLC will do, including all business activities, services, products, and any specific industry focus' },
-      { name: 'naics_code', label: 'NAICS Industry Code (if known)', type: 'text', required: false, placeholder: 'North American Industry Classification System code' },
-      { name: 'business_classification', label: 'Business Classification', type: 'select', options: ['Professional Services', 'Retail Trade', 'Manufacturing', 'Construction', 'Real Estate', 'Technology', 'Healthcare', 'Food Service', 'Transportation', 'Other'], required: true },
-      { name: 'special_licenses', label: 'Special Licenses or Permits Required', type: 'textarea', required: false, placeholder: 'List any professional licenses, permits, or certifications required for your business' },
-      
-      // Registered Agent Information
-      { name: 'registered_agent_type', label: 'Registered Agent Type', type: 'select', options: ['Individual', 'Professional Service Company', 'Member of LLC'], required: true },
-      { name: 'registered_agent', label: 'Registered Agent Full Legal Name', type: 'text', required: true },
-      { name: 'agent_address_street', label: 'Registered Agent Street Address', type: 'text', required: true, placeholder: 'Street address (no P.O. boxes)' },
-      { name: 'agent_address_city', label: 'Registered Agent City', type: 'text', required: true },
-      { name: 'agent_address_state', label: 'Registered Agent State', type: 'text', required: true },
-      { name: 'agent_address_zip', label: 'Registered Agent ZIP Code', type: 'text', required: true },
-      { name: 'agent_phone', label: 'Registered Agent Phone Number', type: 'tel', required: true },
-      { name: 'agent_email', label: 'Registered Agent Email', type: 'email', required: false },
-      { name: 'agent_consent', label: 'Registered Agent Consent', type: 'select', options: ['Yes - Agent has consented to serve', 'No - Need to obtain consent'], required: true },
-      
-      // Management Structure
-      { name: 'management_type', label: 'Management Structure', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true },
-      { name: 'management_details', label: 'Management Structure Details', type: 'textarea', required: true, placeholder: 'Explain how the LLC will be managed, who has authority to make decisions, and voting procedures' },
-      
-      // Member Information
-      { name: 'number_of_members', label: 'Total Number of Initial Members', type: 'number', required: true, min: 1 },
-      { name: 'member1_name', label: 'Member 1 - Full Legal Name', type: 'text', required: true },
-      { name: 'member1_address', label: 'Member 1 - Complete Address', type: 'textarea', required: true },
-      { name: 'member1_ownership', label: 'Member 1 - Ownership Percentage', type: 'number', required: true, min: 0, max: 100 },
-      { name: 'member1_contribution', label: 'Member 1 - Initial Capital Contribution', type: 'textarea', required: true, placeholder: 'Describe cash, property, or services contributed' },
-      { name: 'member1_ssn', label: 'Member 1 - SSN or Tax ID', type: 'text', required: false, placeholder: 'For tax reporting purposes' },
-      
-      { name: 'member2_name', label: 'Member 2 - Full Legal Name (if applicable)', type: 'text', required: false },
-      { name: 'member2_address', label: 'Member 2 - Complete Address', type: 'textarea', required: false },
-      { name: 'member2_ownership', label: 'Member 2 - Ownership Percentage', type: 'number', required: false, min: 0, max: 100 },
-      { name: 'member2_contribution', label: 'Member 2 - Initial Capital Contribution', type: 'textarea', required: false },
-      { name: 'member2_ssn', label: 'Member 2 - SSN or Tax ID', type: 'text', required: false },
-      
-      { name: 'additional_members', label: 'Additional Members (if more than 2)', type: 'textarea', required: false, placeholder: 'List additional members with names, addresses, ownership percentages, and contributions' },
-      
-      // Manager Information (if Manager-Managed)
-      { name: 'manager1_name', label: 'Manager 1 - Full Legal Name (if Manager-Managed)', type: 'text', required: false },
-      { name: 'manager1_address', label: 'Manager 1 - Complete Address', type: 'textarea', required: false },
-      { name: 'manager1_title', label: 'Manager 1 - Title/Position', type: 'text', required: false, placeholder: 'e.g., Managing Member, General Manager' },
-      { name: 'manager_powers', label: 'Manager Powers and Authority', type: 'textarea', required: false, placeholder: 'Describe the scope of authority granted to managers' },
-      
-      // Organizer Information
-      { name: 'organizer_name', label: 'Organizer Full Legal Name', type: 'text', required: true },
-      { name: 'organizer_address', label: 'Organizer Complete Address', type: 'textarea', required: true },
-      { name: 'organizer_phone', label: 'Organizer Phone Number', type: 'tel', required: true },
-      { name: 'organizer_email', label: 'Organizer Email Address', type: 'email', required: true },
-      { name: 'organizer_title', label: 'Organizer Title/Position', type: 'text', required: false, placeholder: 'e.g., Attorney, Incorporator, Member' },
-      { name: 'organizer_relationship', label: 'Organizer Relationship to LLC', type: 'select', options: ['Member', 'Attorney', 'Professional Service', 'Other'], required: true },
-      
-      // Business Operations
-      { name: 'principal_office_street', label: 'Principal Office Street Address', type: 'text', required: true },
-      { name: 'principal_office_city', label: 'Principal Office City', type: 'text', required: true },
-      { name: 'principal_office_state', label: 'Principal Office State', type: 'text', required: true },
-      { name: 'principal_office_zip', label: 'Principal Office ZIP Code', type: 'text', required: true },
-      { name: 'mailing_address_different', label: 'Is Mailing Address Different?', type: 'select', options: ['No - Same as Principal Office', 'Yes - Different Address'], required: true },
-      { name: 'mailing_address', label: 'Mailing Address (if different)', type: 'textarea', required: false },
-      
-      // Financial and Tax Information
-      { name: 'initial_capital', label: 'Total Initial Capital Investment', type: 'number', required: true, placeholder: 'Total amount of initial investment' },
-      { name: 'capital_structure', label: 'Capital Structure Details', type: 'textarea', required: true, placeholder: 'Describe how capital contributions are structured (cash, property, services, etc.)' },
-      { name: 'tax_election', label: 'Federal Tax Election', type: 'select', options: ['Default (Partnership/Disregarded Entity)', 'S-Corporation Election', 'C-Corporation Election'], required: true },
-      { name: 'fiscal_year_end', label: 'Fiscal Year End', type: 'select', options: ['December 31', 'January 31', 'February 28', 'March 31', 'April 30', 'May 31', 'June 30', 'July 31', 'August 31', 'September 30', 'October 31', 'November 30'], required: true },
-      
-      // Duration and Dissolution
-      { name: 'duration', label: 'Duration of LLC', type: 'select', options: ['Perpetual', 'Specific Date', 'Specific Event'], required: true },
-      { name: 'duration_date', label: 'Dissolution Date (if applicable)', type: 'date', required: false },
-      { name: 'dissolution_events', label: 'Dissolution Events', type: 'textarea', required: false, placeholder: 'Describe specific events that would cause dissolution' },
-      
-      // Filing Information
-      { name: 'effective_date', label: 'Requested Effective Date', type: 'date', required: true },
-      { name: 'expedited_filing', label: 'Expedited Filing Requested?', type: 'select', options: ['No - Standard Processing', 'Yes - Expedited (Additional Fee)'], required: true },
-      { name: 'filing_fee', label: 'Expected Filing Fee Amount', type: 'number', required: false, placeholder: 'State filing fee amount' },
-      
-      // Additional Provisions
-      { name: 'operating_agreement', label: 'Operating Agreement Status', type: 'select', options: ['Will be created separately', 'Included with Articles', 'Not needed at this time'], required: true },
-      { name: 'special_provisions', label: 'Special Provisions or Restrictions', type: 'textarea', required: false, placeholder: 'Any special provisions, restrictions, or requirements to include in the Articles' },
-      { name: 'professional_llc', label: 'Is this a Professional LLC (PLLC)?', type: 'select', options: ['No', 'Yes - Professional Services'], required: true },
-      { name: 'professional_license', label: 'Professional License Information (if PLLC)', type: 'textarea', required: false, placeholder: 'Describe professional licenses held by members' },
-      
-      // Contact and Service Information
-      { name: 'contact_person', label: 'Primary Contact Person', type: 'text', required: true },
-      { name: 'contact_phone', label: 'Primary Contact Phone', type: 'tel', required: true },
-      { name: 'contact_email', label: 'Primary Contact Email', type: 'email', required: true },
-      { name: 'preferred_communication', label: 'Preferred Communication Method', type: 'select', options: ['Email', 'Phone', 'Mail', 'Text'], required: true },
-      
-      // Legal and Compliance
-      { name: 'foreign_qualification', label: 'Will LLC operate in other states?', type: 'select', options: ['No - Only in formation state', 'Yes - Will need foreign qualification'], required: true },
-      { name: 'other_states', label: 'Other States of Operation', type: 'textarea', required: false, placeholder: 'List states where LLC will conduct business' },
-      { name: 'regulatory_compliance', label: 'Special Regulatory Requirements', type: 'textarea', required: false, placeholder: 'Any industry-specific regulations or compliance requirements' },
-      { name: 'insurance_requirements', label: 'Insurance Requirements', type: 'textarea', required: false, placeholder: 'Professional liability, general liability, or other required insurance' }
-    ],
-    corp_articles: [
-      ...baseFields,
-      { name: 'corp_name', label: 'Corporation Name', type: 'text', required: true },
-      { name: 'corp_type', label: 'Corporation Type', type: 'select', options: ['C-Corporation', 'S-Corporation', 'Professional Corporation'], required: true },
-      { name: 'state_incorporation', label: 'State of Incorporation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
-      { name: 'authorized_shares', label: 'Number of Authorized Shares', type: 'number', required: true },
-      { name: 'par_value', label: 'Par Value per Share', type: 'number', required: true },
-      { name: 'initial_directors', label: 'Initial Directors (Names)', type: 'textarea', required: true }
-    ],
-    llc_operating_agreement: [
-      ...baseFields,
-      { name: 'llc_name', label: 'LLC Name', type: 'text', required: true },
-      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
-      { name: 'members_info', label: 'Members Information', type: 'textarea', required: true },
-      { name: 'management_structure', label: 'Management Structure', type: 'select', options: ['Member-Managed', 'Manager-Managed'], required: true },
-      { name: 'capital_contributions', label: 'Capital Contributions', type: 'textarea', required: true },
-      { name: 'profit_distribution', label: 'Profit Distribution Method', type: 'textarea', required: true }
-    ],
-    corp_bylaws: [
-      ...baseFields,
-      { name: 'corp_name', label: 'Corporation Name', type: 'text', required: true },
-      { name: 'state_incorporation', label: 'State of Incorporation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'DE', 'NV', 'Other'], required: true },
-      { name: 'board_size', label: 'Number of Directors', type: 'number', required: true },
-      { name: 'meeting_frequency', label: 'Board Meeting Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually', 'As Needed'], required: true },
-      { name: 'fiscal_year_end', label: 'Fiscal Year End', type: 'date', required: true },
-      { name: 'stock_classes', label: 'Stock Classes', type: 'textarea', required: true }
-    ],
-    
-    // Real Estate Fields
-    purchase_agreement: [
-      ...baseFields,
-      { name: 'buyer_name', label: 'Buyer Full Legal Name', type: 'text', required: true },
-      { name: 'buyer_address', label: 'Buyer Complete Address', type: 'textarea', required: true },
-      { name: 'buyer_phone', label: 'Buyer Phone Number', type: 'tel', required: true },
-      { name: 'buyer_email', label: 'Buyer Email Address', type: 'email', required: true },
-      { name: 'seller_name', label: 'Seller Full Legal Name', type: 'text', required: true },
-      { name: 'seller_address', label: 'Seller Complete Address', type: 'textarea', required: true },
-      { name: 'seller_phone', label: 'Seller Phone Number', type: 'tel', required: true },
-      { name: 'seller_email', label: 'Seller Email Address', type: 'email', required: true },
-      { name: 'property_address', label: 'Complete Property Address', type: 'textarea', required: true, placeholder: 'Include street address, city, state, ZIP code' },
-      { name: 'legal_description', label: 'Legal Property Description', type: 'textarea', required: true, placeholder: 'Legal description from deed or survey' },
-      { name: 'property_type', label: 'Property Type', type: 'select', options: ['Single Family Home', 'Condominium', 'Townhouse', 'Multi-Family', 'Commercial', 'Vacant Land', 'Other'], required: true },
-      { name: 'purchase_price', label: 'Total Purchase Price ($)', type: 'number', required: true },
-      { name: 'earnest_money', label: 'Earnest Money Deposit ($)', type: 'number', required: true },
-      { name: 'down_payment', label: 'Down Payment Amount ($)', type: 'number', required: true },
-      { name: 'financing_amount', label: 'Loan/Financing Amount ($)', type: 'number', required: false },
-      { name: 'closing_date', label: 'Proposed Closing Date', type: 'date', required: true },
-      { name: 'possession_date', label: 'Possession Date', type: 'date', required: true },
-      { name: 'financing_contingency', label: 'Financing Contingency Period (days)', type: 'number', required: true },
-      { name: 'inspection_contingency', label: 'Inspection Contingency Period (days)', type: 'number', required: true },
-      { name: 'appraisal_contingency', label: 'Appraisal Contingency Period (days)', type: 'number', required: true },
-      { name: 'title_company', label: 'Title Company/Closing Agent', type: 'text', required: false },
-      { name: 'real_estate_agent_buyer', label: 'Buyer\'s Real Estate Agent', type: 'text', required: false },
-      { name: 'real_estate_agent_seller', label: 'Seller\'s Real Estate Agent', type: 'text', required: false },
-      { name: 'included_items', label: 'Items Included in Sale', type: 'textarea', required: false, placeholder: 'List appliances, fixtures, and other items included' },
-      { name: 'excluded_items', label: 'Items Excluded from Sale', type: 'textarea', required: false, placeholder: 'List any items specifically excluded' },
-      { name: 'special_conditions', label: 'Special Conditions or Contingencies', type: 'textarea', required: false, placeholder: 'Any additional terms or conditions' }
-    ],
-    lease_agreement: [
-      ...baseFields,
-      { name: 'landlord_name', label: 'Landlord Full Legal Name', type: 'text', required: true },
-      { name: 'landlord_address', label: 'Landlord Mailing Address', type: 'textarea', required: true },
-      { name: 'landlord_phone', label: 'Landlord Phone Number', type: 'tel', required: true },
-      { name: 'landlord_email', label: 'Landlord Email Address', type: 'email', required: true },
-      { name: 'tenant_name', label: 'Tenant Full Legal Name', type: 'text', required: true },
-      { name: 'tenant_phone', label: 'Tenant Phone Number', type: 'tel', required: true },
-      { name: 'tenant_email', label: 'Tenant Email Address', type: 'email', required: true },
-      { name: 'additional_tenants', label: 'Additional Tenants/Occupants', type: 'textarea', required: false, placeholder: 'List all other adults who will live in the property' },
-      { name: 'property_address', label: 'Complete Rental Property Address', type: 'textarea', required: true, placeholder: 'Include unit number if applicable' },
-      { name: 'property_type', label: 'Property Type', type: 'select', options: ['Apartment', 'House', 'Condominium', 'Townhouse', 'Room', 'Other'], required: true },
-      { name: 'furnished_status', label: 'Furnished Status', type: 'select', options: ['Unfurnished', 'Partially Furnished', 'Fully Furnished'], required: true },
-      { name: 'monthly_rent', label: 'Monthly Rent Amount ($)', type: 'number', required: true },
-      { name: 'rent_due_date', label: 'Rent Due Date Each Month', type: 'number', required: true, placeholder: 'Day of month (1-31)' },
-      { name: 'late_fee', label: 'Late Fee Amount ($)', type: 'number', required: false },
-      { name: 'grace_period', label: 'Grace Period for Late Payment (days)', type: 'number', required: false },
-      { name: 'security_deposit', label: 'Security Deposit Amount ($)', type: 'number', required: true },
-      { name: 'pet_deposit', label: 'Pet Deposit Amount ($)', type: 'number', required: false },
-      { name: 'lease_start', label: 'Lease Start Date', type: 'date', required: true },
-      { name: 'lease_end', label: 'Lease End Date', type: 'date', required: true },
-      { name: 'lease_term_months', label: 'Lease Term (months)', type: 'number', required: true },
-      { name: 'renewal_option', label: 'Automatic Renewal Option', type: 'select', options: ['No automatic renewal', 'Month-to-month after term', 'Annual renewal option'], required: true },
-      { name: 'utilities_included', label: 'Utilities Included in Rent', type: 'textarea', required: false, placeholder: 'List which utilities are included (water, electric, gas, internet, etc.)' },
-      { name: 'utilities_tenant', label: 'Utilities Paid by Tenant', type: 'textarea', required: false, placeholder: 'List which utilities tenant is responsible for' },
-      { name: 'parking_included', label: 'Parking Included', type: 'select', options: ['No parking', '1 space', '2 spaces', '3+ spaces', 'Street parking only'], required: true },
-      { name: 'pets_allowed', label: 'Pet Policy', type: 'select', options: ['No pets allowed', 'Cats only', 'Dogs only', 'Cats and dogs allowed', 'All pets allowed with approval'], required: true },
-      { name: 'smoking_policy', label: 'Smoking Policy', type: 'select', options: ['No smoking anywhere', 'Smoking allowed outside only', 'Smoking allowed'], required: true },
-      { name: 'maintenance_responsibilities', label: 'Tenant Maintenance Responsibilities', type: 'textarea', required: false, placeholder: 'Describe what maintenance tasks tenant is responsible for' },
-      { name: 'house_rules', label: 'House Rules and Restrictions', type: 'textarea', required: false, placeholder: 'Any specific rules about noise, guests, use of property, etc.' }
-    ],
-    commercial_lease: [
-      ...baseFields,
-      { name: 'landlord_name', label: 'Landlord/Company Name', type: 'text', required: true },
-      { name: 'tenant_name', label: 'Tenant/Business Name', type: 'text', required: true },
-      { name: 'property_address', label: 'Commercial Property Address', type: 'textarea', required: true },
-      { name: 'monthly_rent', label: 'Monthly Base Rent ($)', type: 'number', required: true },
-      { name: 'square_footage', label: 'Square Footage', type: 'number', required: true },
-      { name: 'lease_term', label: 'Lease Term (years)', type: 'number', required: true },
-      { name: 'permitted_use', label: 'Permitted Use', type: 'textarea', required: true }
-    ],
-    
-    // Family Law Fields
-    divorce_petition: [
-      ...baseFields,
-      { name: 'petitioner_name', label: 'Petitioner Full Name', type: 'text', required: true },
-      { name: 'respondent_name', label: 'Respondent Full Name', type: 'text', required: true },
-      { name: 'marriage_date', label: 'Date of Marriage', type: 'date', required: true },
-      { name: 'separation_date', label: 'Date of Separation', type: 'date', required: false },
-      { name: 'children_info', label: 'Children Information (Names, Ages)', type: 'textarea', required: false },
-      { name: 'grounds_divorce', label: 'Grounds for Divorce', type: 'select', options: ['Irreconcilable Differences', 'Adultery', 'Abandonment', 'Cruelty', 'Other'], required: true }
-    ],
-    
-    // Estate Planning Fields
-    last_will: [
-      ...baseFields,
-      { name: 'testator_name', label: 'Testator Full Legal Name', type: 'text', required: true },
-      { name: 'testator_address', label: 'Testator Complete Address', type: 'textarea', required: true },
-      { name: 'testator_ssn', label: 'Testator Social Security Number', type: 'text', required: false, placeholder: 'Optional - for identification purposes' },
-      { name: 'testator_birthdate', label: 'Testator Date of Birth', type: 'date', required: true },
-      { name: 'marital_status', label: 'Marital Status', type: 'select', options: ['Single', 'Married', 'Divorced', 'Widowed', 'Separated'], required: true },
-      { name: 'spouse_name', label: 'Spouse Full Legal Name', type: 'text', required: false },
-      { name: 'spouse_address', label: 'Spouse Address (if different)', type: 'textarea', required: false },
-      { name: 'children_info', label: 'Children Information', type: 'textarea', required: false, placeholder: 'List all children with full names, birthdates, and addresses' },
-      { name: 'primary_beneficiaries', label: 'Primary Beneficiaries', type: 'textarea', required: true, placeholder: 'List beneficiaries with their relationship to you and percentage of inheritance' },
-      { name: 'contingent_beneficiaries', label: 'Contingent Beneficiaries', type: 'textarea', required: false, placeholder: 'Backup beneficiaries if primary beneficiaries cannot inherit' },
-      { name: 'executor_name', label: 'Primary Executor Full Name', type: 'text', required: true },
-      { name: 'executor_address', label: 'Primary Executor Address', type: 'textarea', required: true },
-      { name: 'executor_phone', label: 'Primary Executor Phone', type: 'tel', required: true },
-      { name: 'alternate_executor', label: 'Alternate Executor Name', type: 'text', required: false },
-      { name: 'alternate_executor_address', label: 'Alternate Executor Address', type: 'textarea', required: false },
-      { name: 'guardian_minors', label: 'Guardian for Minor Children', type: 'text', required: false },
-      { name: 'guardian_address', label: 'Guardian Address', type: 'textarea', required: false },
-      { name: 'alternate_guardian', label: 'Alternate Guardian for Minors', type: 'text', required: false },
-      { name: 'real_estate_assets', label: 'Real Estate Assets', type: 'textarea', required: false, placeholder: 'List all real estate properties with addresses and approximate values' },
-      { name: 'financial_assets', label: 'Financial Assets', type: 'textarea', required: false, placeholder: 'Bank accounts, investments, retirement accounts, etc.' },
-      { name: 'personal_property', label: 'Significant Personal Property', type: 'textarea', required: false, placeholder: 'Vehicles, jewelry, artwork, collections, etc.' },
-      { name: 'business_interests', label: 'Business Interests', type: 'textarea', required: false, placeholder: 'Ownership in businesses, partnerships, etc.' },
-      { name: 'specific_bequests', label: 'Specific Bequests', type: 'textarea', required: false, placeholder: 'Specific items or amounts to be given to particular people' },
-      { name: 'charitable_bequests', label: 'Charitable Bequests', type: 'textarea', required: false, placeholder: 'Donations to charities or organizations' },
-      { name: 'funeral_instructions', label: 'Funeral and Burial Instructions', type: 'textarea', required: false, placeholder: 'Preferences for funeral arrangements, burial, or cremation' },
-      { name: 'special_instructions', label: 'Special Instructions', type: 'textarea', required: false, placeholder: 'Any other specific wishes or instructions' }
-    ],
-    
-    // Civil Litigation Fields
-    civil_complaint: [
-      ...baseFields,
-      { name: 'plaintiff_name', label: 'Plaintiff Name', type: 'text', required: true },
-      { name: 'defendant_name', label: 'Defendant Name', type: 'text', required: true },
-      { name: 'case_description', label: 'Case Description', type: 'textarea', required: true },
-      { name: 'damages_amount', label: 'Damages Sought ($)', type: 'number', required: true },
-      { name: 'court_jurisdiction', label: 'Court Jurisdiction', type: 'text', required: true },
-      { name: 'incident_date', label: 'Date of Incident', type: 'date', required: true }
-    ],
-    motion_dismiss: [
-      ...baseFields,
-      { name: 'case_number', label: 'Case Number', type: 'text', required: true },
-      { name: 'court_name', label: 'Court Name', type: 'text', required: true },
-      { name: 'moving_party', label: 'Moving Party', type: 'text', required: true },
-      { name: 'grounds_dismissal', label: 'Grounds for Dismissal', type: 'textarea', required: true },
-      { name: 'legal_authority', label: 'Legal Authority/Citations', type: 'textarea', required: true }
-    ],
-    settlement_agreement: [
-      ...baseFields,
-      { name: 'party1_name', label: 'First Party Name', type: 'text', required: true },
-      { name: 'party2_name', label: 'Second Party Name', type: 'text', required: true },
-      { name: 'dispute_description', label: 'Dispute Description', type: 'textarea', required: true },
-      { name: 'settlement_amount', label: 'Settlement Amount ($)', type: 'number', required: true },
-      { name: 'payment_terms', label: 'Payment Terms', type: 'textarea', required: true },
-      { name: 'release_scope', label: 'Scope of Release', type: 'textarea', required: true }
-    ],
-    
-    // Employment Contract Fields
-    employment_agreement: [
-      ...baseFields,
-      { name: 'employer_name', label: 'Employer/Company Name', type: 'text', required: true },
-      { name: 'employee_name', label: 'Employee Name', type: 'text', required: true },
-      { name: 'position_title', label: 'Position Title', type: 'text', required: true },
-      { name: 'salary', label: 'Annual Salary ($)', type: 'number', required: true },
-      { name: 'start_date', label: 'Start Date', type: 'date', required: true },
-      { name: 'job_duties', label: 'Job Duties and Responsibilities', type: 'textarea', required: true }
-    ],
-    nda_agreement: [
-      ...baseFields,
-      { name: 'disclosing_party', label: 'Disclosing Party Name', type: 'text', required: true },
-      { name: 'receiving_party', label: 'Receiving Party Name', type: 'text', required: true },
-      { name: 'confidential_info', label: 'Description of Confidential Information', type: 'textarea', required: true },
-      { name: 'agreement_term', label: 'Agreement Term (years)', type: 'number', required: true },
-      { name: 'permitted_use', label: 'Permitted Use of Information', type: 'textarea', required: true }
-    ],
-    noncompete_agreement: [
-      ...baseFields,
-      { name: 'employer_name', label: 'Employer Name', type: 'text', required: true },
-      { name: 'employee_name', label: 'Employee Name', type: 'text', required: true },
-      { name: 'restricted_activities', label: 'Restricted Activities', type: 'textarea', required: true },
-      { name: 'geographic_scope', label: 'Geographic Scope', type: 'text', required: true },
-      { name: 'time_period', label: 'Time Period (months)', type: 'number', required: true },
-      { name: 'consideration', label: 'Consideration Provided', type: 'textarea', required: true }
-    ],
-    
-    // General Contract Fields
-    service_agreement: [
-      ...baseFields,
-      { name: 'service_provider', label: 'Service Provider Name', type: 'text', required: true },
-      { name: 'client_company', label: 'Client/Company Name', type: 'text', required: true },
-      { name: 'service_description', label: 'Service Description', type: 'textarea', required: true },
-      { name: 'contract_value', label: 'Contract Value ($)', type: 'number', required: true },
-      { name: 'start_date', label: 'Service Start Date', type: 'date', required: true },
-      { name: 'end_date', label: 'Service End Date', type: 'date', required: true }
-    ]
+    // Business Formation
+    llc_articles: [...baseFields],
+    corp_articles: [...baseFields],
+    llc_operating_agreement: [...baseFields],
+    corp_bylaws: [...baseFields],
+    partnership_agreement: [...baseFields],
+
+    // Real Estate - simplified
+    purchase_agreement: [...baseFields],
+    lease_agreement: [...baseFields],
+    commercial_lease: [...baseFields],
+    deed: [...baseFields],
+    eviction_notice: [...baseFields],
+
+    // Family Law - simplified
+    divorce_petition: [...baseFields],
+    prenuptial_agreement: [...baseFields],
+    child_custody: [...baseFields],
+    child_support: [...baseFields],
+    separation_agreement: [...baseFields],
+
+    // Estate Planning - simplified
+    last_will: [...baseFields],
+    living_trust: [...baseFields],
+    power_of_attorney: [...baseFields],
+    healthcare_directive: [...baseFields],
+    beneficiary_designation: [...baseFields],
+
+    // Civil Litigation - simplified
+    civil_complaint: [...baseFields],
+    motion_dismiss: [...baseFields],
+    settlement_agreement: [...baseFields],
+    demand_letter: [...baseFields],
+    answer_complaint: [...baseFields],
+
+    // Employment Law - simplified
+    employment_agreement: [...baseFields],
+    nda_agreement: [...baseFields],
+    noncompete_agreement: [...baseFields],
+    severance_agreement: [...baseFields],
+    independent_contractor: [...baseFields],
+
+    // Contracts - simplified
+    service_agreement: [...baseFields],
+    consulting_agreement: [...baseFields],
+    sales_contract: [...baseFields],
+    licensing_agreement: [...baseFields],
+    partnership_agreement: [...baseFields],
+
+    // Intellectual Property - simplified
+    trademark_application: [...baseFields],
+    ip_license: [...baseFields],
+    work_for_hire: [...baseFields],
+    copyright_registration: [...baseFields],
+    ip_assignment: [...baseFields],
+
+    // Immigration - simplified
+    sponsorship_letter: [...baseFields],
+    support_affidavit: [...baseFields],
+    employment_verification: [...baseFields],
+    invitation_letter: [...baseFields],
+    experience_letter: [...baseFields],
+
+    // Healthcare - simplified
+    hipaa_authorization: [...baseFields],
+    patient_consent: [...baseFields],
+    baa: [...baseFields],
+    medical_release: [...baseFields],
+    advance_directive: [...baseFields],
+
+    // Nonprofit - simplified
+    nonprofit_bylaws: [...baseFields],
+    '501c3_application': [...baseFields],
+    board_resolution: [...baseFields],
+    articles_incorporation: [...baseFields],
+    conflict_interest: [...baseFields],
+
+    // Bankruptcy - simplified
+    chapter7_petition: [...baseFields],
+    debt_settlement: [...baseFields],
+    chapter13_plan: [...baseFields],
+    reaffirmation: [...baseFields],
+    means_test: [...baseFields]
   };
 
   // Return specific fields if available, otherwise return base fields
   return specificFields[specificType] || baseFields;
 };
 
-// Legacy function for backward compatibility
+// Legacy function for backward compatibility - simplified
 const getLegacyFormFields = (formType) => {
-  const formFields = {
-    business_formation: [
-      { name: 'client_name', label: 'Full Legal Name', type: 'text', required: true },
-      { name: 'client_address', label: 'Address', type: 'textarea', required: true },
-      { name: 'client_phone', label: 'Phone Number', type: 'tel', required: true },
-      { name: 'client_email', label: 'Email Address', type: 'email', required: true },
-      { name: 'entity_type', label: 'Entity Type', type: 'select', options: ['LLC', 'Corporation'], required: true },
-      { name: 'entity_name', label: 'Proposed Entity Name', type: 'text', required: true },
-      { name: 'state_formation', label: 'State of Formation', type: 'select', options: ['CA', 'NY', 'TX', 'FL', 'Other'], required: true },
-      { name: 'business_purpose', label: 'Business Purpose', type: 'textarea', required: true }
-    ],
-    real_estate: [
-      { name: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true },
-      { name: 'seller_name', label: 'Seller Full Name', type: 'text', required: true },
-      { name: 'property_address', label: 'Property Address', type: 'textarea', required: true },
-      { name: 'purchase_price', label: 'Purchase Price', type: 'number', required: true },
-      { name: 'earnest_money', label: 'Earnest Money Amount', type: 'number', required: true },
-      { name: 'closing_date', label: 'Proposed Closing Date', type: 'date', required: true },
-      { name: 'property_type', label: 'Property Type', type: 'select', options: ['Single Family', 'Condo', 'Commercial', 'Vacant Land'], required: true }
-    ],
-    family_law: [
-      { name: 'petitioner_name', label: 'Petitioner Full Name', type: 'text', required: true },
-      { name: 'respondent_name', label: 'Respondent Full Name', type: 'text', required: true },
-      { name: 'marriage_date', label: 'Date of Marriage', type: 'date', required: true },
-      { name: 'separation_date', label: 'Date of Separation', type: 'date', required: false },
-      { name: 'children_names', label: 'Children Names and Ages', type: 'textarea', required: false },
-      { name: 'grounds_divorce', label: 'Grounds for Divorce', type: 'select', options: ['Irreconcilable Differences', 'Adultery', 'Abandonment', 'Other'], required: true }
-    ],
-    estate_planning: [
-      { name: 'testator_name', label: 'Testator Full Name', type: 'text', required: true },
-      { name: 'testator_address', label: 'Testator Address', type: 'textarea', required: true },
-      { name: 'spouse_name', label: 'Spouse Name (if applicable)', type: 'text', required: false },
-      { name: 'beneficiaries', label: 'Primary Beneficiaries', type: 'textarea', required: true },
-      { name: 'executor_name', label: 'Executor Name', type: 'text', required: true },
-      { name: 'assets_description', label: 'Description of Assets', type: 'textarea', required: true }
-    ],
-    civil_litigation: [
-      { name: 'plaintiff_name', label: 'Plaintiff Name', type: 'text', required: true },
-      { name: 'defendant_name', label: 'Defendant Name', type: 'text', required: true },
-      { name: 'case_description', label: 'Case Description', type: 'textarea', required: true },
-      { name: 'damages_amount', label: 'Damages Sought', type: 'number', required: true },
-      { name: 'court_jurisdiction', label: 'Court Jurisdiction', type: 'text', required: true },
-      { name: 'incident_date', label: 'Date of Incident', type: 'date', required: true }
-    ],
-    employment_contracts: [
-      { name: 'employer_name', label: 'Employer Name', type: 'text', required: true },
-      { name: 'employee_name', label: 'Employee Name', type: 'text', required: true },
-      { name: 'position_title', label: 'Position Title', type: 'text', required: true },
-      { name: 'salary', label: 'Annual Salary', type: 'number', required: true },
-      { name: 'start_date', label: 'Start Date', type: 'date', required: true },
-      { name: 'job_duties', label: 'Job Duties', type: 'textarea', required: true }
-    ],
-    general_contracts: [
-      { name: 'party1_name', label: 'First Party Name', type: 'text', required: true },
-      { name: 'party2_name', label: 'Second Party Name', type: 'text', required: true },
-      { name: 'contract_subject', label: 'Contract Subject Matter', type: 'textarea', required: true },
-      { name: 'contract_value', label: 'Contract Value', type: 'number', required: true },
-      { name: 'effective_date', label: 'Effective Date', type: 'date', required: true },
-      { name: 'terms_conditions', label: 'Key Terms and Conditions', type: 'textarea', required: true }
-    ]
-  };
+  const simpleFields = [
+    { name: 'client_name', label: 'Your Full Legal Name', type: 'text', required: true },
+    { name: 'client_email', label: 'Email Address', type: 'email', required: true }
+  ];
 
-  return formFields[formType] || [];
+  // All form types use the same simple fields - AI extracts details from natural language
+  return simpleFields;
 };
 
 // SEO helper function to generate page metadata
@@ -906,14 +892,17 @@ function generatePageMeta(page, formType = null) {
 }
 
 // Routes
-app.get('/', (req, res) => {
-  // Redirect to login if not authenticated
-  if (!req.session || !req.session.userId) {
-    return res.redirect('/login');
+app.get('/', async (req, res) => {
+  // If authenticated, redirect to dashboard
+  if (req.session && req.session.userId) {
+    return res.redirect('/dashboard');
   }
 
-  // Redirect to dashboard if authenticated
-  res.redirect('/dashboard');
+  // Show public landing page for non-authenticated users
+  res.render('index', {
+    formTypes: FORM_TYPES,
+    req: req
+  });
 });
 
 // Dashboard route - redirect to practice management
@@ -930,12 +919,28 @@ app.get('/home', (req, res) => {
 });
 
 app.get('/services', (req, res) => {
-  res.render('index', {
-    formTypes: FORM_TYPES,
-    title: 'Legal Forms Generator - Services',
-    req: req,
-    user: req.session ? req.session.userId : null
-  });
+  let user = null;
+  if (req.session && req.session.userId) {
+    user = { id: req.session.userId, name: req.session.userName || 'User' };
+  }
+
+  if (user) {
+    // Logged in - show services with practice nav
+    res.render('services-pm', {
+      formTypes: FORM_TYPES,
+      title: 'Document Generator - Services',
+      user: user,
+      active: 'documents'
+    });
+  } else {
+    // Not logged in - show public page
+    res.render('index', {
+      formTypes: FORM_TYPES,
+      title: 'Legal Forms Generator - Services',
+      req: req,
+      user: null
+    });
+  }
 });
 
 app.get('/features', (req, res) => {
@@ -947,76 +952,197 @@ app.get('/features', (req, res) => {
   });
 });
 
-app.get('/about', (req, res) => {
-  res.render('about', { 
-    title: 'About LegalFormsAI - Professional Legal Document Generation',
-    description: 'Learn about LegalFormsAI\'s mission to democratize legal document creation through AI technology. Trusted by attorneys, businesses, and individuals nationwide.',
-    keywords: 'about legal forms AI, legal document automation, AI legal technology, professional legal services',
-    canonical: process.env.SITE_URL + '/about' || 'https://legalaiforms.com/about',
-    req: req
-  });
+// Helper to get user from session
+async function getUserFromSession(req) {
+  if (req.session && req.session.userId) {
+    const result = await db.query('SELECT * FROM users WHERE id = $1', [req.session.userId]);
+    return result.rows[0] || null;
+  }
+  return null;
+}
+
+app.get('/about', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('about', { title: 'About LegalPracticeAI', req, user });
 });
 
-app.get('/faq', (req, res) => {
-  res.render('faq', { 
-    title: 'FAQ - Legal Forms Generator | LegalFormsAI',
-    description: 'Frequently asked questions about LegalFormsAI\'s legal document generation service. Get answers about pricing, legal compliance, document formats, and more.',
-    keywords: 'legal forms FAQ, legal document questions, AI legal help, legal template questions',
-    canonical: process.env.SITE_URL + '/faq' || 'https://legalaiforms.com/faq',
-    req: req
-  });
+app.get('/faq', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('faq', { title: 'FAQ - LegalPracticeAI', req, user });
 });
 
-app.get('/contact', (req, res) => {
-  const meta = generatePageMeta('contact');
-  res.render('contact', { 
-    title: meta.title,
-    description: meta.description,
-    keywords: meta.keywords,
-    canonical: meta.canonical,
-    req: req
-  });
+app.get('/contact', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('contact', { title: 'Contact - LegalPracticeAI', req, user });
+});
+
+app.get('/pricing', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('pricing', { title: 'Pricing - LegalPracticeAI', req, user });
 });
 
 // Legal pages routes
-app.get('/privacy', (req, res) => {
-  res.render('privacy', { 
-    title: 'Privacy Policy - LegalFormsAI',
-    description: 'LegalFormsAI Privacy Policy - Learn how we collect, use, and protect your personal information when using our legal document generation service.',
-    keywords: 'privacy policy, data protection, legal forms privacy, personal information',
-    canonical: process.env.SITE_URL + '/privacy' || 'https://legalaiforms.com/privacy',
-    req: req
+app.get('/privacy', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('privacy', { title: 'Privacy Policy - LegalPracticeAI', req, user });
+});
+
+app.get('/privacy-policy', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('privacy-policy', { title: 'Privacy Policy - LegalPracticeAI', req, user });
+});
+
+app.get('/terms', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('terms', { title: 'Terms of Service - LegalPracticeAI', req, user });
+});
+
+app.get('/terms-of-service', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('terms-of-service', { title: 'Terms of Service - LegalPracticeAI', req, user });
+});
+
+app.get('/disclaimer', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('disclaimer', { title: 'Legal Disclaimer - LegalPracticeAI', req, user });
+});
+
+app.get('/cookies', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('cookies', { title: 'Cookie Policy - LegalPracticeAI', req, user });
+});
+
+app.get('/cookie-policy', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('cookies', { title: 'Cookie Policy - LegalPracticeAI', req, user });
+});
+
+app.get('/refund-policy', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('refund-policy', { title: 'Refund Policy - LegalPracticeAI', req, user });
+});
+
+// Feature pages
+app.get('/features/client-management', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/client-management', { title: 'Client Management for Law Firms - LegalPracticeAI', req, user });
+});
+
+app.get('/features/case-management', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/case-management', { title: 'Legal Case Management Software - LegalPracticeAI', req, user });
+});
+
+app.get('/features/billing', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/billing', { title: 'Legal Billing & Invoicing Software - LegalPracticeAI', req, user });
+});
+
+app.get('/features/trust-accounting', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/trust-accounting', { title: 'IOLTA Trust Accounting Software - LegalPracticeAI', req, user });
+});
+
+app.get('/features/conflict-checking', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/conflict-checking', { title: 'Conflict of Interest Checking - LegalPracticeAI', req, user });
+});
+
+app.get('/features/ai-drafting', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/ai-drafting', { title: 'AI Legal Document Drafting - LegalPracticeAI', req, user });
+});
+
+app.get('/features/calendar', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/calendar', { title: 'Legal Calendar & Deadline Management - LegalPracticeAI', req, user });
+});
+
+app.get('/features/lead-management', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/lead-management', { title: 'Legal Lead Management & Intake - LegalPracticeAI', req, user });
+});
+
+app.get('/features/client-portal', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/client-portal', { title: 'Secure Client Portal for Law Firms - LegalPracticeAI', req, user });
+});
+
+app.get('/features/ai-efficiency', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/ai-efficiency', { title: 'AI-Powered Legal Practice Automation - LegalPracticeAI', req, user });
+});
+
+app.get('/features/security', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/security', { title: 'Secure & Compliant Legal Software - LegalPracticeAI', req, user });
+});
+
+app.get('/features/grow-practice', async (req, res) => {
+  const user = await getUserFromSession(req);
+  res.render('features/grow-practice', { title: 'Grow Your Law Practice - LegalPracticeAI', req, user });
+});
+
+// Register page
+app.get('/register', (req, res) => {
+  res.render('auth/register', {
+    title: 'Create Account - LegalPracticeAI',
+    errors: [],
+    formData: {}
   });
 });
 
-app.get('/terms', (req, res) => {
-  res.render('terms', { 
-    title: 'Terms of Service - LegalFormsAI',
-    description: 'LegalFormsAI Terms of Service - Read our terms and conditions for using our AI-powered legal document generation platform.',
-    keywords: 'terms of service, terms and conditions, legal forms terms, user agreement',
-    canonical: process.env.SITE_URL + '/terms' || 'https://legalaiforms.com/terms',
-    req: req
-  });
-});
+// Register POST handler
+app.post('/register', async (req, res) => {
+  const { firstName, lastName, email, phone, address, password, confirmPassword } = req.body;
+  const errors = [];
 
-app.get('/disclaimer', (req, res) => {
-  res.render('disclaimer', { 
-    title: 'Legal Disclaimer - LegalFormsAI',
-    description: 'LegalFormsAI Legal Disclaimer - Important information about the limitations and proper use of our legal document generation service.',
-    keywords: 'legal disclaimer, limitations, legal advice disclaimer, document templates',
-    canonical: process.env.SITE_URL + '/disclaimer' || 'https://legalaiforms.com/disclaimer',
-    req: req
-  });
-});
+  // Validation
+  if (!firstName || !lastName) errors.push({ msg: 'First and last name are required' });
+  if (!email) errors.push({ msg: 'Email is required' });
+  if (!password || password.length < 8) errors.push({ msg: 'Password must be at least 8 characters' });
+  if (password !== confirmPassword) errors.push({ msg: 'Passwords do not match' });
 
-app.get('/cookies', (req, res) => {
-  res.render('cookies', { 
-    title: 'Cookie Policy - LegalFormsAI',
-    description: 'LegalFormsAI Cookie Policy - Learn about how we use cookies and similar technologies to improve your experience on our website.',
-    keywords: 'cookie policy, cookies, tracking, website analytics, user experience',
-    canonical: process.env.SITE_URL + '/cookies' || 'https://legalaiforms.com/cookies',
-    req: req
-  });
+  if (errors.length > 0) {
+    return res.render('auth/register', {
+      title: 'Create Account - LegalPracticeAI',
+      errors,
+      formData: { firstName, lastName, email, phone, address }
+    });
+  }
+
+  try {
+    // Check if user exists
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.render('auth/register', {
+        title: 'Create Account - LegalPracticeAI',
+        errors: [{ msg: 'Email already registered' }],
+        formData: { firstName, lastName, email, phone, address }
+      });
+    }
+
+    // Hash password and create user
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await db.query(
+      `INSERT INTO users (first_name, last_name, email, phone, address, password_hash, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
+      [firstName, lastName, email, phone || null, address || null, hashedPassword]
+    );
+
+    // Auto-login after registration
+    req.session.userId = result.rows[0].id;
+    res.redirect('/dashboard');
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.render('auth/register', {
+      title: 'Create Account - LegalPracticeAI',
+      errors: [{ msg: 'Registration failed. Please try again.' }],
+      formData: { firstName, lastName, email, phone, address }
+    });
+  }
 });
 
 // SEO Routes
@@ -1090,15 +1216,24 @@ app.get('/form/:formType', (req, res) => {
     "areaServed": "United States"
   };
   
-  res.render('form', { 
-    formType, 
+  // Check if user is logged in via session
+  let user = null;
+  console.log('Form route - session:', req.session ? 'exists' : 'none', 'userId:', req.session?.userId);
+  if (req.session && req.session.userId) {
+    user = { id: req.session.userId, name: req.session.userName || 'User' };
+    console.log('User logged in:', user);
+  }
+
+  res.render('form', {
+    formType,
     formConfig,
     title: meta.title,
     description: meta.description,
     keywords: meta.keywords,
     canonical: meta.canonical,
     structuredData: structuredData,
-    req: req
+    req: req,
+    user: user
   });
 });
 
@@ -1364,16 +1499,19 @@ async function generateWord(content, filename) {
 // Enhanced document generation with compliance checking and review
 app.post('/generate', validateCompliance, async (req, res) => {
   try {
-    const { 
-      form_type: formType, 
-      specific_type: specificType, 
-      form_data: userData, 
+    const {
+      form_type: formType,
+      specific_type: specificType,
+      form_data: userData,
       format = 'txt',
       generation_mode = 'ai_summary' // 'ai_summary' or 'professional_template'
     } = req.body;
 
+    console.log('Generate request:', { formType, specificType, format, generation_mode, userDataKeys: Object.keys(userData || {}) });
+
     if (!FORM_TYPES[formType]) {
-      return res.status(400).json({ error: 'Invalid form type' });
+      console.log('Invalid form type:', formType, 'Available:', Object.keys(FORM_TYPES));
+      return res.status(400).json({ error: `Invalid form type: ${formType}` });
     }
 
     // Validate format
@@ -1395,15 +1533,19 @@ app.post('/generate', validateCompliance, async (req, res) => {
     }
 
     // Validate required fields based on specific type
-    const requiredFields = specificType ? 
+    const requiredFields = specificType ?
       getFormFields(formType, specificType).filter(field => field.required) :
       getLegacyFormFields(formType).filter(field => field.required);
-    
-    const missingFields = requiredFields.filter(field => !userData[field.name] || userData[field.name].trim() === '');
-    
+
+    console.log('Required fields:', requiredFields.map(f => f.name));
+    console.log('User data:', userData);
+
+    const missingFields = requiredFields.filter(field => !userData || !userData[field.name] || String(userData[field.name]).trim() === '');
+
     if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        error: `Missing required fields: ${missingFields.map(f => f.label).join(', ')}` 
+      console.log('Missing fields:', missingFields.map(f => f.name));
+      return res.status(400).json({
+        error: `Missing required fields: ${missingFields.map(f => f.label).join(', ')}`
       });
     }
 
@@ -1521,30 +1663,20 @@ app.get('/download/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
     const filepath = path.join(uploadDir, filename);
-    
+
     // Check if file exists
     await fs.access(filepath);
-    
-    // Set appropriate content type based on file extension
-    const ext = path.extname(filename).toLowerCase();
-    let contentType = 'application/octet-stream';
-    
-    switch (ext) {
-      case '.pdf':
-        contentType = 'application/pdf';
-        break;
-      case '.docx':
-        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        break;
-      case '.txt':
-        contentType = 'text/plain';
-        break;
-    }
-    
-    res.setHeader('Content-Type', contentType);
+
+    // Force download with octet-stream to prevent browser from opening file
+    res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.download(filepath);
+    res.setHeader('Content-Transfer-Encoding', 'binary');
+
+    // Stream the file
+    const fileStream = require('fs').createReadStream(filepath);
+    fileStream.pipe(res);
   } catch (error) {
+    console.error('File not found:', error);
     res.status(404).send('File not found');
   }
 });
@@ -1672,56 +1804,56 @@ async function performDocumentReview(document, formType, userData) {
       score -= 0.3;
     }
 
-    // AI-powered risk assessment
+    // AI-powered risk assessment (optional - skip if it fails)
     try {
-      const riskPrompt = `
-Review this legal document for potential risks or issues:
+      const riskPrompt = `Analyze this legal document excerpt and return ONLY valid JSON (no other text):
+{"risks":["risk1","risk2"],"suggestions":["suggestion1","suggestion2"]}
 
-${document.substring(0, 2000)}...
-
-Identify any:
-1. Ambiguous language
-2. Missing standard clauses
-3. Potential legal risks
-4. Inconsistencies
-
-Return a JSON object with "risks" array and "suggestions" array.`;
+Document: ${document.substring(0, 1500)}`;
 
       const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
         messages: [{ role: 'user', content: riskPrompt }],
-        max_tokens: 1000,
-        temperature: 0.1
+        max_tokens: 500,
+        temperature: 0
       }, {
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SITE_URL || 'http://localhost:3000',
+          'X-Title': 'Legal Forms Generator'
         }
       });
 
-      let aiResponseContent = response.data.choices[0].message.content;
-      console.log (` aiResponseConten: ${aiResponseContent}`)
-      
-      // Remove markdown code blocks if present
-      if (aiResponseContent.includes('```json')) {
-        aiResponseContent = aiResponseContent.replace(/```json\s*/, '').replace(/\s*```$/, '');
-      } else if (aiResponseContent.includes('```')) {
-        aiResponseContent = aiResponseContent.replace(/```\s*/, '').replace(/\s*```$/, '');
+      let aiResponseContent = response.data.choices[0].message.content || '';
+
+      // Extract JSON from response
+      const jsonMatch = aiResponseContent.match(/\{[\s\S]*\}/);
+      let aiReview = { risks: [], suggestions: [] };
+
+      if (jsonMatch) {
+        try {
+          aiReview = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          // If still can't parse, use empty defaults
+          console.log('Could not parse AI review response, using defaults');
+          aiReview = { risks: [], suggestions: ['Document generated successfully. Please review before use.'] };
+        }
       }
-      
-      const aiReview = JSON.parse(aiResponseContent.trim());
-      if (aiReview.risks) {
+
+      if (aiReview.risks && Array.isArray(aiReview.risks)) {
         issues.push(...aiReview.risks.map(risk => ({
           type: 'ai_risk_assessment',
           severity: 'medium',
-          message: risk
+          message: typeof risk === 'string' ? risk : String(risk)
         })));
       }
-      if (aiReview.suggestions) {
-        suggestions.push(...aiReview.suggestions);
+      if (aiReview.suggestions && Array.isArray(aiReview.suggestions)) {
+        suggestions.push(...aiReview.suggestions.map(s => typeof s === 'string' ? s : String(s)));
       }
     } catch (error) {
-      console.error('AI review error:', error);
+      console.error('AI review error:', error.message);
+      // Don't fail - just skip AI review
     }
 
     return {

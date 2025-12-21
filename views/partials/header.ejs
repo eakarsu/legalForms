@@ -1,0 +1,29 @@
+<% if (typeof user !== 'undefined' && user) { %>
+<style>
+.pm-navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.pm-navbar .navbar-brand .brand-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pm-navbar .nav-link {
+    color: rgba(255,255,255,0.85) !important;
+}
+.pm-navbar .nav-link:hover, .pm-navbar .nav-link.active {
+    color: #fff !important;
+}
+.pm-navbar .dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+</style>
+<%- include('pm-nav', { user: user }) %>
+<% } else { %>
+<%- include('public-nav') %>
+<% } %>

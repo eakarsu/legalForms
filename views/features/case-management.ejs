@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Management Software for Law Firms | LegalPracticeAI</title>
+    <meta name="description" content="Powerful case management for law firms. Track matters, deadlines, tasks, and documents. Never miss a deadline again.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/custom.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('../partials/header') %>
+
+    <!-- Hero Section -->
+    <section class="hero-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/" class="text-white-50">Home</a></li>
+                            <li class="breadcrumb-item"><a href="/#services" class="text-white-50">Features</a></li>
+                            <li class="breadcrumb-item active text-white">Case Management</li>
+                        </ol>
+                    </nav>
+                    <h1 class="display-4 fw-bold text-white mb-4">Case Management</h1>
+                    <p class="lead text-white-50 mb-4">Manage cases, deadlines, tasks, and documents efficiently. Stay organized and never miss a critical deadline.</p>
+                    <a href="/register" class="btn btn-primary btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Get Started Free
+                    </a>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <i class="fas fa-briefcase fa-10x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h2 class="text-center mb-5">Complete Case Management Solution</h2>
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body p-4">
+                            <h4><i class="fas fa-folder text-primary me-2"></i>Matter Organization</h4>
+                            <p>Create and organize cases with custom fields, practice area categories, and status tracking. See everything about a case at a glance.</p>
+                            <ul>
+                                <li>Custom case types and categories</li>
+                                <li>Case status workflow management</li>
+                                <li>Related parties and contacts</li>
+                                <li>Case notes and activity log</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body p-4">
+                            <h4><i class="fas fa-clock text-primary me-2"></i>Deadline Tracking</h4>
+                            <p>Never miss a statute of limitations or court deadline. Automatic reminders and calendar integration keep you on track.</p>
+                            <ul>
+                                <li>Court deadline calculations</li>
+                                <li>Statute of limitations tracking</li>
+                                <li>Automatic email reminders</li>
+                                <li>Calendar sync (Google, Outlook)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body p-4">
+                            <h4><i class="fas fa-tasks text-primary me-2"></i>Task Management</h4>
+                            <p>Assign tasks to team members, set priorities, and track completion. Keep everyone accountable and cases moving forward.</p>
+                            <ul>
+                                <li>Task assignment and delegation</li>
+                                <li>Priority levels and due dates</li>
+                                <li>Task templates for common workflows</li>
+                                <li>Progress tracking and reporting</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body p-4">
+                            <h4><i class="fas fa-file-alt text-primary me-2"></i>Document Management</h4>
+                            <p>Store all case documents in organized folders. Full-text search, version control, and secure sharing make documents easy to manage.</p>
+                            <ul>
+                                <li>Organized document folders per case</li>
+                                <li>Full-text document search</li>
+                                <li>Version history and tracking</li>
+                                <li>Secure client document sharing</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container text-center">
+            <h2 class="mb-4">Ready to Streamline Your Cases?</h2>
+            <p class="lead mb-4">Start managing cases more efficiently today</p>
+            <a href="/register" class="btn btn-light btn-lg me-2">Start Free Trial</a>
+            <a href="/pricing" class="btn btn-outline-light btn-lg">View Pricing</a>
+        </div>
+    </section>
+
+    <%- include('../partials/footer') %>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
