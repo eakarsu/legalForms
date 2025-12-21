@@ -4,8 +4,6 @@
 # Legal Forms Generator - Startup Script
 # ========================================
 
-set -e
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,12 +21,21 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Detect if running in Docker
+DOCKER_MODE=false
+if [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+    DOCKER_MODE=true
+    echo -e "${BLUE}Running in Docker mode${NC}"
+fi
+
 # Load environment variables
 if [ -f .env ]; then
     set -a
     source .env
     set +a
     echo -e "${GREEN}✓${NC} Loaded environment variables from .env"
+elif [ "$DOCKER_MODE" = true ]; then
+    echo -e "${YELLOW}!${NC} No .env file, using environment variables"
 else
     echo -e "${RED}✗${NC} .env file not found!"
     exit 1
@@ -43,15 +50,24 @@ PORT=${PORT:-3000}
 echo ""
 echo -e "${YELLOW}Step 1: Cleaning port $PORT...${NC}"
 
-# Find and kill any process using the port
-PID=$(lsof -ti:$PORT 2>/dev/null || true)
-if [ -n "$PID" ]; then
-    echo -e "  Found process(es) using port $PORT: $PID"
-    kill -9 $PID 2>/dev/null || true
-    sleep 1
-    echo -e "  ${GREEN}✓${NC} Killed process(es) on port $PORT"
+# Skip port cleaning in Docker mode
+if [ "$DOCKER_MODE" = true ]; then
+    echo -e "  ${GREEN}✓${NC} Skipping port check (Docker mode)"
 else
-    echo -e "  ${GREEN}✓${NC} Port $PORT is available"
+    # Find and kill any process using the port
+    if command -v lsof &> /dev/null; then
+        PID=$(lsof -ti:$PORT 2>/dev/null || true)
+        if [ -n "$PID" ]; then
+            echo -e "  Found process(es) using port $PORT: $PID"
+            kill -9 $PID 2>/dev/null || true
+            sleep 1
+            echo -e "  ${GREEN}✓${NC} Killed process(es) on port $PORT"
+        else
+            echo -e "  ${GREEN}✓${NC} Port $PORT is available"
+        fi
+    else
+        echo -e "  ${YELLOW}!${NC} lsof not available, skipping port check"
+    fi
 fi
 
 # ========================================
@@ -74,29 +90,36 @@ fi
 
 echo -e "  Database: $DB_NAME @ $DB_HOST:$DB_PORT"
 
-# Check if PostgreSQL is running
-if command -v pg_isready &> /dev/null; then
-    if pg_isready -h $DB_HOST -p $DB_PORT -q; then
-        echo -e "  ${GREEN}✓${NC} PostgreSQL is running"
-    else
-        echo -e "  ${RED}✗${NC} PostgreSQL is not running!"
-        echo -e "  ${YELLOW}Please start PostgreSQL manually and try again.${NC}"
-        echo ""
-        echo "  On macOS with Homebrew:"
-        echo "    brew services start postgresql"
-        echo ""
-        echo "  On macOS with Postgres.app:"
-        echo "    Open Postgres.app"
-        echo ""
-        exit 1
-    fi
+# In Docker mode, PostgreSQL is already started by CMD
+if [ "$DOCKER_MODE" = true ]; then
+    echo -e "  ${GREEN}✓${NC} PostgreSQL started by Docker"
+    # Wait a moment for PostgreSQL to be ready
+    sleep 2
 else
-    # Try connecting with psql as fallback
-    if psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -c "SELECT 1" &> /dev/null; then
-        echo -e "  ${GREEN}✓${NC} PostgreSQL connection successful"
+    # Check if PostgreSQL is running
+    if command -v pg_isready &> /dev/null; then
+        if pg_isready -h $DB_HOST -p $DB_PORT -q; then
+            echo -e "  ${GREEN}✓${NC} PostgreSQL is running"
+        else
+            echo -e "  ${RED}✗${NC} PostgreSQL is not running!"
+            echo -e "  ${YELLOW}Please start PostgreSQL manually and try again.${NC}"
+            echo ""
+            echo "  On macOS with Homebrew:"
+            echo "    brew services start postgresql"
+            echo ""
+            echo "  On macOS with Postgres.app:"
+            echo "    Open Postgres.app"
+            echo ""
+            exit 1
+        fi
     else
-        echo -e "  ${YELLOW}!${NC} Could not verify PostgreSQL status (pg_isready not found)"
-        echo -e "  ${YELLOW}  Assuming PostgreSQL is running...${NC}"
+        # Try connecting with psql as fallback
+        if psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -c "SELECT 1" &> /dev/null; then
+            echo -e "  ${GREEN}✓${NC} PostgreSQL connection successful"
+        else
+            echo -e "  ${YELLOW}!${NC} Could not verify PostgreSQL status (pg_isready not found)"
+            echo -e "  ${YELLOW}  Assuming PostgreSQL is running...${NC}"
+        fi
     fi
 fi
 
@@ -127,7 +150,10 @@ fi
 echo ""
 echo -e "${YELLOW}Step 3: Checking dependencies...${NC}"
 
-if [ ! -d "node_modules" ]; then
+# Skip dependency check in Docker mode (already installed during image build)
+if [ "$DOCKER_MODE" = true ]; then
+    echo -e "  ${GREEN}✓${NC} Dependencies installed (Docker mode)"
+elif [ ! -d "node_modules" ]; then
     echo -e "  Installing dependencies..."
     npm install
     echo -e "  ${GREEN}✓${NC} Dependencies installed"
@@ -136,23 +162,82 @@ else
 fi
 
 # ========================================
-# Step 4: Run build validation
+# Step 4: Database Population Check
 # ========================================
 echo ""
-echo -e "${YELLOW}Step 4: Running build validation...${NC}"
+echo -e "${YELLOW}Step 4: Checking database population...${NC}"
 
-if npm run build --silent; then
-    echo -e "  ${GREEN}✓${NC} Build validation passed"
+# Set psql command based on Docker mode
+if [ "$DOCKER_MODE" = true ]; then
+    PSQL_CMD="su postgres -c \"psql -d $DB_NAME\""
+    PSQL_EXEC="su postgres -c"
 else
-    echo -e "  ${RED}✗${NC} Build validation failed!"
-    exit 1
+    PSQL_CMD="psql -d $DB_NAME"
+    PSQL_EXEC=""
+fi
+
+# Check if database has data by checking users table
+if [ "$DOCKER_MODE" = true ]; then
+    DATA_EXISTS=$(su postgres -c "psql -d $DB_NAME -t -c \"SELECT COUNT(*) FROM users;\"" 2>/dev/null | tr -d ' ' || echo "0")
+else
+    DATA_EXISTS=$(psql -d $DB_NAME -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ' || echo "0")
+fi
+
+if [ "$DATA_EXISTS" = "0" ] || [ -z "$DATA_EXISTS" ]; then
+    echo -e "  ${YELLOW}!${NC} Database is empty, populating..."
+
+    # Run migrations
+    echo -e "  Running migrations..."
+    for migration in database/migrations/*.sql; do
+        if [ -f "$migration" ]; then
+            echo -e "    Running $(basename $migration)..."
+            if [ "$DOCKER_MODE" = true ]; then
+                su postgres -c "psql -d $DB_NAME -f $migration" > /dev/null 2>&1 || true
+            else
+                psql -d $DB_NAME -f "$migration" > /dev/null 2>&1 || true
+            fi
+        fi
+    done
+    echo -e "  ${GREEN}✓${NC} Migrations completed"
+
+    # Run seed files
+    echo -e "  Running seed scripts..."
+    if [ -f "database/seed.js" ]; then
+        echo -e "    Running seed.js..."
+        node database/seed.js 2>&1 || echo -e "    ${YELLOW}!${NC} seed.js had warnings"
+    fi
+    if [ -f "database/seed_advanced_features.js" ]; then
+        echo -e "    Running seed_advanced_features.js..."
+        node database/seed_advanced_features.js 2>&1 || echo -e "    ${YELLOW}!${NC} seed_advanced_features.js had warnings"
+    fi
+    echo -e "  ${GREEN}✓${NC} Database populated successfully"
+else
+    echo -e "  ${GREEN}✓${NC} Database already has data ($DATA_EXISTS users found), skipping population"
 fi
 
 # ========================================
-# Step 5: Start the application
+# Step 5: Run build validation
 # ========================================
 echo ""
-echo -e "${YELLOW}Step 5: Starting application...${NC}"
+echo -e "${YELLOW}Step 5: Running build validation...${NC}"
+
+# Skip build in Docker mode (already built during image creation)
+if [ "$DOCKER_MODE" = true ]; then
+    echo -e "  ${GREEN}✓${NC} Skipping build (Docker mode)"
+else
+    if npm run build --silent; then
+        echo -e "  ${GREEN}✓${NC} Build validation passed"
+    else
+        echo -e "  ${RED}✗${NC} Build validation failed!"
+        exit 1
+    fi
+fi
+
+# ========================================
+# Step 6: Start the application
+# ========================================
+echo ""
+echo -e "${YELLOW}Step 6: Starting application...${NC}"
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Server starting on port $PORT${NC}"

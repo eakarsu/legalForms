@@ -1,12 +1,17 @@
-FROM node:24
+FROM node:20-slim
 
-# Set environment variables for non-interactive package installation
+# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Install system dependencies for Puppeteer
+# Install system dependencies (PostgreSQL, Chromium for Puppeteer, and utilities)
 RUN apt-get update && apt-get install -y \
+    openssl \
+    bash \
+    postgresql \
+    postgresql-contrib \
     chromium \
     libglib2.0-0 \
     libgbm1 \
@@ -27,53 +32,38 @@ RUN apt-get update && apt-get install -y \
     libxtst6 \
     ca-certificates \
     fonts-liberation \
+    procps \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
+
+# Setup PostgreSQL data directory
+RUN mkdir -p /var/lib/postgresql/data /run/postgresql && \
+    chown -R postgres:postgres /var/lib/postgresql /run/postgresql && \
+    su postgres -c "/usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data"
+
+# Copy package files first for better caching
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci --only=production || npm install --only=production
 
 # Copy application code
 COPY . .
 
-# Use the official PostgreSQL repository setup method
-RUN apt-get update && apt-get install -y postgresql-common && \
-    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get update && \
-    apt-get install -y postgresql postgresql-contrib && \
-    rm -rf /var/lib/apt/lists/*
-
-USER postgres
-
-RUN echo "🔄 Starting PostgreSQL initialization..." && \
-    /etc/init.d/postgresql start && \
-    echo "✅ PostgreSQL started" && \
-    psql --command "ALTER USER postgres WITH PASSWORD 'sel33man';" && \
-    echo "✅ PostgreSQL password set" && \
-    echo "📋 Current databases before setup:" && \
-    psql --command "\l" && \
-    /etc/init.d/postgresql stop && \
-    echo "✅ PostgreSQL initialization completed"
-
-# Run database setup with debug output
-RUN echo "🚀 Running database setup script..." && \
-    /etc/init.d/postgresql start && \
-    node scripts/setup-database.js && \
-    echo "📋 Final database list:" && \
-    psql --command "\l" && \
-    echo "🔍 Checking legalforms database specifically:" && \
-    psql --command "SELECT 1 FROM pg_database WHERE datname = 'legalforms';" && \
-    /etc/init.d/postgresql stop && \
-    echo "✅ Database setup verification completed"
-
-USER root
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
 # Set environment variable for Puppeteer
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Make start.sh executable
+RUN chmod +x /app/start.sh
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "service postgresql start && npm start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV DB_HOST=localhost
+ENV DB_PORT=5432
+ENV DB_NAME=legalforms
 
+# Start PostgreSQL, create database, and run start.sh
+CMD ["bash", "-c", "su postgres -c '/usr/lib/postgresql/15/bin/pg_ctl start -D /var/lib/postgresql/data -l /var/lib/postgresql/logfile' && sleep 2 && su postgres -c '/usr/lib/postgresql/15/bin/createdb legalforms' 2>/dev/null; /app/start.sh"]
