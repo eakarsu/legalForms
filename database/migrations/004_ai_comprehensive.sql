@@ -159,12 +159,22 @@ CREATE TABLE IF NOT EXISTS legal_citations (
     relevance_explanation TEXT,
     key_holding TEXT,
     applicable_facts TEXT,
+    how_to_use TEXT,
 
     is_selected BOOLEAN DEFAULT false,
     used_in_draft BOOLEAN DEFAULT false,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Add how_to_use column if table exists but column doesn't
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'legal_citations' AND column_name = 'how_to_use') THEN
+        ALTER TABLE legal_citations ADD COLUMN how_to_use TEXT;
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS citation_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

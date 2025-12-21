@@ -250,17 +250,45 @@ Be thorough but focus on the most significant clauses and terms.`;
         let analysisData;
         try {
             // Extract JSON from response (handle markdown code blocks)
-            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+            let jsonStr = content;
+
+            // Try to extract JSON from markdown code blocks
+            const jsonCodeBlock = content.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonCodeBlock) {
+                jsonStr = jsonCodeBlock[1];
+            } else {
+                // Try to find JSON object in the content
+                const jsonStart = content.indexOf('{');
+                const jsonEnd = content.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                    jsonStr = content.substring(jsonStart, jsonEnd + 1);
+                }
+            }
+
             analysisData = JSON.parse(jsonStr);
         } catch (parseError) {
             console.error('Failed to parse AI response:', parseError);
+
+            // Format the raw response nicely as a summary
+            let formattedSummary = content
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .replace(/\{/g, '')
+                .replace(/\}/g, '')
+                .replace(/\[/g, '')
+                .replace(/\]/g, '')
+                .replace(/"([^"]+)":/g, '$1:')
+                .replace(/",/g, '\n')
+                .replace(/"/g, '')
+                .trim();
+
+            // Try to extract some structure from the response
             analysisData = {
                 clauses: [],
                 key_terms: [],
                 overall_risk_score: 50,
                 risk_level: 'medium',
-                analysis_summary: content
+                analysis_summary: formattedSummary || 'Analysis completed. Please review the original contract text for details.'
             };
         }
 

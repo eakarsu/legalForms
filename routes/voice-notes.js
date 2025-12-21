@@ -13,6 +13,8 @@ const path = require('path');
 const fs = require('fs');
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const FormData = require('form-data');
 
 // File upload for audio
 const storage = multer.diskStorage({
@@ -84,7 +86,78 @@ router.get('/voice-notes', requireAuth, async (req, res) => {
 // API ROUTES
 // =====================================================
 
-// Save transcription (from browser Web Speech API)
+// Transcribe uploaded audio using Whisper API
+router.post('/api/voice-notes/transcribe-audio', requireAuth, upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No audio file uploaded' });
+        }
+
+        const audioPath = req.file.path;
+        const { case_id, client_id } = req.body;
+
+        // Check for API key (Groq is free, or use OpenAI)
+        const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            // Cleanup file
+            fs.unlinkSync(audioPath);
+            return res.status(400).json({ error: 'No transcription API key configured (GROQ_API_KEY or OPENAI_API_KEY)' });
+        }
+
+        // Prepare form data for Whisper API
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(audioPath));
+        formData.append('model', 'whisper-large-v3');
+
+        // Use Groq (free) or OpenAI
+        const apiUrl = process.env.GROQ_API_KEY
+            ? GROQ_API_URL
+            : 'https://api.openai.com/v1/audio/transcriptions';
+
+        const response = await axios.post(apiUrl, formData, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                ...formData.getHeaders()
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        });
+
+        const transcriptionText = response.data.text;
+
+        // Get audio duration (approximate from file size)
+        const stats = fs.statSync(audioPath);
+        const audioDuration = Math.round(stats.size / 16000); // rough estimate
+
+        // Save to database
+        const result = await db.query(`
+            INSERT INTO voice_transcriptions
+            (user_id, case_id, client_id, raw_transcription, audio_duration_seconds,
+             audio_file_path, transcription_source, status)
+            VALUES ($1, $2, $3, $4, $5, $6, 'whisper', 'completed')
+            RETURNING *
+        `, [
+            req.user.id,
+            case_id || null,
+            client_id || null,
+            transcriptionText,
+            audioDuration,
+            audioPath
+        ]);
+
+        res.json({
+            success: true,
+            transcriptionId: result.rows[0].id,
+            transcription: transcriptionText
+        });
+
+    } catch (error) {
+        console.error('Transcribe audio error:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to transcribe audio: ' + (error.response?.data?.error?.message || error.message) });
+    }
+});
+
+// Save transcription (text only)
 router.post('/api/voice-notes/transcribe', requireAuth, async (req, res) => {
     try {
         const { case_id, client_id, raw_transcription, audio_duration_seconds } = req.body;
@@ -97,7 +170,7 @@ router.post('/api/voice-notes/transcribe', requireAuth, async (req, res) => {
         const result = await db.query(`
             INSERT INTO voice_transcriptions
             (user_id, case_id, client_id, raw_transcription, audio_duration_seconds, transcription_source, status)
-            VALUES ($1, $2, $3, $4, $5, 'browser', 'completed')
+            VALUES ($1, $2, $3, $4, $5, 'manual', 'completed')
             RETURNING *
         `, [
             req.user.id,

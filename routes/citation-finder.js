@@ -186,6 +186,17 @@ Please provide the most relevant and authoritative citations for this legal issu
 
         // Save citations
         for (const citation of (analysisResult.citations || [])) {
+            // Convert relevance_score to integer 0-100
+            let relevanceScore = citation.relevance_score || 50;
+            if (relevanceScore <= 1) {
+                // If it's a decimal (0.0-1.0), convert to 0-100
+                relevanceScore = Math.round(relevanceScore * 100);
+            } else {
+                relevanceScore = Math.round(relevanceScore);
+            }
+            // Ensure it's within bounds
+            relevanceScore = Math.max(0, Math.min(100, relevanceScore));
+
             await db.query(`
                 INSERT INTO legal_citations
                 (search_id, citation_type, citation_text, case_name, court, year,
@@ -198,7 +209,7 @@ Please provide the most relevant and authoritative citations for this legal issu
                 citation.case_name || null,
                 citation.court || null,
                 citation.year || null,
-                citation.relevance_score || 0.5,
+                relevanceScore,
                 citation.key_holding || null,
                 citation.how_to_use || null
             ]);

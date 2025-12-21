@@ -9,10 +9,10 @@ const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const TEST_USER = {
-    email: 'playwright_test@example.com',
-    password: 'TestPassword123!',
-    firstName: 'Playwright',
-    lastName: 'Tester'
+    email: 'demo@legalforms.ai',
+    password: 'Demo123!',
+    firstName: 'Demo',
+    lastName: 'User'
 };
 
 // Seed test data for the test user

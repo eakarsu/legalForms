@@ -103,88 +103,118 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let recognition;
+let mediaRecorder;
+let audioChunks = [];
 let isRecording = false;
 let transcription = '';
 let startTime;
 let timerInterval;
+let audioBlob;
 
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
+const recordBtn = document.getElementById('recordBtn');
+const recordStatus = document.getElementById('recordStatus');
+const recordTimer = document.getElementById('recordTimer');
+const transcriptionResult = document.getElementById('transcriptionResult');
+const transcriptionText = document.getElementById('transcriptionText');
+const cleanupBtn = document.getElementById('cleanupBtn');
+const saveBtn = document.getElementById('saveBtn');
 
-    recognition.onresult = (event) => {
-        let final = '';
-        for (let i = 0; i < event.results.length; i++) {
-            final += event.results[i][0].transcript + ' ';
-        }
-        transcription = final;
-        document.getElementById('transcriptionText').textContent = final;
-    };
-
-    recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        stopRecording();
-    };
-
-    recognition.onend = () => {
-        if (isRecording) {
-            recognition.start(); // Continue if still recording
-        }
-    };
-} else {
-    document.getElementById('recordBtn').disabled = true;
-    document.getElementById('recordStatus').textContent = 'Speech recognition not supported in this browser';
-}
-
-document.getElementById('recordBtn').addEventListener('click', function() {
+recordBtn.addEventListener('click', async function() {
     if (!isRecording) {
-        startRecording();
+        await startRecording();
     } else {
         stopRecording();
     }
 });
 
-function startRecording() {
-    isRecording = true;
-    transcription = '';
-    startTime = Date.now();
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        audioChunks = [];
 
-    document.getElementById('recordBtn').classList.remove('btn-outline-danger');
-    document.getElementById('recordBtn').classList.add('btn-danger');
-    document.getElementById('recordBtn').innerHTML = '<i class="fas fa-stop fa-2x"></i>';
-    document.getElementById('recordStatus').textContent = 'Recording...';
-    document.getElementById('recordTimer').classList.remove('d-none');
-    document.getElementById('transcriptionResult').classList.remove('d-none');
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
 
-    recognition.start();
+        mediaRecorder.onstop = async () => {
+            audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            await transcribeAudio(audioBlob);
+        };
 
-    timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
-        const secs = (elapsed % 60).toString().padStart(2, '0');
-        document.getElementById('recordTimer').textContent = `${mins}:${secs}`;
-    }, 1000);
-}
+        mediaRecorder.start(1000); // Collect data every second
+        isRecording = true;
+        startTime = Date.now();
 
-function stopRecording() {
-    isRecording = false;
-    recognition.stop();
-    clearInterval(timerInterval);
+        recordBtn.classList.remove('btn-outline-danger');
+        recordBtn.classList.add('btn-danger');
+        recordBtn.innerHTML = '<i class="fas fa-stop fa-2x"></i>';
+        recordStatus.textContent = 'Recording... (click to stop)';
+        recordTimer.classList.remove('d-none');
 
-    document.getElementById('recordBtn').classList.remove('btn-danger');
-    document.getElementById('recordBtn').classList.add('btn-outline-danger');
-    document.getElementById('recordBtn').innerHTML = '<i class="fas fa-microphone fa-2x"></i>';
-    document.getElementById('recordStatus').textContent = 'Click to start recording';
+        timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const secs = (elapsed % 60).toString().padStart(2, '0');
+            recordTimer.textContent = `${mins}:${secs}`;
+        }, 1000);
 
-    if (transcription.trim()) {
-        document.getElementById('saveBtn').disabled = false;
+    } catch (error) {
+        console.error('Microphone error:', error);
+        alert('Could not access microphone. Please allow microphone permission.');
     }
 }
 
-document.getElementById('cleanupBtn').addEventListener('click', async function() {
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    isRecording = false;
+    clearInterval(timerInterval);
+
+    recordBtn.classList.remove('btn-danger');
+    recordBtn.classList.add('btn-outline-danger');
+    recordBtn.innerHTML = '<i class="fas fa-microphone fa-2x"></i>';
+    recordStatus.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Transcribing...';
+}
+
+async function transcribeAudio(blob) {
+    try {
+        const formData = new FormData();
+        formData.append('audio', blob, 'recording.webm');
+
+        const res = await fetch('/api/voice-notes/transcribe-audio', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            transcription = data.transcription;
+            transcriptionText.textContent = transcription;
+            transcriptionResult.classList.remove('d-none');
+            saveBtn.disabled = true; // Already saved
+            recordStatus.textContent = 'Transcription complete! Click to record again.';
+
+            // Show success message
+            transcriptionText.innerHTML = `<div class="alert alert-success mb-2">Saved automatically!</div>${transcription}`;
+        } else {
+            recordStatus.textContent = 'Error: ' + data.error;
+            transcriptionResult.classList.remove('d-none');
+            transcriptionText.textContent = 'Transcription failed: ' + data.error;
+        }
+    } catch (error) {
+        console.error('Transcription error:', error);
+        recordStatus.textContent = 'Error transcribing audio';
+        transcriptionResult.classList.remove('d-none');
+        transcriptionText.textContent = 'Error: ' + error.message;
+    }
+}
+
+cleanupBtn.addEventListener('click', async function() {
     if (!transcription.trim()) return;
 
     this.disabled = true;
@@ -198,8 +228,10 @@ document.getElementById('cleanupBtn').addEventListener('click', async function()
         });
         const data = await res.json();
         if (data.success) {
-            document.getElementById('transcriptionText').textContent = data.cleanedText;
+            transcriptionText.textContent = data.cleanedText;
             transcription = data.cleanedText;
+        } else {
+            alert('Error: ' + data.error);
         }
     } catch (e) {
         alert('Error: ' + e.message);
@@ -209,7 +241,9 @@ document.getElementById('cleanupBtn').addEventListener('click', async function()
     }
 });
 
-document.getElementById('saveBtn').addEventListener('click', async function() {
+saveBtn.addEventListener('click', async function() {
+    if (!transcription.trim()) return;
+
     try {
         const res = await fetch('/api/voice-notes/transcribe', {
             method: 'POST',
@@ -223,6 +257,8 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
         if (data.success) {
             alert('Transcription saved!');
             location.reload();
+        } else {
+            alert('Error: ' + data.error);
         }
     } catch (e) {
         alert('Error: ' + e.message);

@@ -50,24 +50,31 @@ PORT=${PORT:-3000}
 echo ""
 echo -e "${YELLOW}Step 1: Cleaning port $PORT...${NC}"
 
-# Skip port cleaning in Docker mode
-if [ "$DOCKER_MODE" = true ]; then
-    echo -e "  ${GREEN}✓${NC} Skipping port check (Docker mode)"
-else
-    # Find and kill any process using the port
-    if command -v lsof &> /dev/null; then
-        PID=$(lsof -ti:$PORT 2>/dev/null || true)
-        if [ -n "$PID" ]; then
-            echo -e "  Found process(es) using port $PORT: $PID"
-            kill -9 $PID 2>/dev/null || true
-            sleep 1
-            echo -e "  ${GREEN}✓${NC} Killed process(es) on port $PORT"
-        else
-            echo -e "  ${GREEN}✓${NC} Port $PORT is available"
-        fi
+# Always try to clean port (works in both Docker and local mode)
+if command -v lsof &> /dev/null; then
+    PID=$(lsof -ti:$PORT 2>/dev/null || true)
+    if [ -n "$PID" ]; then
+        echo -e "  Found process(es) using port $PORT: $PID"
+        kill -9 $PID 2>/dev/null || true
+        sleep 1
+        echo -e "  ${GREEN}✓${NC} Killed process(es) on port $PORT"
     else
-        echo -e "  ${YELLOW}!${NC} lsof not available, skipping port check"
+        echo -e "  ${GREEN}✓${NC} Port $PORT is available"
     fi
+elif command -v fuser &> /dev/null; then
+    fuser -k $PORT/tcp 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} Port $PORT cleaned with fuser"
+elif command -v ss &> /dev/null; then
+    # Try to find and kill using ss
+    PID=$(ss -tlnp | grep ":$PORT " | grep -oP 'pid=\K[0-9]+' | head -1)
+    if [ -n "$PID" ]; then
+        kill -9 $PID 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Killed process on port $PORT"
+    else
+        echo -e "  ${GREEN}✓${NC} Port $PORT is available"
+    fi
+else
+    echo -e "  ${YELLOW}!${NC} No port checking tools available, continuing..."
 fi
 
 # ========================================
@@ -178,7 +185,7 @@ fi
 
 # Check if database has data by checking users table
 if [ "$DOCKER_MODE" = true ]; then
-    DATA_EXISTS=$(su postgres -c "psql -d $DB_NAME -t -c \"SELECT COUNT(*) FROM users;\"" 2>/dev/null | tr -d ' ' || echo "0")
+    DATA_EXISTS=$(psql -U postgres -d $DB_NAME -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ' || echo "0")
 else
     DATA_EXISTS=$(psql -d $DB_NAME -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ' || echo "0")
 fi
@@ -186,15 +193,27 @@ fi
 if [ "$DATA_EXISTS" = "0" ] || [ -z "$DATA_EXISTS" ]; then
     echo -e "  ${YELLOW}!${NC} Database is empty, populating..."
 
+    # Run base schema first
+    echo -e "  Running base schema..."
+    if [ -f "database/schema.sql" ]; then
+        echo -e "    Running schema.sql..."
+        if [ "$DOCKER_MODE" = true ]; then
+            psql -U postgres -d $DB_NAME -f "database/schema.sql" > /dev/null 2>&1 || true
+        else
+            psql -d $DB_NAME -f "database/schema.sql" > /dev/null 2>&1 || true
+        fi
+    fi
+    echo -e "  ${GREEN}✓${NC} Base schema completed"
+
     # Run migrations
     echo -e "  Running migrations..."
     for migration in database/migrations/*.sql; do
         if [ -f "$migration" ]; then
             echo -e "    Running $(basename $migration)..."
             if [ "$DOCKER_MODE" = true ]; then
-                su postgres -c "psql -d $DB_NAME -f $migration" > /dev/null 2>&1 || true
+                psql -U postgres -d $DB_NAME -f "$migration" 2>&1 | grep -E "ERROR|FATAL" || true
             else
-                psql -d $DB_NAME -f "$migration" > /dev/null 2>&1 || true
+                psql -d $DB_NAME -f "$migration" 2>&1 | grep -E "ERROR|FATAL" || true
             fi
         fi
     done
@@ -212,7 +231,38 @@ if [ "$DATA_EXISTS" = "0" ] || [ -z "$DATA_EXISTS" ]; then
     fi
     echo -e "  ${GREEN}✓${NC} Database populated successfully"
 else
-    echo -e "  ${GREEN}✓${NC} Database already has data ($DATA_EXISTS users found), skipping population"
+    echo -e "  ${GREEN}✓${NC} Database already has data ($DATA_EXISTS users found)"
+
+    # Always run migrations to ensure AI tables exist
+    echo -e "  Running migrations (to ensure all tables exist)..."
+    for migration in database/migrations/*.sql; do
+        if [ -f "$migration" ]; then
+            echo -e "    Running $(basename $migration)..."
+            if [ "$DOCKER_MODE" = true ]; then
+                psql -U postgres -d $DB_NAME -f "$migration" 2>&1 | grep -v "already exists" | grep -E "ERROR|FATAL" || true
+            else
+                psql -d $DB_NAME -f "$migration" 2>&1 | grep -v "already exists" | grep -E "ERROR|FATAL" || true
+            fi
+        fi
+    done
+    echo -e "  ${GREEN}✓${NC} Migrations completed"
+fi
+
+# ========================================
+# Step 4b: Ensure all AI columns exist
+# ========================================
+echo ""
+echo -e "${YELLOW}Step 4b: Ensuring AI schema is up to date...${NC}"
+
+if [ -f "database/migrations/005_ai_schema_updates.sql" ]; then
+    if [ "$DOCKER_MODE" = true ]; then
+        psql -U postgres -d $DB_NAME -f "database/migrations/005_ai_schema_updates.sql" 2>/dev/null || true
+    else
+        psql -d $DB_NAME -f "database/migrations/005_ai_schema_updates.sql" 2>/dev/null || true
+    fi
+    echo -e "  ${GREEN}✓${NC} AI schema updated"
+else
+    echo -e "  ${YELLOW}!${NC} 005_ai_schema_updates.sql not found, skipping"
 fi
 
 # ========================================

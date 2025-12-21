@@ -765,6 +765,38 @@ async function seedDatabase() {
         // =====================================================
         console.log('\nSeeding leads...');
 
+        // Create leads table if it doesn't exist (fallback if migration failed)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS leads (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+                form_id UUID,
+                first_name VARCHAR(100),
+                last_name VARCHAR(100),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                company VARCHAR(200),
+                practice_area VARCHAR(100),
+                case_description TEXT,
+                form_data JSONB,
+                source VARCHAR(100),
+                utm_source VARCHAR(100),
+                utm_medium VARCHAR(100),
+                utm_campaign VARCHAR(100),
+                ip_address VARCHAR(45),
+                status VARCHAR(30) DEFAULT 'new',
+                assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+                converted_to_client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+                notes TEXT,
+                priority VARCHAR(20) DEFAULT 'medium',
+                follow_up_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        // Add form_id column if it doesn't exist (table might have been created without it)
+        await client.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS form_id UUID`).catch(() => {});
+
         const leadSources = ['website', 'referral', 'google', 'social_media', 'directory'];
         const leadStatuses = ['new', 'contacted', 'qualified', 'proposal', 'converted', 'lost'];
         const practiceAreas = ['personal_injury', 'family', 'criminal', 'corporate', 'estate', 'real_estate', 'employment'];
@@ -851,6 +883,24 @@ async function seedDatabase() {
         }
 
         console.log(`  Created ${leadIds.length} leads`);
+
+        // Create lead_activities table if it doesn't exist
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS lead_activities (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+                user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                activity_type VARCHAR(50),
+                description TEXT,
+                outcome VARCHAR(50),
+                next_action TEXT,
+                next_action_date TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        // Add missing columns if table already exists
+        await client.query(`ALTER TABLE lead_activities ADD COLUMN IF NOT EXISTS next_action TEXT`).catch(() => {});
+        await client.query(`ALTER TABLE lead_activities ADD COLUMN IF NOT EXISTS next_action_date TIMESTAMP`).catch(() => {});
 
         // Seed lead activities
         const leadActivityTypes = ['call', 'email', 'meeting', 'note', 'status_change'];

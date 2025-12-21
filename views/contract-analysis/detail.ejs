@@ -153,9 +153,32 @@
                 </div>
                 <div class="card-body">
                     <% if (analysis.analysis_summary) { %>
-                    <p style="white-space: pre-wrap;"><%= analysis.analysis_summary %></p>
+                        <%
+                            let summaryText = analysis.analysis_summary;
+                            // Check if it looks like JSON and try to format it
+                            if (summaryText.trim().startsWith('{') || summaryText.trim().startsWith('[')) {
+                                try {
+                                    const parsed = JSON.parse(summaryText);
+                                    if (parsed.analysis_summary) {
+                                        summaryText = parsed.analysis_summary;
+                                    } else if (typeof parsed === 'object') {
+                                        summaryText = Object.entries(parsed)
+                                            .filter(([key, value]) => key !== 'clauses' && key !== 'key_terms')
+                                            .map(([key, value]) => `${key.replace(/_/g, ' ').toUpperCase()}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
+                                            .join('\n\n');
+                                    }
+                                } catch (e) {
+                                    // Not valid JSON, use as-is
+                                }
+                            }
+                        %>
+                        <div class="summary-content" style="line-height: 1.8;">
+                            <% summaryText.split('\n\n').forEach(paragraph => { %>
+                                <p><%= paragraph.trim() %></p>
+                            <% }) %>
+                        </div>
                     <% } else { %>
-                    <p class="text-muted">No summary available</p>
+                        <p class="text-muted">No summary available</p>
                     <% } %>
                 </div>
             </div>
