@@ -63,11 +63,21 @@ router.get('/document-summary/new', requireAuth, async (req, res) => {
             [req.user.id]
         );
 
+        // Support pre-population from query params (e.g., from OCR page)
+        const prefill = {
+            source_name: req.query.name || '',
+            source_type: req.query.type || '',
+            original_text: req.query.text || '',
+            case_id: req.query.case_id || '',
+            client_id: req.query.client_id || ''
+        };
+
         res.render('document-summary/new', {
             title: 'New Document Summary',
             clients: clientsResult.rows,
             cases: casesResult.rows,
-            req
+            prefill,
+            active: 'documents'
         });
     } catch (error) {
         console.error('New summary error:', error);

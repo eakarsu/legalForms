@@ -1,22 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/db');
+const db = require('../config/database');
 const axios = require('axios');
 const { requireAuth } = require('../middleware/auth');
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // AI Communications Dashboard
-router.get('/ai-drafts', requireAuth, async (req, res) => {
+router.get('/communications/ai-drafts', requireAuth, async (req, res) => {
     try {
         const drafts = await db.query(`
-            SELECT md.*, c.name as client_name
+            SELECT md.*, CONCAT(c.first_name, ' ', c.last_name) as client_name
             FROM ai_message_drafts md
             LEFT JOIN clients c ON md.client_id = c.id
             WHERE md.user_id = $1
             ORDER BY md.created_at DESC
             LIMIT 30
-        `, [req.session.user.id]);
+        `, [req.user.id]);
 
         const stats = await db.query(`
             SELECT
@@ -24,12 +24,12 @@ router.get('/ai-drafts', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
                 SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent_count
             FROM ai_message_drafts WHERE user_id = $1
-        `, [req.session.user.id]);
+        `, [req.user.id]);
 
         const clients = await db.query(`
-            SELECT id, name, email FROM clients
-            WHERE user_id = $1 ORDER BY name
-        `, [req.session.user.id]);
+            SELECT id, CONCAT(first_name, ' ', last_name) as name, email FROM clients
+            WHERE user_id = $1 ORDER BY last_name
+        `, [req.user.id]);
 
         res.render('communications/ai-drafts', {
             drafts: drafts.rows,
@@ -57,8 +57,9 @@ router.post('/api/ai-communications/draft-email', requireAuth, async (req, res) 
         let clientInfo = null;
         if (client_id) {
             const client = await db.query(`
-                SELECT name, email FROM clients WHERE id = $1 AND user_id = $2
-            `, [client_id, req.session.user.id]);
+                SELECT CONCAT(first_name, ' ', last_name) as name, email
+                FROM clients WHERE id = $1 AND user_id = $2
+            `, [client_id, req.user.id]);
             if (client.rows.length > 0) {
                 clientInfo = client.rows[0];
             }
@@ -142,7 +143,7 @@ Please draft an appropriate ${draft_type}.`;
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
             RETURNING *
         `, [
-            req.session.user.id,
+            req.user.id,
             client_id || null,
             draft_type,
             context,
@@ -162,7 +163,7 @@ Please draft an appropriate ${draft_type}.`;
              cost_estimate, response_time_ms, success)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
-            req.session.user.id,
+            req.user.id,
             'ai_communications',
             response.data.model || 'anthropic/claude-sonnet-4',
             usage.prompt_tokens || 0,
@@ -274,7 +275,7 @@ Respond with JSON:
              cost_estimate, response_time_ms, success)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
-            req.session.user.id,
+            req.user.id,
             'message_classification',
             response.data.model || 'anthropic/claude-sonnet-4',
             usage.prompt_tokens || 0,
@@ -302,7 +303,7 @@ router.put('/api/ai-communications/draft/:id', requireAuth, async (req, res) => 
             UPDATE ai_message_drafts
             SET ai_draft = $1, subject_line = $2, updated_at = NOW()
             WHERE id = $3 AND user_id = $4
-        `, [body, subject_line, req.params.id, req.session.user.id]);
+        `, [body, subject_line, req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {
@@ -318,7 +319,7 @@ router.post('/api/ai-communications/draft/:id/send', requireAuth, async (req, re
             UPDATE ai_message_drafts
             SET status = 'sent', sent_at = NOW()
             WHERE id = $1 AND user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {
@@ -332,7 +333,7 @@ router.delete('/api/ai-communications/draft/:id', requireAuth, async (req, res) 
     try {
         await db.query(`
             DELETE FROM ai_message_drafts WHERE id = $1 AND user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {

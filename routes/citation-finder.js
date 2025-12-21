@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/db');
+const db = require('../config/database');
 const axios = require('axios');
 const { requireAuth } = require('../middleware/auth');
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // Citation Finder Dashboard
-router.get('/', requireAuth, async (req, res) => {
+router.get('/citation-finder', requireAuth, async (req, res) => {
     try {
         const searches = await db.query(`
             SELECT cs.*,
@@ -16,7 +16,7 @@ router.get('/', requireAuth, async (req, res) => {
             WHERE cs.user_id = $1
             ORDER BY cs.created_at DESC
             LIMIT 20
-        `, [req.session.user.id]);
+        `, [req.user.id]);
 
         const stats = await db.query(`
             SELECT
@@ -27,7 +27,7 @@ router.get('/', requireAuth, async (req, res) => {
                 (SELECT COUNT(*) FROM citation_searches
                  WHERE user_id = $1 AND created_at > NOW() - INTERVAL '7 days') as recent_searches
             FROM citation_searches WHERE user_id = $1
-        `, [req.session.user.id]);
+        `, [req.user.id]);
 
         res.render('citation-finder/dashboard', {
             searches: searches.rows,
@@ -41,13 +41,13 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // New Search Page
-router.get('/search', requireAuth, async (req, res) => {
+router.get('/citation-finder/search', requireAuth, async (req, res) => {
     try {
         const cases = await db.query(`
             SELECT id, case_number, title FROM cases
             WHERE user_id = $1 AND status != 'closed'
             ORDER BY created_at DESC
-        `, [req.session.user.id]);
+        `, [req.user.id]);
 
         res.render('citation-finder/search', {
             cases: cases.rows,
@@ -62,11 +62,11 @@ router.get('/search', requireAuth, async (req, res) => {
 });
 
 // Search Results Page
-router.get('/results/:id', requireAuth, async (req, res) => {
+router.get('/citation-finder/results/:id', requireAuth, async (req, res) => {
     try {
         const search = await db.query(`
             SELECT * FROM citation_searches WHERE id = $1 AND user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         if (search.rows.length === 0) {
             return res.render('error', { message: 'Search not found' });
@@ -105,7 +105,7 @@ router.post('/api/citation-finder/search', requireAuth, async (req, res) => {
             (user_id, case_id, search_type, legal_issue, jurisdiction, practice_area, status)
             VALUES ($1, $2, $3, $4, $5, $6, 'processing')
             RETURNING *
-        `, [req.session.user.id, case_id || null, search_type, legal_issue, jurisdiction, practice_area]);
+        `, [req.user.id, case_id || null, search_type, legal_issue, jurisdiction, practice_area]);
 
         const searchId = searchResult.rows[0].id;
 
@@ -226,7 +226,7 @@ Please provide the most relevant and authoritative citations for this legal issu
              cost_estimate, response_time_ms, success)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
-            req.session.user.id,
+            req.user.id,
             'citation_finder',
             response.data.model || 'anthropic/claude-sonnet-4',
             usage.prompt_tokens || 0,
@@ -258,7 +258,7 @@ router.get('/api/citation-finder/citation/:id', requireAuth, async (req, res) =>
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
             WHERE lc.id = $1 AND cs.user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Citation not found' });
@@ -281,7 +281,7 @@ router.post('/api/citation-finder/citation/:id/save-to-case', requireAuth, async
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
             WHERE lc.id = $1 AND cs.user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Citation not found' });
@@ -293,7 +293,7 @@ router.post('/api/citation-finder/citation/:id/save-to-case', requireAuth, async
             VALUES ($1, $2, $3, 'research')
         `, [
             case_id,
-            req.session.user.id,
+            req.user.id,
             `**Citation:** ${citation.rows[0].citation_text}\n\n**Holding:** ${citation.rows[0].key_holding || 'N/A'}\n\n**Usage:** ${citation.rows[0].how_to_use || 'N/A'}`
         ]);
 
@@ -318,7 +318,7 @@ router.delete('/api/citation-finder/search/:id', requireAuth, async (req, res) =
 
         await db.query(`
             DELETE FROM citation_searches WHERE id = $1 AND user_id = $2
-        `, [req.params.id, req.session.user.id]);
+        `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {

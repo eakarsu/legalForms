@@ -76,9 +76,14 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[name=document_text]').value = ''">
-                                <i class="fas fa-eraser me-1"></i>Clear
-                            </button>
+                            <div>
+                                <button type="button" class="btn btn-outline-info me-2" id="loadExampleBtn">
+                                    <i class="fas fa-flask me-1"></i>Load Example
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[name=document_text]').value = ''">
+                                    <i class="fas fa-eraser me-1"></i>Clear
+                                </button>
+                            </div>
                             <button type="submit" class="btn btn-primary" id="analyzeBtn">
                                 <i class="fas fa-robot me-1"></i>Analyze Contract
                             </button>
@@ -143,6 +148,74 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Load Example Data
+document.getElementById('loadExampleBtn').addEventListener('click', function() {
+    document.querySelector('[name=document_name]').value = 'Software Development Agreement - TechCorp';
+    document.querySelector('[name=document_type]').value = 'service';
+    document.querySelector('[name=document_text]').value = `SOFTWARE DEVELOPMENT AGREEMENT
+
+This Software Development Agreement ("Agreement") is entered into as of January 1, 2024 ("Effective Date") by and between:
+
+TechCorp Solutions Inc., a Delaware corporation with offices at 500 Tech Boulevard, San Francisco, CA 94105 ("Client")
+
+and
+
+DevTeam LLC, a California limited liability company with offices at 123 Developer Lane, San Jose, CA 95110 ("Developer")
+
+1. SCOPE OF WORK
+Developer agrees to design, develop, and deliver a custom customer relationship management (CRM) software application as described in Exhibit A ("Software"). The project shall be completed in three phases over a period of six (6) months.
+
+2. COMPENSATION
+Client shall pay Developer a total fixed fee of $150,000, payable as follows:
+- $50,000 upon execution of this Agreement
+- $50,000 upon completion of Phase 2
+- $50,000 upon final delivery and acceptance
+
+3. INTELLECTUAL PROPERTY
+3.1 Work Product. All work product, including source code, documentation, and designs created under this Agreement shall be considered "work made for hire" and shall be the sole property of Client.
+3.2 Developer Tools. Developer retains ownership of pre-existing tools, libraries, and frameworks used in development.
+
+4. CONFIDENTIALITY
+Developer agrees to maintain strict confidentiality of all Client proprietary information for a period of five (5) years following termination of this Agreement. Developer shall not disclose any confidential information to third parties without prior written consent.
+
+5. WARRANTIES
+Developer warrants that:
+(a) The Software will conform to specifications in Exhibit A
+(b) The Software will be free from material defects for 90 days following acceptance
+(c) Developer has full authority to enter into this Agreement
+
+6. LIMITATION OF LIABILITY
+IN NO EVENT SHALL EITHER PARTY BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES. DEVELOPER'S TOTAL LIABILITY SHALL NOT EXCEED THE TOTAL FEES PAID UNDER THIS AGREEMENT.
+
+7. INDEMNIFICATION
+Developer shall indemnify, defend, and hold harmless Client from any claims arising from Developer's breach of this Agreement or infringement of third-party intellectual property rights.
+
+8. TERMINATION
+8.1 Either party may terminate this Agreement with 30 days written notice.
+8.2 Client may terminate immediately for Developer's material breach.
+8.3 Upon termination, Developer shall deliver all completed work product.
+
+9. NON-SOLICITATION
+Developer agrees not to solicit or hire Client's employees for a period of one (1) year following termination.
+
+10. DISPUTE RESOLUTION
+Any disputes shall be resolved through binding arbitration in San Francisco, California, under AAA Commercial Arbitration Rules. The prevailing party shall be entitled to reasonable attorney's fees.
+
+11. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of California.
+
+12. ENTIRE AGREEMENT
+This Agreement constitutes the entire understanding between the parties and supersedes all prior negotiations and agreements.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+TECHCORP SOLUTIONS INC.                    DEVTEAM LLC
+By: _______________________                By: _______________________
+Name: John Smith                           Name: Jane Developer
+Title: CEO                                 Title: Managing Member
+Date: January 1, 2024                      Date: January 1, 2024`;
+});
+
 document.getElementById('analysisForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 

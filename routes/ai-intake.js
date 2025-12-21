@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/db');
+const db = require('../config/database');
 const axios = require('axios');
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // Public AI Intake Form
-router.get('/ai/:token', async (req, res) => {
+router.get('/intake/ai/:token', async (req, res) => {
     try {
         const form = await db.query(`
             SELECT * FROM intake_forms WHERE public_link = $1 AND is_active = true

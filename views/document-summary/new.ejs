@@ -27,19 +27,19 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Document Name</label>
-                                <input type="text" class="form-control" name="source_name" placeholder="e.g., Motion to Dismiss">
+                                <input type="text" class="form-control" name="source_name" placeholder="e.g., Motion to Dismiss" value="<%= prefill.source_name %>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Document Type</label>
                                 <select class="form-select" name="source_type">
-                                    <option value="general">General Document</option>
-                                    <option value="contract">Contract</option>
-                                    <option value="pleading">Pleading</option>
-                                    <option value="correspondence">Correspondence</option>
-                                    <option value="deposition">Deposition</option>
-                                    <option value="evidence">Evidence</option>
-                                    <option value="legal_brief">Legal Brief</option>
-                                    <option value="court_order">Court Order</option>
+                                    <option value="general" <%= prefill.source_type === 'general' ? 'selected' : '' %>>General Document</option>
+                                    <option value="contract" <%= prefill.source_type === 'contract' ? 'selected' : '' %>>Contract</option>
+                                    <option value="pleading" <%= prefill.source_type === 'pleading' ? 'selected' : '' %>>Pleading</option>
+                                    <option value="correspondence" <%= prefill.source_type === 'correspondence' ? 'selected' : '' %>>Correspondence</option>
+                                    <option value="deposition" <%= prefill.source_type === 'deposition' ? 'selected' : '' %>>Deposition</option>
+                                    <option value="evidence" <%= prefill.source_type === 'evidence' ? 'selected' : '' %>>Evidence</option>
+                                    <option value="legal_brief" <%= prefill.source_type === 'legal_brief' ? 'selected' : '' %>>Legal Brief</option>
+                                    <option value="court_order" <%= prefill.source_type === 'court_order' ? 'selected' : '' %>>Court Order</option>
                                 </select>
                             </div>
                         </div>
@@ -50,7 +50,7 @@
                                 <select class="form-select" name="client_id">
                                     <option value="">-- Select Client --</option>
                                     <% clients.forEach(c => { %>
-                                    <option value="<%= c.id %>">
+                                    <option value="<%= c.id %>" <%= prefill.client_id === c.id ? 'selected' : '' %>>
                                         <%= c.first_name %> <%= c.last_name %>
                                         <% if (c.company_name) { %> (<%= c.company_name %>)<% } %>
                                     </option>
@@ -62,7 +62,7 @@
                                 <select class="form-select" name="case_id">
                                     <option value="">-- Select Case --</option>
                                     <% cases.forEach(c => { %>
-                                    <option value="<%= c.id %>"><%= c.case_number %> - <%= c.title %></option>
+                                    <option value="<%= c.id %>" <%= prefill.case_id === c.id ? 'selected' : '' %>><%= c.case_number %> - <%= c.title %></option>
                                     <% }) %>
                                 </select>
                             </div>
@@ -90,14 +90,19 @@
                         <div class="mb-3">
                             <label class="form-label">Document Text <span class="text-danger">*</span></label>
                             <textarea class="form-control" name="original_text" rows="12"
-                                placeholder="Paste the document text here..."></textarea>
+                                placeholder="Paste the document text here..."><%= prefill.original_text %></textarea>
                             <div class="form-text">Minimum 50 characters required.</div>
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[name=original_text]').value = ''">
-                                <i class="fas fa-eraser me-1"></i>Clear
-                            </button>
+                            <div>
+                                <button type="button" class="btn btn-outline-info me-2" id="loadExampleBtn">
+                                    <i class="fas fa-flask me-1"></i>Load Example
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[name=original_text]').value = ''">
+                                    <i class="fas fa-eraser me-1"></i>Clear
+                                </button>
+                            </div>
                             <button type="submit" class="btn btn-primary" id="summarizeBtn">
                                 <i class="fas fa-robot me-1"></i>Generate Summary
                             </button>
@@ -149,6 +154,59 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Load Example Data
+document.getElementById('loadExampleBtn').addEventListener('click', function() {
+    document.querySelector('[name=source_name]').value = 'Motion to Dismiss - Smith v. ABC Corporation';
+    document.querySelector('[name=source_type]').value = 'pleading';
+    document.querySelector('[name=original_text]').value = `UNITED STATES DISTRICT COURT
+NORTHERN DISTRICT OF CALIFORNIA
+
+JOHN SMITH,
+    Plaintiff,
+v.                                          Case No. 3:24-cv-01234
+ABC CORPORATION,
+    Defendant.
+
+DEFENDANT'S MOTION TO DISMISS
+
+Defendant ABC Corporation, by and through its attorneys, hereby moves this Court pursuant to Federal Rule of Civil Procedure 12(b)(6) to dismiss Plaintiff's Complaint for failure to state a claim upon which relief can be granted.
+
+I. INTRODUCTION
+
+Plaintiff John Smith filed this action on January 15, 2024, alleging breach of contract and negligent misrepresentation arising from a commercial lease agreement. However, Plaintiff's Complaint fails to allege sufficient facts to support either claim.
+
+II. FACTUAL BACKGROUND
+
+On March 1, 2023, Plaintiff entered into a commercial lease agreement with Defendant for office space located at 123 Main Street, San Francisco, California. The lease term was for three years with monthly rent of $5,000. Plaintiff alleges that Defendant failed to maintain the HVAC system, resulting in business losses.
+
+III. LEGAL STANDARD
+
+To survive a motion to dismiss under Rule 12(b)(6), a complaint must contain sufficient factual matter to state a claim for relief that is plausible on its face. Ashcroft v. Iqbal, 556 U.S. 662, 678 (2009).
+
+IV. ARGUMENT
+
+A. Plaintiff's Breach of Contract Claim Fails
+
+Plaintiff has failed to identify any specific provision of the lease agreement that was breached. The lease clearly states that Defendant's maintenance obligations are limited to structural repairs, not HVAC maintenance.
+
+B. Plaintiff's Negligent Misrepresentation Claim Fails
+
+Plaintiff cannot establish the elements of negligent misrepresentation because: (1) no false statement was made; (2) Plaintiff conducted his own inspection before signing the lease; and (3) any reliance was unreasonable.
+
+V. CONCLUSION
+
+For the foregoing reasons, Defendant respectfully requests that this Court grant its Motion to Dismiss with prejudice.
+
+Dated: February 28, 2024
+
+Respectfully submitted,
+JOHNSON & ASSOCIATES LLP
+
+By: _______________________
+    Sarah Johnson, Esq.
+    Attorney for Defendant`;
+});
+
 document.getElementById('summaryForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 

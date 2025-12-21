@@ -197,99 +197,157 @@ Respond in JSON:
 // Calculate statute of limitations
 router.post('/api/ai-calendar/calculate-sol', requireAuth, async (req, res) => {
     try {
-        const { case_id, jurisdiction, case_type, cause_of_action, incident_date, discovery_date } = req.body;
+        const { case_id, jurisdiction, case_type, incident_date, discovery_date } = req.body;
 
         if (!jurisdiction || !case_type || !incident_date) {
             return res.status(400).json({ error: 'Jurisdiction, case type, and incident date are required' });
         }
 
-        // Look up SOL in database
+        const startTime = Date.now();
+
+        // Look up base SOL in database for reference
         const solResult = await db.query(`
             SELECT * FROM statute_of_limitations
-            WHERE jurisdiction = $1 AND case_type = $2
-            AND ($3 IS NULL OR cause_of_action = $3)
-            ORDER BY cause_of_action
-            LIMIT 5
-        `, [jurisdiction, case_type, cause_of_action || null]);
+            WHERE LOWER(jurisdiction) = LOWER($1)
+            AND LOWER(case_type) = LOWER($2)
+            ORDER BY cause_of_action NULLS LAST
+            LIMIT 1
+        `, [jurisdiction.trim(), case_type.trim()]);
 
-        if (solResult.rows.length === 0) {
-            return res.json({
-                success: true,
-                found: false,
-                message: 'No statute of limitations data found for this jurisdiction and case type'
-            });
-        }
+        const baseSol = solResult.rows[0] || null;
 
-        const sol = solResult.rows[0];
-        const incidentDateObj = new Date(incident_date);
-        let effectiveStartDate = incidentDateObj;
+        // Use AI for comprehensive SOL analysis
+        const systemPrompt = `You are an expert legal assistant specializing in statutes of limitations.
+Provide comprehensive, accurate analysis of limitation periods including tolling provisions, exceptions, and related deadlines.
+Always include disclaimers that this is for informational purposes and attorneys should verify with current law.`;
 
-        // Apply discovery rule if applicable
-        if (sol.discovery_rule && discovery_date) {
-            const discoveryDateObj = new Date(discovery_date);
-            if (discoveryDateObj > incidentDateObj) {
-                effectiveStartDate = discoveryDateObj;
+        const userPrompt = `Analyze the statute of limitations for this case:
+
+Jurisdiction: ${jurisdiction}
+Case Type: ${case_type}
+Incident Date: ${incident_date}
+${discovery_date ? `Discovery Date: ${discovery_date}` : 'Discovery Date: Not specified'}
+${baseSol ? `\nReference Data: ${baseSol.limitation_period_text} (${baseSol.statutory_reference})` : ''}
+
+Provide a comprehensive analysis in JSON format:
+{
+    "limitation_period": {
+        "days": number,
+        "text": "human readable period",
+        "statutory_reference": "citation"
+    },
+    "calculated_deadline": "YYYY-MM-DD",
+    "days_remaining": number,
+    "is_critical": boolean (true if less than 90 days),
+    "discovery_rule": {
+        "applies": boolean,
+        "explanation": "when the discovery rule applies"
+    },
+    "tolling_provisions": [
+        {"provision": "name", "description": "when it applies"}
+    ],
+    "exceptions": [
+        {"exception": "name", "description": "details"}
+    ],
+    "related_deadlines": [
+        {"deadline": "name", "timing": "when", "description": "what it is"}
+    ],
+    "risk_assessment": "low|medium|high|critical",
+    "recommendations": ["action items for attorney"],
+    "disclaimer": "legal disclaimer text"
+}`;
+
+        const response = await axios.post(OPENROUTER_API_URL, {
+            model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            max_tokens: 2000,
+            temperature: 0.2
+        }, {
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'HTTP-Referer': process.env.BASE_URL || 'http://localhost:3000',
+                'X-Title': 'LegalForms AI - SOL Calculator',
+                'Content-Type': 'application/json'
             }
+        });
+
+        const processingTime = Date.now() - startTime;
+        const content = response.data.choices[0].message.content;
+        const usage = response.data.usage || {};
+
+        let aiAnalysis;
+        try {
+            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
+            const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+            aiAnalysis = JSON.parse(jsonStr);
+        } catch (e) {
+            // Fallback to basic calculation
+            const incidentDateObj = new Date(incident_date);
+            const deadlineDate = new Date(incidentDateObj);
+            const periodDays = baseSol?.limitation_period_days || 730;
+            deadlineDate.setDate(deadlineDate.getDate() + periodDays);
+            const daysRemaining = Math.ceil((deadlineDate - new Date()) / (1000 * 60 * 60 * 24));
+
+            aiAnalysis = {
+                limitation_period: {
+                    days: periodDays,
+                    text: baseSol?.limitation_period_text || '2 years (estimated)',
+                    statutory_reference: baseSol?.statutory_reference || 'Verify with current statutes'
+                },
+                calculated_deadline: deadlineDate.toISOString().split('T')[0],
+                days_remaining: daysRemaining,
+                is_critical: daysRemaining < 90,
+                raw_response: content
+            };
         }
 
-        // Calculate deadline
-        const deadlineDate = new Date(effectiveStartDate);
-        deadlineDate.setDate(deadlineDate.getDate() + sol.limitation_period_days);
+        // Log AI usage
+        await db.query(`
+            INSERT INTO ai_usage_log
+            (user_id, feature, model, input_tokens, output_tokens, total_tokens, response_time_ms, success)
+            VALUES ($1, 'sol_calculator', $2, $3, $4, $5, $6, true)
+        `, [
+            req.user.id,
+            response.data.model,
+            usage.prompt_tokens || 0,
+            usage.completion_tokens || 0,
+            usage.total_tokens || 0,
+            processingTime
+        ]);
 
-        // Calculate days remaining
-        const today = new Date();
-        const daysRemaining = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
-
-        // Create suggestion
+        // Create calendar suggestion
         const suggestionResult = await db.query(`
             INSERT INTO ai_calendar_suggestions
             (user_id, case_id, suggestion_type, source_type, extracted_data,
              suggested_title, suggested_date, suggested_deadline_type, warning_days,
              is_critical, jurisdiction, legal_basis, confidence_score)
-            VALUES ($1, $2, 'sol_reminder', 'calculation', $3, $4, $5, 'sol', 30, $6, $7, $8, 1.0)
+            VALUES ($1, $2, 'sol_reminder', 'ai_calculation', $3, $4, $5, 'sol', 30, $6, $7, $8, 0.95)
             RETURNING *
         `, [
             req.user.id,
             case_id || null,
-            JSON.stringify({
-                incident_date,
-                discovery_date,
-                limitation_period_days: sol.limitation_period_days,
-                discovery_rule_applied: sol.discovery_rule && discovery_date
-            }),
-            `Statute of Limitations: ${sol.cause_of_action}`,
-            deadlineDate.toISOString().split('T')[0],
-            daysRemaining < 90,
+            JSON.stringify(aiAnalysis),
+            `SOL Deadline: ${jurisdiction} ${case_type}`,
+            aiAnalysis.calculated_deadline,
+            aiAnalysis.is_critical,
             jurisdiction,
-            sol.statutory_reference || `${jurisdiction} ${case_type} - ${sol.limitation_period_text}`
+            aiAnalysis.limitation_period?.statutory_reference || 'AI Analysis'
         ]);
 
         res.json({
             success: true,
             found: true,
-            sol: {
-                jurisdiction,
-                caseType: case_type,
-                causeOfAction: sol.cause_of_action,
-                periodDays: sol.limitation_period_days,
-                periodText: sol.limitation_period_text,
-                discoveryRule: sol.discovery_rule,
-                statutoryReference: sol.statutory_reference
-            },
-            calculation: {
-                incidentDate: incident_date,
-                discoveryDate: discovery_date || null,
-                effectiveStartDate: effectiveStartDate.toISOString().split('T')[0],
-                deadlineDate: deadlineDate.toISOString().split('T')[0],
-                daysRemaining,
-                isCritical: daysRemaining < 90
-            },
-            suggestion: suggestionResult.rows[0]
+            aiAnalysis,
+            suggestion: suggestionResult.rows[0],
+            processingTime
         });
 
     } catch (error) {
         console.error('Calculate SOL error:', error);
-        res.status(500).json({ error: 'Failed to calculate statute of limitations' });
+        res.status(500).json({ error: 'Failed to calculate statute of limitations: ' + error.message });
     }
 });
 

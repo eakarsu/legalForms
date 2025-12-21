@@ -159,6 +159,9 @@
 
                 <!-- Generate Button -->
                 <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-info" id="loadExampleBtn">
+                        <i class="fas fa-flask me-2"></i>Load Example
+                    </button>
                     <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
                         <i class="fas fa-magic me-2"></i>Generate Document
                     </button>
@@ -178,6 +181,40 @@
 </div>
 
 <script>
+// Load Example Data
+document.getElementById('loadExampleBtn').addEventListener('click', function() {
+    document.getElementById('documentTypeSelect').value = 'letter';
+    document.getElementById('categorySelect').value = 'letter';
+    document.querySelector('[name=title]').value = 'Demand Letter - Johnson v. Premier Auto Sales';
+    document.querySelector('[name=prompt]').value = `Please draft a demand letter for a consumer fraud case with the following details:
+
+FACTS:
+- Client: Michael Johnson purchased a 2019 Honda Accord from Premier Auto Sales on November 15, 2023
+- Purchase price: $18,500
+- The dealer represented the vehicle had no accident history and was a one-owner vehicle
+- Client discovered through a Carfax report that the vehicle was in a major collision in 2021 and had three previous owners
+- Client has documented evidence of the misrepresentations (sales contract, dealer advertisements, Carfax report)
+- The vehicle now has mechanical issues likely related to the undisclosed accident damage
+- Client paid $3,200 for repairs that may be related to the prior collision
+
+DEMANDS:
+- Full refund of purchase price ($18,500)
+- Reimbursement of repair costs ($3,200)
+- Response within 14 days
+
+TONE:
+- Firm but professional
+- Reference applicable consumer protection laws (state Lemon Law, federal odometer fraud if applicable)
+- Mention intention to pursue litigation if demands are not met`;
+    document.querySelector('[name=context]').value = `California Consumer Legal Remedies Act (CLRA) applies.
+Song-Beverly Consumer Warranty Act may also apply.
+Dealer is located at 4521 Auto Row Drive, Sacramento, CA 95825.
+Client address: 789 Oak Street, Sacramento, CA 95814.`;
+    document.querySelector('[name=style]').value = 'firm';
+    document.querySelector('[name=length]').value = 'detailed';
+    document.getElementById('includeCitations').checked = true;
+});
+
 // Filter templates by category
 document.getElementById('categorySelect').addEventListener('change', function() {
     const category = this.value;

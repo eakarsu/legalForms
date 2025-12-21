@@ -79,6 +79,9 @@
                             <label class="form-label">Discovery Date (if applicable)</label>
                             <input type="date" class="form-control" name="discovery_date">
                         </div>
+                        <button type="button" class="btn btn-outline-info me-2" id="loadSOLExampleBtn">
+                            <i class="fas fa-flask me-1"></i>Example
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-calculator me-1"></i>Calculate
                         </button>
@@ -105,6 +108,9 @@
                             <textarea class="form-control" name="document_text" rows="8"
                                 placeholder="Paste court order, contract, or other document..."></textarea>
                         </div>
+                        <button type="button" class="btn btn-outline-info me-2" id="loadDeadlineExampleBtn">
+                            <i class="fas fa-flask me-1"></i>Example
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-robot me-1"></i>Extract Deadlines
                         </button>
@@ -163,11 +169,63 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Load SOL Example Data
+document.getElementById('loadSOLExampleBtn').addEventListener('click', function() {
+    document.querySelector('#solForm [name=jurisdiction]').value = 'California';
+    document.querySelector('#solForm [name=case_type]').value = 'Personal Injury';
+    document.querySelector('#solForm [name=incident_date]').value = '2024-06-15';
+    document.querySelector('#solForm [name=discovery_date]').value = '';
+});
+
+// Load Deadline Extractor Example Data
+document.getElementById('loadDeadlineExampleBtn').addEventListener('click', function() {
+    document.querySelector('[name=document_text]').value = `SUPERIOR COURT OF CALIFORNIA
+COUNTY OF LOS ANGELES
+
+Case No. 24STCV01234
+
+ORDER SETTING CASE MANAGEMENT CONFERENCE AND DEADLINES
+
+The Court, having reviewed the file in the above-entitled matter, hereby orders as follows:
+
+1. CASE MANAGEMENT CONFERENCE: A Case Management Conference is scheduled for April 15, 2024 at 9:00 a.m. in Department 45.
+
+2. DISCOVERY DEADLINES:
+   a. All fact discovery shall be completed by June 30, 2024.
+   b. Expert witness disclosures shall be exchanged by July 15, 2024.
+   c. Expert discovery shall be completed by August 31, 2024.
+
+3. MOTION DEADLINES:
+   a. All law and motion matters, except motions in limine, shall be heard by September 15, 2024.
+   b. Motions in limine shall be filed by October 1, 2024.
+
+4. PRETRIAL REQUIREMENTS:
+   a. Mandatory Settlement Conference: October 15, 2024 at 10:00 a.m.
+   b. Final Status Conference: November 1, 2024 at 8:30 a.m.
+   c. Joint Trial Documents due: November 8, 2024.
+
+5. TRIAL DATE: Trial is scheduled to commence on November 18, 2024 at 9:00 a.m.
+
+Failure to comply with this Order may result in sanctions, including monetary sanctions, issue sanctions, or dismissal.
+
+IT IS SO ORDERED.
+
+Dated: January 20, 2024
+
+_______________________
+Hon. Maria Rodriguez
+Judge of the Superior Court`;
+});
+
 // SOL Calculator
 document.getElementById('solForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
+
+    const btn = this.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
 
     try {
         const res = await fetch('/api/ai-calendar/calculate-sol', {
@@ -181,21 +239,88 @@ document.getElementById('solForm').addEventListener('submit', async function(e) 
         const contentDiv = document.getElementById('solContent');
         resultDiv.classList.remove('d-none');
 
-        if (result.found) {
-            contentDiv.innerHTML = `
-                <div class="alert alert-${result.calculation.isCritical ? 'danger' : 'info'}">
-                    <h5>Statute of Limitations</h5>
-                    <p><strong>Period:</strong> ${result.sol.periodText}</p>
-                    <p><strong>Deadline:</strong> ${result.calculation.deadlineDate}</p>
-                    <p><strong>Days Remaining:</strong> ${result.calculation.daysRemaining}</p>
-                    <p><small>${result.sol.statutoryReference}</small></p>
-                </div>
-            `;
+        if (result.found && result.aiAnalysis) {
+            const a = result.aiAnalysis;
+            const lp = a.limitation_period || {};
+
+            let html = `
+                <div class="alert alert-${a.is_critical ? 'danger' : (a.risk_assessment === 'high' ? 'warning' : 'info')}">
+                    <h5><i class="fas fa-gavel me-2"></i>AI Statute of Limitations Analysis</h5>
+                    <p><strong>Limitation Period:</strong> ${lp.text || 'See details below'}</p>
+                    <p><strong>Calculated Deadline:</strong> <span class="fs-5">${a.calculated_deadline}</span></p>
+                    <p><strong>Days Remaining:</strong> <span class="badge bg-${a.is_critical ? 'danger' : 'primary'} fs-6">${a.days_remaining} days</span></p>
+                    <p><strong>Risk Assessment:</strong> <span class="badge bg-${a.risk_assessment === 'critical' ? 'danger' : (a.risk_assessment === 'high' ? 'warning' : 'secondary')}">${a.risk_assessment?.toUpperCase() || 'N/A'}</span></p>
+                    <p><small><i class="fas fa-book me-1"></i>${lp.statutory_reference || ''}</small></p>
+                </div>`;
+
+            if (a.discovery_rule) {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-search me-2"></i>Discovery Rule</div>
+                    <div class="card-body">
+                        <p><strong>Applies:</strong> ${a.discovery_rule.applies ? 'Yes' : 'No'}</p>
+                        <p>${a.discovery_rule.explanation || ''}</p>
+                    </div>
+                </div>`;
+            }
+
+            if (a.tolling_provisions && a.tolling_provisions.length > 0) {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-pause-circle me-2"></i>Tolling Provisions</div>
+                    <ul class="list-group list-group-flush">
+                        ${a.tolling_provisions.map(t => `<li class="list-group-item"><strong>${t.provision}:</strong> ${t.description}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            if (a.exceptions && a.exceptions.length > 0) {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-exclamation-triangle me-2"></i>Exceptions</div>
+                    <ul class="list-group list-group-flush">
+                        ${a.exceptions.map(e => `<li class="list-group-item"><strong>${e.exception}:</strong> ${e.description}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            if (a.related_deadlines && a.related_deadlines.length > 0) {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-calendar-alt me-2"></i>Related Deadlines</div>
+                    <ul class="list-group list-group-flush">
+                        ${a.related_deadlines.map(d => `<li class="list-group-item"><strong>${d.deadline}</strong> (${d.timing}): ${d.description}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            if (a.recommendations && a.recommendations.length > 0) {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-lightbulb me-2"></i>Recommendations</div>
+                    <ul class="list-group list-group-flush">
+                        ${a.recommendations.map(r => `<li class="list-group-item"><i class="fas fa-check text-success me-2"></i>${r}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            if (a.disclaimer) {
+                html += `<div class="alert alert-secondary mt-3"><small><i class="fas fa-info-circle me-1"></i>${a.disclaimer}</small></div>`;
+            }
+
+            html += `<small class="text-muted">Analysis completed in ${result.processingTime}ms</small>`;
+
+            contentDiv.innerHTML = html;
+        } else if (result.error) {
+            contentDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
         } else {
             contentDiv.innerHTML = '<div class="alert alert-warning">No SOL data found for this jurisdiction/case type.</div>';
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-calculator me-1"></i>Calculate';
     }
 });
 

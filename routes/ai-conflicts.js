@@ -19,9 +19,8 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
     try {
         const analysesResult = await db.query(`
-            SELECT aca.*, cc.check_number
+            SELECT aca.*
             FROM ai_conflict_analyses aca
-            LEFT JOIN conflict_checks cc ON aca.conflict_check_id = cc.id
             WHERE aca.user_id = $1
             ORDER BY aca.created_at DESC
             LIMIT 20
@@ -31,7 +30,7 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
             SELECT
                 COUNT(*) as total_analyses,
                 COUNT(CASE WHEN reviewed = false THEN 1 END) as pending_review,
-                COUNT(CASE WHEN jsonb_array_length(potential_conflicts) > 0 THEN 1 END) as conflicts_found
+                COUNT(CASE WHEN potential_conflicts IS NOT NULL AND jsonb_array_length(potential_conflicts) > 0 THEN 1 END) as conflicts_found
             FROM ai_conflict_analyses
             WHERE user_id = $1
         `, [req.user.id]);
@@ -40,7 +39,7 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
             title: 'AI Conflict Analysis',
             analyses: analysesResult.rows,
             stats: statsResult.rows[0],
-            req
+            active: 'conflicts'
         });
     } catch (error) {
         console.error('AI conflicts dashboard error:', error);
@@ -63,10 +62,10 @@ router.post('/api/ai-conflicts/analyze', requireAuth, async (req, res) => {
 
         // Get existing parties for comparison
         const existingPartiesResult = await db.query(`
-            SELECT DISTINCT party_name, party_type, role
+            SELECT DISTINCT name, party_type, relationship
             FROM conflict_parties
             WHERE user_id = $1
-            ORDER BY party_name
+            ORDER BY name
         `, [req.user.id]);
 
         const startTime = Date.now();
@@ -85,7 +84,7 @@ NEW PARTIES TO CHECK:
 ${party_names.join('\n')}
 
 EXISTING PARTIES DATABASE:
-${existingPartiesResult.rows.map(p => `${p.party_name} (${p.party_type}, ${p.role})`).join('\n')}
+${existingPartiesResult.rows.map(p => `${p.name} (${p.party_type}, ${p.relationship || 'party'})`).join('\n')}
 
 Identify:
 1. Fuzzy name matches (spelling, phonetic, nicknames)

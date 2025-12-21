@@ -37,11 +37,18 @@ router.get('/billing/ai-suggestions', requireAuth, async (req, res) => {
             WHERE user_id = $1
         `, [req.user.id]);
 
+        const casesResult = await db.query(`
+            SELECT id, case_number, title FROM cases
+            WHERE user_id = $1 AND status != 'closed'
+            ORDER BY created_at DESC
+        `, [req.user.id]);
+
         res.render('billing/ai-suggestions', {
             title: 'AI Billing Suggestions',
             suggestions: suggestionsResult.rows,
             stats: statsResult.rows[0],
-            req
+            cases: casesResult.rows,
+            active: 'billing'
         });
     } catch (error) {
         console.error('AI billing dashboard error:', error);
@@ -56,53 +63,70 @@ router.get('/billing/ai-suggestions', requireAuth, async (req, res) => {
 // Scan case notes for billable items
 router.post('/api/ai-billing/scan-notes', requireAuth, async (req, res) => {
     try {
-        const { case_id, date_from, date_to } = req.body;
+        const { days, sample_notes } = req.body;
+        // Handle empty string case_id as null
+        const case_id = req.body.case_id && req.body.case_id.trim() ? req.body.case_id : null;
 
-        // Get case info and hourly rate
-        const caseResult = await db.query(`
-            SELECT c.*, cl.first_name, cl.last_name
-            FROM cases c
-            LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE c.id = $1 AND c.user_id = $2
-        `, [case_id, req.user.id]);
+        let notesText = '';
+        let hourlyRate = 300;
+        let caseData = null;
 
-        if (caseResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Case not found' });
-        }
+        // If sample_notes provided, use those (for demo)
+        if (sample_notes && sample_notes.trim()) {
+            notesText = sample_notes;
+        } else if (case_id) {
+            // Get case info and hourly rate
+            const caseResult = await db.query(`
+                SELECT c.*, cl.first_name, cl.last_name
+                FROM cases c
+                LEFT JOIN clients cl ON c.client_id = cl.id
+                WHERE c.id = $1 AND c.user_id = $2
+            `, [case_id, req.user.id]);
 
-        const caseData = caseResult.rows[0];
+            if (caseResult.rows.length === 0) {
+                return res.status(404).json({ error: 'Case not found' });
+            }
 
-        // Get case notes
-        let notesQuery = `
-            SELECT * FROM case_notes
-            WHERE case_id = $1
-        `;
-        const params = [case_id];
+            caseData = caseResult.rows[0];
+            hourlyRate = caseData.hourly_rate || 300;
 
-        if (date_from) {
-            notesQuery += ` AND created_at >= $${params.length + 1}`;
-            params.push(date_from);
-        }
-        if (date_to) {
-            notesQuery += ` AND created_at <= $${params.length + 1}`;
-            params.push(date_to);
-        }
+            // Get case notes
+            const daysAgo = parseInt(days) || 30;
+            const notesResult = await db.query(`
+                SELECT * FROM case_notes
+                WHERE case_id = $1 AND created_at >= NOW() - INTERVAL '${daysAgo} days'
+                ORDER BY created_at DESC
+            `, [case_id]);
 
-        notesQuery += ' ORDER BY created_at DESC';
+            if (notesResult.rows.length === 0) {
+                return res.json({ success: true, suggestionsCount: 0, message: 'No case notes found in this period' });
+            }
 
-        const notesResult = await db.query(notesQuery, params);
+            notesText = notesResult.rows.map(n =>
+                `[${new Date(n.created_at).toLocaleDateString()}] ${n.title || 'Note'}: ${n.content}`
+            ).join('\n\n');
+        } else {
+            // Get recent notes from all cases
+            const daysAgo = parseInt(days) || 30;
+            const notesResult = await db.query(`
+                SELECT cn.*, c.title as case_title
+                FROM case_notes cn
+                JOIN cases c ON cn.case_id = c.id
+                WHERE c.user_id = $1 AND cn.created_at >= NOW() - INTERVAL '${daysAgo} days'
+                ORDER BY cn.created_at DESC
+                LIMIT 50
+            `, [req.user.id]);
 
-        if (notesResult.rows.length === 0) {
-            return res.json({ success: true, suggestions: [], message: 'No case notes found' });
+            if (notesResult.rows.length === 0) {
+                return res.json({ success: true, suggestionsCount: 0, message: 'No case notes found in this period' });
+            }
+
+            notesText = notesResult.rows.map(n =>
+                `[${n.case_title}] [${new Date(n.created_at).toLocaleDateString()}] ${n.title || 'Note'}: ${n.content}`
+            ).join('\n\n');
         }
 
         const startTime = Date.now();
-        const hourlyRate = caseData.hourly_rate || 300;
-
-        // Combine notes for analysis
-        const notesText = notesResult.rows.map(n =>
-            `[${new Date(n.created_at).toLocaleDateString()}] ${n.title || 'Note'}: ${n.content}`
-        ).join('\n\n');
 
         const systemPrompt = `You are a legal billing assistant. Analyze case notes and identify billable activities.`;
 
@@ -205,8 +229,8 @@ Respond in JSON format:
         res.json({
             success: true,
             suggestions: savedSuggestions,
-            summary: billingData.summary,
-            notesScanned: notesResult.rows.length
+            suggestionsCount: savedSuggestions.length,
+            summary: billingData.summary
         });
 
     } catch (error) {
@@ -230,17 +254,20 @@ router.post('/api/ai-billing/suggestions/:id/accept', requireAuth, async (req, r
         const suggestion = suggestionResult.rows[0];
 
         // Create time entry (but don't auto-add to invoice)
+        const hourlyRate = suggestion.suggested_duration_minutes > 0
+            ? (suggestion.suggested_amount / (suggestion.suggested_duration_minutes / 60)).toFixed(2)
+            : 300;
         const timeEntryResult = await db.query(`
             INSERT INTO time_entries
-            (user_id, case_id, description, duration_minutes, rate, amount, entry_date, billable, status)
-            VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, true, 'unbilled')
+            (user_id, case_id, description, duration_minutes, hourly_rate, amount, date, is_billable, is_billed)
+            VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, true, false)
             RETURNING *
         `, [
             req.user.id,
             suggestion.case_id,
             suggestion.suggested_description,
             suggestion.suggested_duration_minutes,
-            (suggestion.suggested_amount / (suggestion.suggested_duration_minutes / 60)).toFixed(2),
+            hourlyRate,
             suggestion.suggested_amount,
         ]);
 

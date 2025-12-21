@@ -53,10 +53,22 @@
                     <textarea class="form-control" name="party_names" rows="5"
                         placeholder="Enter names to check for conflicts..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                <button type="button" class="btn btn-outline-info me-2" id="loadExampleBtn">
+                    <i class="fas fa-flask me-1"></i>Load Example
+                </button>
+                <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn">
                     <i class="fas fa-robot me-1"></i>Analyze for Conflicts
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Analysis Results (hidden until analysis runs) -->
+    <div class="card mb-4 d-none" id="resultsCard">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Analysis Results</h5>
+        </div>
+        <div class="card-body" id="resultsBody">
         </div>
     </div>
 
@@ -76,6 +88,7 @@
                             <th>Conflicts</th>
                             <th>Fuzzy Matches</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,6 +113,15 @@
                                     <%= a.reviewed ? 'Reviewed' : 'Pending' %>
                                 </span>
                             </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-btn"
+                                    data-conflicts='<%= JSON.stringify(conflicts) %>'
+                                    data-matches='<%= JSON.stringify(matches) %>'
+                                    data-relationships='<%= JSON.stringify(a.corporate_relationships || []) %>'
+                                    data-summary='<%= a.summary || "" %>'>
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
                         </tr>
                         <% }) %>
                     </tbody>
@@ -114,6 +136,22 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Load Example Data
+document.getElementById('loadExampleBtn').addEventListener('click', function() {
+    document.querySelector('[name=party_names]').value = `Johnson & Johnson Inc.
+J&J Healthcare LLC
+Robert Johnson
+Bob Johnson
+Smith, Williams & Associates LLP
+Williams Smith Partnership
+ABC Corporation
+ABC Corp.
+Michael O'Brien
+Mike O'Brien
+First National Bank
+First Natl Bank of California`;
+});
+
 document.getElementById('conflictForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const names = document.querySelector('[name=party_names]').value.split('\n').filter(n => n.trim());
@@ -124,7 +162,7 @@ document.getElementById('conflictForm').addEventListener('submit', async functio
 
     const btn = document.getElementById('analyzeBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyzing with AI...';
 
     try {
         const res = await fetch('/api/ai-conflicts/analyze', {
@@ -134,8 +172,7 @@ document.getElementById('conflictForm').addEventListener('submit', async functio
         });
         const data = await res.json();
         if (data.success) {
-            alert(`Analysis complete! Found ${data.conflicts.length} potential conflicts.`);
-            location.reload();
+            displayResults(data.conflicts || [], data.fuzzyMatches || [], data.corporateRelationships || [], data.summary || '');
         } else {
             alert('Error: ' + data.error);
         }
@@ -145,6 +182,125 @@ document.getElementById('conflictForm').addEventListener('submit', async functio
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-robot me-1"></i>Analyze for Conflicts';
     }
+});
+
+// Display results function
+function displayResults(conflicts, matches, relationships, summary) {
+    const resultsCard = document.getElementById('resultsCard');
+    const resultsBody = document.getElementById('resultsBody');
+    resultsCard.classList.remove('d-none');
+
+    let html = '';
+
+    // Summary
+    if (summary) {
+        html += `<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>${summary}</div>`;
+    }
+
+    // Stats
+    html += `
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card ${conflicts.length > 0 ? 'border-danger' : 'border-success'}">
+                    <div class="card-body text-center">
+                        <h3 class="text-${conflicts.length > 0 ? 'danger' : 'success'}">${conflicts.length}</h3>
+                        <small>Potential Conflicts</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card ${matches.length > 0 ? 'border-warning' : 'border-secondary'}">
+                    <div class="card-body text-center">
+                        <h3 class="text-${matches.length > 0 ? 'warning' : 'secondary'}">${matches.length}</h3>
+                        <small>Fuzzy Matches</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <h3 class="text-info">${relationships.length}</h3>
+                        <small>Corporate Relationships</small>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    // Conflicts
+    if (conflicts.length > 0) {
+        html += `
+            <div class="card mb-3 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Potential Conflicts
+                </div>
+                <ul class="list-group list-group-flush">
+                    ${conflicts.map(c => `
+                        <li class="list-group-item">
+                            <strong>${c.input_name || c.name}</strong> ↔ <strong>${c.matched_name || c.match}</strong>
+                            <span class="badge bg-danger ms-2">${Math.round((c.confidence || 0.9) * 100)}%</span>
+                            ${c.explanation ? `<br><small class="text-muted">${c.explanation}</small>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>`;
+    }
+
+    // Fuzzy Matches
+    if (matches.length > 0) {
+        html += `
+            <div class="card mb-3 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-search me-2"></i>Fuzzy Matches (Review Recommended)
+                </div>
+                <ul class="list-group list-group-flush">
+                    ${matches.map(m => `
+                        <li class="list-group-item">
+                            <strong>${m.input_name}</strong> ≈ <strong>${m.matched_name}</strong>
+                            <span class="badge bg-${m.match_type === 'phonetic' ? 'info' : 'warning'} ms-2">${m.match_type}</span>
+                            <span class="badge bg-secondary">${Math.round((m.confidence || 0.7) * 100)}%</span>
+                            ${m.explanation ? `<br><small class="text-muted">${m.explanation}</small>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>`;
+    }
+
+    // Corporate Relationships
+    if (relationships.length > 0) {
+        html += `
+            <div class="card mb-3 border-info">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-building me-2"></i>Corporate Relationships
+                </div>
+                <ul class="list-group list-group-flush">
+                    ${relationships.map(r => `
+                        <li class="list-group-item">
+                            <strong>${r.parent || r.entity1}</strong> → <strong>${r.subsidiary || r.entity2}</strong>
+                            <span class="badge bg-info ms-2">${r.relationship_type || 'related'}</span>
+                            ${r.explanation ? `<br><small class="text-muted">${r.explanation}</small>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>`;
+    }
+
+    if (conflicts.length === 0 && matches.length === 0 && relationships.length === 0) {
+        html += `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No conflicts or matches found!</div>`;
+    }
+
+    resultsBody.innerHTML = html;
+    resultsCard.scrollIntoView({ behavior: 'smooth' });
+}
+
+// View button handlers
+document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const conflicts = JSON.parse(this.dataset.conflicts || '[]');
+        const matches = JSON.parse(this.dataset.matches || '[]');
+        const relationships = JSON.parse(this.dataset.relationships || '[]');
+        const summary = this.dataset.summary || '';
+        displayResults(conflicts, matches, relationships, summary);
+    });
 });
 </script>
 </body>
