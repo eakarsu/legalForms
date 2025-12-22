@@ -221,10 +221,16 @@ if [ "$DATA_EXISTS" = "0" ] || [ -z "$DATA_EXISTS" ]; then
 
     # Run seed files
     echo -e "  Running seed scripts..."
-    if [ -f "database/seed.js" ]; then
+
+    # Run shared data seed (user_id = NULL so all users see data)
+    if [ -f "database/seed-shared.js" ]; then
+        echo -e "    Running seed-shared.js (shared data for all users)..."
+        node database/seed-shared.js 2>&1 || echo -e "    ${YELLOW}!${NC} seed-shared.js had warnings"
+    elif [ -f "database/seed.js" ]; then
         echo -e "    Running seed.js..."
         node database/seed.js 2>&1 || echo -e "    ${YELLOW}!${NC} seed.js had warnings"
     fi
+
     if [ -f "database/seed_advanced_features.js" ]; then
         echo -e "    Running seed_advanced_features.js..."
         node database/seed_advanced_features.js 2>&1 || echo -e "    ${YELLOW}!${NC} seed_advanced_features.js had warnings"
