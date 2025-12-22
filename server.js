@@ -26,6 +26,7 @@ const authRoutes = require('./routes/auth');
 const { optionalAuth } = require('./middleware/auth');
 const passport = require('./config/passport');
 const { seedDemoDataForUser } = require('./lib/seedUserDemoData');
+const stripeRoutes = require('./routes/stripe');
 
 // Import new feature modules
 const { validateCompliance, complianceChecker } = require('./middleware/compliance');
@@ -121,6 +122,7 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com",
         "https://www.googletagmanager.com",
         "https://www.google-analytics.com",
+        "https://js.stripe.com",
         "blob:"
       ],
       scriptSrcAttr: ["'unsafe-inline'"],
@@ -137,7 +139,8 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com"
       ],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://www.google-analytics.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "wss:", "ws:", "blob:"]
+      connectSrc: ["'self'", "https://www.google-analytics.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://api.stripe.com", "wss:", "ws:", "blob:"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"]
     }
   }
 }));
@@ -169,6 +172,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('view cache', false); // Disable view caching
 
 //add
 // Add session configuration after existing middleware
@@ -236,6 +240,7 @@ app.use('/', aiCalendarRoutes);
 app.use('/', citationFinderRoutes);
 app.use('/', aiCommunicationsRoutes);
 app.use('/', aiIntakeRoutes);
+app.use('/', stripeRoutes);
 
 // Debug: Log registered routes
 console.log('Registered API routes:');

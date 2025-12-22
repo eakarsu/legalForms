@@ -1,0 +1,354 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'billing' }) %>
+
+<script>
+// Immediately clean up any stuck modal elements
+(function() {
+    document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.body.style.pointerEvents = '';
+})();
+</script>
+
+<div class="container-fluid py-4">
+    <div class="text-center mb-5">
+        <h2><i class="fas fa-crown me-2"></i>Choose Your Plan</h2>
+        <p class="text-muted">Select the plan that best fits your legal practice needs</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <% plans.forEach((plan, index) => { %>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 <%= plan.recommended ? 'border-primary' : '' %>">
+                <% if (plan.recommended) { %>
+                <div class="card-header bg-primary text-white text-center py-2">
+                    <small><i class="fas fa-star me-1"></i>MOST POPULAR</small>
+                </div>
+                <% } %>
+                <div class="card-body text-center">
+                    <h4 class="card-title"><%= plan.name %></h4>
+                    <div class="display-4 my-3">
+                        $<%= plan.price %>
+                        <small class="text-muted fs-6">/month</small>
+                    </div>
+                    <ul class="list-unstyled text-start mb-4">
+                        <% plan.features.forEach(feature => { %>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i><%= feature %>
+                        </li>
+                        <% }) %>
+                    </ul>
+                    <% if (currentSubscription && currentSubscription.plan.toLowerCase() === plan.name.toLowerCase()) { %>
+                    <button class="btn btn-secondary w-100" disabled>
+                        <i class="fas fa-check-circle me-1"></i>Current Plan
+                    </button>
+                    <% } else if (plan.price === 0) { %>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Free
+                    </button>
+                    <% } else { %>
+                    <button class="btn <%= plan.recommended ? 'btn-primary' : 'btn-outline-primary' %> w-100"
+                            onclick="subscribeToPlan('<%= plan.name.toLowerCase() %>', <%= plan.price %>)">
+                        <% if (currentSubscription) { %>
+                        Switch to <%= plan.name %>
+                        <% } else { %>
+                        Get Started
+                        <% } %>
+                    </button>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Can I cancel my subscription anytime?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    What payment methods do you accept?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We accept all major credit cards (Visa, Mastercard, American Express) through our secure Stripe payment processing.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Can I upgrade or downgrade my plan?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, you can change your plan at any time. When upgrading, you'll be charged the prorated difference. When downgrading, the change takes effect at the next billing cycle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="text-white w-100 text-center py-3">
+                    <i class="fas fa-lock fa-2x mb-2"></i>
+                    <h4 class="mb-0">Secure Checkout</h4>
+                </div>
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-4">
+                <!-- Plan Summary -->
+                <div class="bg-light rounded-3 p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1 text-primary">
+                                <i class="fas fa-crown me-2"></i><span id="selectedPlanName">Professional</span> Plan
+                            </h5>
+                            <small class="text-muted">Billed monthly, cancel anytime</small>
+                        </div>
+                        <div class="text-end">
+                            <h3 class="mb-0 text-dark">$<span id="selectedPlanPrice">49</span></h3>
+                            <small class="text-muted">/month</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Input -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-credit-card me-2 text-muted"></i>Card Information
+                    </label>
+                    <div id="cardElement" class="form-control py-3" style="height: 50px; border: 2px solid #e9ecef; border-radius: 8px;"></div>
+                    <div id="cardErrors" class="text-danger small mt-2" role="alert"></div>
+                </div>
+
+                <!-- Security Badges -->
+                <div class="d-flex justify-content-center gap-4 mb-3 text-muted small">
+                    <span><i class="fas fa-shield-alt me-1"></i>SSL Secured</span>
+                    <span><i class="fab fa-stripe me-1"></i>Powered by Stripe</span>
+                    <span><i class="fas fa-lock me-1"></i>256-bit Encryption</span>
+                </div>
+
+                <!-- Subscribe Button -->
+                <button type="button" class="btn btn-lg w-100 text-white fw-semibold" id="subscribeBtn" onclick="confirmSubscription()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; padding: 14px;">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="subscribeSpinner"></span>
+                    <i class="fas fa-check-circle me-2"></i>Subscribe Now
+                </button>
+
+                <p class="text-center text-muted small mt-3 mb-0">
+                    By subscribing, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+var STRIPE_KEY = '<%= stripePublishableKey %>';
+var stripe, elements, cardElement, paymentModal;
+var selectedPlan = null;
+var selectedPrice = 0;
+
+// Wait for page to fully load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Stripe
+    if (typeof Stripe !== 'undefined' && STRIPE_KEY) {
+        stripe = Stripe(STRIPE_KEY);
+        elements = stripe.elements();
+    }
+
+    // Setup modal event
+    var modalEl = document.getElementById('paymentModal');
+    if (modalEl) {
+        modalEl.addEventListener('shown.bs.modal', function() {
+            // Initialize Stripe if not done yet
+            if (!stripe && typeof Stripe !== 'undefined' && STRIPE_KEY) {
+                stripe = Stripe(STRIPE_KEY);
+                elements = stripe.elements();
+            }
+
+            if (stripe && elements) {
+                var container = document.getElementById('cardElement');
+                if (container) {
+                    container.innerHTML = '';
+                    cardElement = elements.create('card', {
+                        style: {
+                            base: {
+                                fontSize: '16px',
+                                color: '#424770',
+                                '::placeholder': { color: '#aab7c4' }
+                            }
+                        }
+                    });
+                    cardElement.mount('#cardElement');
+                    cardElement.on('change', function(e) {
+                        document.getElementById('cardErrors').textContent = e.error ? e.error.message : '';
+                    });
+                }
+            }
+        });
+    }
+});
+
+function subscribeToPlan(plan, price) {
+    selectedPlan = plan;
+    selectedPrice = price;
+
+    document.getElementById('selectedPlanName').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+    document.getElementById('selectedPlanPrice').textContent = price;
+    document.getElementById('cardErrors').textContent = '';
+
+    var modalEl = document.getElementById('paymentModal');
+    if (!paymentModal) {
+        paymentModal = new bootstrap.Modal(modalEl);
+    }
+    paymentModal.show();
+}
+
+async function confirmSubscription() {
+    var btn = document.getElementById('subscribeBtn');
+    var spinner = document.getElementById('subscribeSpinner');
+    var errorDiv = document.getElementById('cardErrors');
+
+    if (!cardElement) {
+        errorDiv.textContent = 'Please enter your card details.';
+        return;
+    }
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    errorDiv.textContent = '';
+
+    try {
+        console.log('Starting subscription process for plan:', selectedPlan);
+
+        // Create setup intent first to save the card
+        console.log('Creating setup intent...');
+        const setupRes = await fetch('/api/stripe/setup-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!setupRes.ok) {
+            const errorText = await setupRes.text();
+            console.error('Setup intent request failed:', setupRes.status, errorText);
+            throw new Error('Failed to initialize payment: ' + errorText);
+        }
+
+        const setupData = await setupRes.json();
+        console.log('Setup intent response:', setupData);
+
+        if (!setupData.success) {
+            throw new Error(setupData.error || 'Failed to create setup intent');
+        }
+
+        // Confirm card setup
+        console.log('Confirming card setup...');
+        const { error: setupError, setupIntent } = await stripe.confirmCardSetup(setupData.clientSecret, {
+            payment_method: { card: cardElement }
+        });
+
+        if (setupError) {
+            console.error('Card setup error:', setupError);
+            throw new Error(setupError.message);
+        }
+
+        console.log('Card setup successful, payment method:', setupIntent.payment_method);
+
+        // Subscribe with the saved payment method
+        console.log('Creating subscription...');
+        const subRes = await fetch('/api/stripe/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: selectedPlan,
+                paymentMethodId: setupIntent.payment_method
+            })
+        });
+
+        if (!subRes.ok) {
+            const errorText = await subRes.text();
+            console.error('Subscribe request failed:', subRes.status, errorText);
+            throw new Error('Failed to create subscription: ' + errorText);
+        }
+
+        const subData = await subRes.json();
+        console.log('Subscribe response:', subData);
+
+        if (!subData.success) {
+            throw new Error(subData.error || 'Failed to create subscription');
+        }
+
+        // If subscription requires payment confirmation
+        if (subData.subscription && subData.subscription.clientSecret) {
+            console.log('Confirming payment...');
+            const { error: payError } = await stripe.confirmCardPayment(subData.subscription.clientSecret);
+            if (payError) {
+                console.error('Payment confirmation error:', payError);
+                throw new Error(payError.message);
+            }
+        }
+
+        // Activate subscription in database after payment confirmed
+        await fetch('/api/stripe/activate-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscriptionId: subData.subscription.id })
+        });
+
+        // Close modal and redirect
+        if (paymentModal) {
+            paymentModal.hide();
+        }
+        // Remove any modal backdrops
+        document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        alert('Subscription successful! Welcome to ' + selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1) + '!');
+        window.location.href = '/payment-methods';
+
+    } catch (err) {
+        console.error('Subscription error:', err);
+        errorDiv.textContent = err.message || 'An error occurred';
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>
