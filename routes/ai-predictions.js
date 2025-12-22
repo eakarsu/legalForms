@@ -22,7 +22,7 @@ const PREDICTION_DISCLAIMER = `IMPORTANT DISCLAIMER: This AI analysis is for inf
 router.get('/cases/:caseId/predictions', requireAuth, async (req, res) => {
     try {
         const caseResult = await db.query(
-            'SELECT * FROM cases WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.caseId, req.user.id]
         );
 
@@ -32,7 +32,7 @@ router.get('/cases/:caseId/predictions', requireAuth, async (req, res) => {
 
         const predictionsResult = await db.query(`
             SELECT * FROM ai_case_predictions
-            WHERE case_id = $1 AND user_id = $2
+            WHERE case_id = $1 AND (user_id = $2 OR user_id IS NULL)
             ORDER BY created_at DESC
         `, [req.params.caseId, req.user.id]);
 
@@ -70,7 +70,7 @@ router.post('/api/ai-predictions/analyze', requireAuth, async (req, res) => {
             SELECT c.*, cl.first_name, cl.last_name
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE c.id = $1 AND c.user_id = $2
+            WHERE c.id = $1 AND (c.user_id = $2 OR c.user_id IS NULL)
         `, [case_id, req.user.id]);
 
         if (caseResult.rows.length === 0) {
@@ -208,7 +208,7 @@ router.get('/api/ai-predictions/case/:caseId', requireAuth, async (req, res) => 
     try {
         const result = await db.query(`
             SELECT * FROM ai_case_predictions
-            WHERE case_id = $1 AND user_id = $2
+            WHERE case_id = $1 AND (user_id = $2 OR user_id IS NULL)
             ORDER BY created_at DESC
         `, [req.params.caseId, req.user.id]);
 

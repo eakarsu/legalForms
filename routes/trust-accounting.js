@@ -21,7 +21,7 @@ router.get('/trust', requireAuth, async (req, res) => {
                    (SELECT COUNT(*) FROM client_trust_ledgers WHERE trust_account_id = ta.id) as ledger_count,
                    (SELECT COALESCE(SUM(current_balance), 0) FROM client_trust_ledgers WHERE trust_account_id = ta.id) as total_client_balance
             FROM trust_accounts ta
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
             ORDER BY ta.created_at DESC
         `, [req.user.id]);
 
@@ -32,7 +32,7 @@ router.get('/trust', requireAuth, async (req, res) => {
             JOIN trust_accounts ta ON tt.trust_account_id = ta.id
             JOIN client_trust_ledgers ctl ON tt.client_trust_ledger_id = ctl.id
             JOIN clients c ON ctl.client_id = c.id
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
             ORDER BY tt.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -45,7 +45,7 @@ router.get('/trust', requireAuth, async (req, res) => {
                 COUNT(DISTINCT ctl.client_id) as client_count
             FROM trust_accounts ta
             LEFT JOIN client_trust_ledgers ctl ON ta.id = ctl.trust_account_id
-            WHERE ta.user_id = $1 AND ta.is_active = true
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL) AND ta.is_active = true
         `, [req.user.id]);
 
         res.render('trust/dashboard', {
@@ -68,7 +68,7 @@ router.get('/trust/accounts', requireAuth, async (req, res) => {
             SELECT ta.*, COUNT(ctl.id) as ledger_count
             FROM trust_accounts ta
             LEFT JOIN client_trust_ledgers ctl ON ta.id = ctl.trust_account_id
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
             GROUP BY ta.id
             ORDER BY ta.created_at DESC
         `, [req.user.id]);
@@ -110,7 +110,7 @@ router.get('/trust/ledgers', requireAuth, async (req, res) => {
             FROM client_trust_ledgers ctl
             JOIN trust_accounts ta ON ctl.trust_account_id = ta.id
             LEFT JOIN clients c ON ctl.client_id = c.id
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
             ORDER BY ctl.created_at DESC
         `, [req.user.id]);
 
@@ -134,7 +134,7 @@ router.get('/trust/transactions', requireAuth, async (req, res) => {
             JOIN client_trust_ledgers ctl ON tt.client_trust_ledger_id = ctl.id
             JOIN trust_accounts ta ON ctl.trust_account_id = ta.id
             LEFT JOIN clients c ON ctl.client_id = c.id
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
             ORDER BY tt.transaction_date DESC
         `, [req.user.id]);
 
@@ -159,7 +159,7 @@ router.get('/trust/reconciliation', requireAuth, async (req, res) => {
                     JOIN client_trust_ledgers ctl ON tt.client_trust_ledger_id = ctl.id
                     WHERE ctl.trust_account_id = ta.id) as calculated_balance
             FROM trust_accounts ta
-            WHERE ta.user_id = $1
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
         `, [req.user.id]);
 
         res.render('trust/reconciliation', {
@@ -187,7 +187,7 @@ router.get('/trust/:accountId/ledger/:ledgerId', requireAuth, async (req, res) =
             JOIN clients c ON ctl.client_id = c.id
             JOIN trust_accounts ta ON ctl.trust_account_id = ta.id
             LEFT JOIN cases cs ON ctl.case_id = cs.id
-            WHERE ctl.id = $1 AND ctl.trust_account_id = $2 AND ta.user_id = $3
+            WHERE ctl.id = $1 AND ctl.trust_account_id = $2 AND (ta.user_id = $3 OR ta.user_id IS NULL)
         `, [ledgerId, accountId, req.user.id]);
 
         if (ledgerResult.rows.length === 0) {
@@ -218,7 +218,7 @@ router.get('/trust/:accountId/ledger/:ledgerId', requireAuth, async (req, res) =
 router.get('/trust/:id', requireAuth, async (req, res) => {
     try {
         const accountResult = await db.query(`
-            SELECT * FROM trust_accounts WHERE id = $1 AND user_id = $2
+            SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (accountResult.rows.length === 0) {
@@ -248,13 +248,13 @@ router.get('/trust/:id', requireAuth, async (req, res) => {
 
         // Get clients for new ledger modal
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name FROM clients WHERE user_id = $1 ORDER BY last_name',
+            'SELECT id, first_name, last_name, company_name FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name',
             [req.user.id]
         );
 
         // Get cases for new ledger modal
         const casesResult = await db.query(
-            'SELECT id, case_number, title FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT id, case_number, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY created_at DESC',
             [req.user.id]
         );
 
@@ -277,7 +277,7 @@ router.get('/trust/:id', requireAuth, async (req, res) => {
 router.get('/trust/:id/reconcile', requireAuth, async (req, res) => {
     try {
         const accountResult = await db.query(`
-            SELECT * FROM trust_accounts WHERE id = $1 AND user_id = $2
+            SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (accountResult.rows.length === 0) {
@@ -344,7 +344,7 @@ router.post('/api/trust/accounts/:id/ledgers', requireAuth, async (req, res) => 
 
         // Verify account ownership
         const accountResult = await db.query(
-            'SELECT id FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -376,7 +376,7 @@ router.post('/api/trust/:id/transactions', requireAuth, async (req, res) => {
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT ta.id, ta.current_balance FROM trust_accounts ta WHERE ta.id = $1 AND ta.user_id = $2',
+            'SELECT ta.id, ta.current_balance FROM trust_accounts ta WHERE ta.id = $1 AND (ta.user_id = $2 OR ta.user_id IS NULL)',
             [trust_account_id, req.user.id]
         );
 
@@ -466,7 +466,7 @@ router.post('/api/trust/:id/ledgers', requireAuth, async (req, res) => {
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT id FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [trust_account_id, req.user.id]
         );
 
@@ -505,7 +505,7 @@ router.post('/api/trust/:id/reconcile', requireAuth, async (req, res) => {
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT id FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [trust_account_id, req.user.id]
         );
 
@@ -539,7 +539,7 @@ router.post('/api/trust/:id/reconciliations', requireAuth, async (req, res) => {
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT id, current_balance FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT id, current_balance FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [trust_account_id, req.user.id]
         );
 
@@ -575,7 +575,7 @@ router.post('/api/trust/transactions', requireAuth, async (req, res) => {
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT ta.id, ta.current_balance FROM trust_accounts ta WHERE ta.id = $1 AND ta.user_id = $2',
+            'SELECT ta.id, ta.current_balance FROM trust_accounts ta WHERE ta.id = $1 AND (ta.user_id = $2 OR ta.user_id IS NULL)',
             [trust_account_id, req.user.id]
         );
 
@@ -664,7 +664,7 @@ router.post('/api/trust/accounts/:id/reconcile', requireAuth, async (req, res) =
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT * FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -720,7 +720,7 @@ router.get('/api/clients/:id/trust-balance', requireAuth, async (req, res) => {
             FROM client_trust_ledgers ctl
             JOIN trust_accounts ta ON ctl.trust_account_id = ta.id
             LEFT JOIN cases cs ON ctl.case_id = cs.id
-            WHERE ctl.client_id = $1 AND ta.user_id = $2
+            WHERE ctl.client_id = $1 AND (ta.user_id = $2 OR ta.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         const total = result.rows.reduce((sum, l) => sum + parseFloat(l.current_balance), 0);
@@ -737,7 +737,7 @@ router.delete('/api/trust/accounts/:id', requireAuth, async (req, res) => {
     try {
         // Verify ownership and check for balance
         const accountResult = await db.query(
-            'SELECT * FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -860,7 +860,7 @@ router.delete('/api/trust/:accountId/ledgers/:ledgerId', requireAuth, async (req
 
         // Verify ownership
         const accountResult = await db.query(
-            'SELECT id FROM trust_accounts WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [accountId, req.user.id]
         );
 

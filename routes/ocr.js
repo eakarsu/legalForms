@@ -53,7 +53,7 @@ router.get('/ocr', requireAuth, async (req, res) => {
             SELECT oj.*, dh.title as document_title
             FROM ocr_jobs oj
             LEFT JOIN document_history dh ON oj.document_id = dh.id
-            WHERE oj.user_id = $1
+            WHERE (oj.user_id = $1 OR oj.user_id IS NULL)
             ORDER BY oj.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -66,7 +66,7 @@ router.get('/ocr', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'processing') as processing,
                 COALESCE(SUM(page_count), 0) as total_pages
             FROM ocr_jobs
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('ocr/dashboard', {
@@ -85,7 +85,7 @@ router.get('/ocr', requireAuth, async (req, res) => {
 router.get('/ocr/:id', requireAuth, async (req, res) => {
     try {
         const jobResult = await db.query(`
-            SELECT * FROM ocr_jobs WHERE id = $1 AND user_id = $2
+            SELECT * FROM ocr_jobs WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (jobResult.rows.length === 0) {
@@ -106,7 +106,7 @@ router.get('/ocr/:id', requireAuth, async (req, res) => {
         const clientsResult = await db.query(`
             SELECT id, first_name, last_name, company_name
             FROM clients
-            WHERE user_id = $1 AND status = 'active'
+            WHERE (user_id = $1 OR user_id IS NULL) AND status = 'active'
             ORDER BY first_name, last_name
         `, [req.user.id]);
 
@@ -114,7 +114,7 @@ router.get('/ocr/:id', requireAuth, async (req, res) => {
         const casesResult = await db.query(`
             SELECT id, title, case_number
             FROM cases
-            WHERE user_id = $1 AND status != 'closed'
+            WHERE (user_id = $1 OR user_id IS NULL) AND status != 'closed'
             ORDER BY title
         `, [req.user.id]);
 
@@ -198,7 +198,7 @@ router.get('/api/ocr/:id/status', requireAuth, async (req, res) => {
         const result = await db.query(`
             SELECT id, status, progress, page_count, pages_processed, error_message
             FROM ocr_jobs
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -253,7 +253,7 @@ router.get('/api/ocr/search', requireAuth, async (req, res) => {
                               'StartSel=<mark>, StopSel=</mark>, MaxFragments=3') as snippet
             FROM ocr_search_index osi
             JOIN ocr_jobs oj ON osi.job_id = oj.id
-            WHERE oj.user_id = $2 AND osi.search_vector @@ plainto_tsquery('english', $1)
+            WHERE (oj.user_id = $2 OR oj.user_id IS NULL) AND osi.search_vector @@ plainto_tsquery('english', $1)
             ORDER BY ts_rank(osi.search_vector, plainto_tsquery('english', $1)) DESC
             LIMIT $3
         `, [q, req.user.id, limit]);
@@ -295,7 +295,7 @@ router.delete('/api/ocr/:id', requireAuth, async (req, res) => {
     try {
         // Get file path
         const jobResult = await db.query(
-            'SELECT original_file_path FROM ocr_jobs WHERE id = $1 AND user_id = $2',
+            'SELECT original_file_path FROM ocr_jobs WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -325,7 +325,7 @@ router.post('/api/ocr/:id/save-document', requireAuth, async (req, res) => {
         // Get job info
         const jobResult = await db.query(`
             SELECT * FROM ocr_jobs
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (jobResult.rows.length === 0) {

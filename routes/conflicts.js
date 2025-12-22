@@ -21,7 +21,7 @@ router.get('/conflicts', requireAuth, async (req, res) => {
             FROM conflict_checks cc
             LEFT JOIN clients c ON cc.client_id = c.id
             LEFT JOIN cases cs ON cc.case_id = cs.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY cc.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -35,12 +35,12 @@ router.get('/conflicts', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'waived') as waived_count,
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as recent_count
             FROM conflict_checks
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         // Party count
         const partyResult = await db.query(
-            'SELECT COUNT(*) as party_count FROM conflict_parties WHERE user_id = $1',
+            'SELECT COUNT(*) as party_count FROM conflict_parties WHERE (user_id = $1 OR user_id IS NULL)',
             [req.user.id]
         );
 
@@ -61,12 +61,12 @@ router.get('/conflicts', requireAuth, async (req, res) => {
 router.get('/conflicts/new', requireAuth, async (req, res) => {
     try {
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name FROM clients WHERE user_id = $1 ORDER BY last_name',
+            'SELECT id, first_name, last_name, company_name FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name',
             [req.user.id]
         );
 
         const casesResult = await db.query(
-            'SELECT id, case_number, title FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT id, case_number, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY created_at DESC',
             [req.user.id]
         );
 
@@ -93,7 +93,7 @@ router.get('/conflicts/parties', requireAuth, async (req, res) => {
             FROM conflict_parties cp
             LEFT JOIN clients c ON cp.client_id = c.id
             LEFT JOIN cases cs ON cp.case_id = cs.id
-            WHERE cp.user_id = $1
+            WHERE (cp.user_id = $1 OR cp.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -120,7 +120,7 @@ router.get('/conflicts/parties', requireAuth, async (req, res) => {
 
         // Get cases for the modal
         const casesResult = await db.query(
-            'SELECT id, title FROM cases WHERE user_id = $1 ORDER BY title',
+            'SELECT id, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY title',
             [req.user.id]
         );
 
@@ -145,7 +145,7 @@ router.get('/conflicts/history', requireAuth, async (req, res) => {
                    c.first_name as client_first, c.last_name as client_last
             FROM conflict_checks cc
             LEFT JOIN clients c ON cc.client_id = c.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY cc.created_at DESC
         `, [req.user.id]);
 
@@ -168,14 +168,14 @@ router.get('/conflicts/waivers', requireAuth, async (req, res) => {
             FROM conflict_waivers cw
             JOIN conflict_checks cc ON cw.conflict_check_id = cc.id
             LEFT JOIN clients c ON cc.client_id = c.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY cw.created_at DESC
         `, [req.user.id]);
 
         // Get clients for the dropdown
         const clientsResult = await db.query(`
             SELECT id, first_name, last_name, company_name
-            FROM clients WHERE user_id = $1 ORDER BY last_name
+            FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name
         `, [req.user.id]);
 
         res.render('conflicts/waivers', {
@@ -226,7 +226,7 @@ router.get('/conflicts/waivers/:id', requireAuth, async (req, res) => {
             FROM conflict_waivers cw
             JOIN conflict_checks cc ON cw.conflict_check_id = cc.id
             LEFT JOIN clients c ON cc.client_id = c.id
-            WHERE cw.id = $1 AND cc.user_id = $2
+            WHERE cw.id = $1 AND (cc.user_id = $2 OR cc.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -252,7 +252,7 @@ router.get('/conflicts/:id', requireAuth, async (req, res) => {
             FROM conflict_checks cc
             LEFT JOIN clients c ON cc.client_id = c.id
             LEFT JOIN cases cs ON cc.case_id = cs.id
-            WHERE cc.id = $1 AND cc.user_id = $2
+            WHERE cc.id = $1 AND (cc.user_id = $2 OR cc.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (checkResult.rows.length === 0) {
@@ -304,7 +304,7 @@ router.post('/api/conflicts/check', requireAuth, async (req, res) => {
             const clientsResult = await db.query(`
                 SELECT 'client' as source, id, first_name, last_name, company_name, email
                 FROM clients
-                WHERE user_id = $1 AND (
+                WHERE (user_id = $1 OR user_id IS NULL) AND (
                     first_name ILIKE $2 OR
                     last_name ILIKE $2 OR
                     company_name ILIKE $2 OR
@@ -316,7 +316,7 @@ router.post('/api/conflicts/check', requireAuth, async (req, res) => {
             const partiesResult = await db.query(`
                 SELECT 'party' as source, id, name, party_type, relationship, company, case_id, client_id
                 FROM conflict_parties
-                WHERE user_id = $1 AND (
+                WHERE (user_id = $1 OR user_id IS NULL) AND (
                     name ILIKE $2 OR
                     company ILIKE $2 OR
                     email ILIKE $2 OR
@@ -328,7 +328,7 @@ router.post('/api/conflicts/check', requireAuth, async (req, res) => {
             const casesResult = await db.query(`
                 SELECT 'case' as source, id, title, opposing_party, opposing_counsel
                 FROM cases
-                WHERE user_id = $1 AND (
+                WHERE (user_id = $1 OR user_id IS NULL) AND (
                     opposing_party ILIKE $2 OR
                     opposing_counsel ILIKE $2
                 )
@@ -406,7 +406,7 @@ router.put('/api/conflicts/:id/status', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             UPDATE conflict_checks SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
-            WHERE id = $3 AND user_id = $4
+            WHERE id = $3 AND (user_id = $4 OR user_id IS NULL)
             RETURNING *
         `, [status, req.user.id, req.params.id, req.user.id]);
 
@@ -424,7 +424,7 @@ router.post('/api/conflicts/:id/waivers', requireAuth, async (req, res) => {
 
         // Verify ownership
         const checkResult = await db.query(
-            'SELECT id FROM conflict_checks WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM conflict_checks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -458,7 +458,7 @@ router.post('/api/conflicts/:id/waiver', requireAuth, async (req, res) => {
         const { waiver_type, parties_involved, waiver_text, obtained_from, obtained_date } = req.body;
 
         const checkResult = await db.query(
-            'SELECT id FROM conflict_checks WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM conflict_checks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -496,7 +496,7 @@ router.delete('/api/conflicts/:id', requireAuth, async (req, res) => {
 
         // Then delete the conflict check
         await db.query(
-            'DELETE FROM conflict_checks WHERE id = $1 AND user_id = $2',
+            'DELETE FROM conflict_checks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -513,7 +513,7 @@ router.delete('/api/conflicts/waivers/:id', requireAuth, async (req, res) => {
         await db.query(`
             DELETE FROM conflict_waivers
             WHERE id = $1 AND conflict_check_id IN (
-                SELECT id FROM conflict_checks WHERE user_id = $2
+                SELECT id FROM conflict_checks WHERE (user_id = $2 OR user_id IS NULL)
             )
         `, [req.params.id, req.user.id]);
 
@@ -528,7 +528,7 @@ router.delete('/api/conflicts/waivers/:id', requireAuth, async (req, res) => {
 router.delete('/api/conflicts/parties/:id', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'DELETE FROM conflict_parties WHERE id = $1 AND user_id = $2',
+            'DELETE FROM conflict_parties WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -543,7 +543,7 @@ router.delete('/api/conflicts/parties/:id', requireAuth, async (req, res) => {
 router.post('/api/cases/:id/extract-parties', requireAuth, async (req, res) => {
     try {
         const caseResult = await db.query(
-            'SELECT * FROM cases WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 

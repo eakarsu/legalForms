@@ -21,7 +21,7 @@ router.get('/billing', requireAuth, async (req, res) => {
             SELECT
                 COALESCE(SUM(CASE WHEN is_billed = false AND is_billable = true THEN amount ELSE 0 END), 0) as unbilled_amount,
                 COALESCE(SUM(CASE WHEN is_billed = false AND is_billable = true THEN duration_minutes ELSE 0 END), 0) as unbilled_minutes
-            FROM time_entries WHERE user_id = $1
+            FROM time_entries WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         // Get invoice summary
@@ -30,7 +30,7 @@ router.get('/billing', requireAuth, async (req, res) => {
                 COALESCE(SUM(CASE WHEN status = 'sent' THEN total - amount_paid ELSE 0 END), 0) as outstanding,
                 COALESCE(SUM(CASE WHEN status = 'overdue' THEN total - amount_paid ELSE 0 END), 0) as overdue,
                 COALESCE(SUM(CASE WHEN status = 'paid' AND paid_date >= DATE_TRUNC('month', CURRENT_DATE) THEN amount_paid ELSE 0 END), 0) as collected_this_month
-            FROM invoices WHERE user_id = $1
+            FROM invoices WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         // Get recent time entries
@@ -39,7 +39,7 @@ router.get('/billing', requireAuth, async (req, res) => {
             FROM time_entries te
             LEFT JOIN cases c ON te.case_id = c.id
             LEFT JOIN clients cl ON te.client_id = cl.id
-            WHERE te.user_id = $1
+            WHERE (te.user_id = $1 OR te.user_id IS NULL)
             ORDER BY te.date DESC, te.created_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -49,7 +49,7 @@ router.get('/billing', requireAuth, async (req, res) => {
             SELECT i.*, cl.first_name, cl.last_name, cl.company_name
             FROM invoices i
             LEFT JOIN clients cl ON i.client_id = cl.id
-            WHERE i.user_id = $1
+            WHERE (i.user_id = $1 OR i.user_id IS NULL)
             ORDER BY i.created_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -79,7 +79,7 @@ router.get('/billing/time', requireAuth, async (req, res) => {
             FROM time_entries te
             LEFT JOIN cases c ON te.case_id = c.id
             LEFT JOIN clients cl ON te.client_id = cl.id
-            WHERE te.user_id = $1
+            WHERE (te.user_id = $1 OR te.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -120,12 +120,12 @@ router.get('/billing/time', requireAuth, async (req, res) => {
 
         // Get cases and clients for dropdowns
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 AND status = \'active\' ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) AND status = \'active\' ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -154,7 +154,7 @@ router.get('/billing/invoices', requireAuth, async (req, res) => {
             FROM invoices i
             LEFT JOIN clients cl ON i.client_id = cl.id
             LEFT JOIN cases c ON i.case_id = c.id
-            WHERE i.user_id = $1
+            WHERE (i.user_id = $1 OR i.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -177,7 +177,7 @@ router.get('/billing/invoices', requireAuth, async (req, res) => {
 
         // Get clients for dropdown
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -188,7 +188,7 @@ router.get('/billing/invoices', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'sent') as sent_count,
                 COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
                 COUNT(*) FILTER (WHERE status = 'overdue') as overdue_count
-            FROM invoices WHERE user_id = $1
+            FROM invoices WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('billing/invoices', {
@@ -217,7 +217,7 @@ router.get('/billing/invoices/:id', requireAuth, async (req, res) => {
             FROM invoices i
             LEFT JOIN clients cl ON i.client_id = cl.id
             LEFT JOIN cases c ON i.case_id = c.id
-            WHERE i.id = $1 AND i.user_id = $2
+            WHERE i.id = $1 AND (i.user_id = $2 OR i.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (invoiceResult.rows.length === 0) {
@@ -257,7 +257,7 @@ router.get('/billing/expenses', requireAuth, async (req, res) => {
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
-            WHERE e.user_id = $1
+            WHERE (e.user_id = $1 OR e.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -284,7 +284,7 @@ router.get('/billing/expenses', requireAuth, async (req, res) => {
         const expensesResult = await db.query(query, params);
 
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
@@ -315,7 +315,7 @@ router.get('/api/time-entries', requireAuth, async (req, res) => {
             FROM time_entries te
             LEFT JOIN cases c ON te.case_id = c.id
             LEFT JOIN clients cl ON te.client_id = cl.id
-            WHERE te.user_id = $1
+            WHERE (te.user_id = $1 OR te.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -455,7 +455,7 @@ router.get('/api/time-entries/:id', requireAuth, async (req, res) => {
             FROM time_entries te
             LEFT JOIN cases c ON te.case_id = c.id
             LEFT JOIN clients cl ON te.client_id = cl.id
-            WHERE te.id = $1 AND te.user_id = $2
+            WHERE te.id = $1 AND (te.user_id = $2 OR te.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -473,7 +473,7 @@ router.get('/api/time-entries/:id', requireAuth, async (req, res) => {
 router.delete('/api/time-entries/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM time_entries WHERE id = $1 AND user_id = $2 AND is_billed = false RETURNING *',
+            'DELETE FROM time_entries WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) AND is_billed = false RETURNING *',
             [req.params.id, req.user.id]
         );
 
@@ -504,7 +504,7 @@ router.get('/api/invoices', requireAuth, async (req, res) => {
             SELECT i.*, cl.first_name, cl.last_name, cl.company_name
             FROM invoices i
             LEFT JOIN clients cl ON i.client_id = cl.id
-            WHERE i.user_id = $1
+            WHERE (i.user_id = $1 OR i.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -543,7 +543,7 @@ router.post('/api/invoices', requireAuth, async (req, res) => {
 
         // Generate invoice number
         const countResult = await db.query(
-            'SELECT COUNT(*) FROM invoices WHERE user_id = $1',
+            'SELECT COUNT(*) FROM invoices WHERE (user_id = $1 OR user_id IS NULL)',
             [req.user.id]
         );
         const invoiceNumber = `INV-${new Date().getFullYear()}-${String(parseInt(countResult.rows[0].count) + 1).padStart(4, '0')}`;
@@ -614,7 +614,7 @@ router.put('/api/invoices/:id', requireAuth, async (req, res) => {
                 due_date = COALESCE($2, due_date),
                 notes = COALESCE($3, notes),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $4 AND user_id = $5
+            WHERE id = $4 AND (user_id = $5 OR user_id IS NULL)
             RETURNING *
         `, [status, due_date, notes, req.params.id, req.user.id]);
 
@@ -640,7 +640,7 @@ router.delete('/api/invoices/:id', requireAuth, async (req, res) => {
         await db.query('DELETE FROM payments WHERE invoice_id = $1', [req.params.id]);
 
         const result = await db.query(
-            `DELETE FROM invoices WHERE id = $1 AND user_id = $2 AND status IN ('draft', 'cancelled') RETURNING *`,
+            `DELETE FROM invoices WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) AND status IN ('draft', 'cancelled') RETURNING *`,
             [req.params.id, req.user.id]
         );
 
@@ -665,7 +665,7 @@ router.post('/api/invoices/:id/send', requireAuth, async (req, res) => {
             UPDATE invoices SET
                 status = 'sent',
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 AND user_id = $2 AND status = 'draft'
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) AND status = 'draft'
             RETURNING *
         `, [req.params.id, req.user.id]);
 
@@ -693,7 +693,7 @@ router.post('/api/invoices/:id/payments', requireAuth, async (req, res) => {
 
         // Verify invoice ownership
         const invoiceCheck = await db.query(
-            'SELECT * FROM invoices WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM invoices WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -748,7 +748,7 @@ router.get('/api/expenses', requireAuth, async (req, res) => {
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
-            WHERE e.user_id = $1
+            WHERE (e.user_id = $1 OR e.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -866,7 +866,7 @@ router.get('/api/expenses/:id', requireAuth, async (req, res) => {
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
-            WHERE e.id = $1 AND e.user_id = $2
+            WHERE e.id = $1 AND (e.user_id = $2 OR e.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -884,7 +884,7 @@ router.get('/api/expenses/:id', requireAuth, async (req, res) => {
 router.delete('/api/expenses/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM expenses WHERE id = $1 AND user_id = $2 AND is_billed = false RETURNING *',
+            'DELETE FROM expenses WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) AND is_billed = false RETURNING *',
             [req.params.id, req.user.id]
         );
 

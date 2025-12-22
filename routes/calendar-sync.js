@@ -26,7 +26,7 @@ router.get('/calendar-sync', requireAuth, async (req, res) => {
     try {
         const connectionsResult = await db.query(`
             SELECT * FROM calendar_connections
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -34,7 +34,7 @@ router.get('/calendar-sync', requireAuth, async (req, res) => {
             SELECT csl.*, cc.provider, cc.provider_email
             FROM calendar_sync_log csl
             JOIN calendar_connections cc ON csl.connection_id = cc.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY csl.started_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -83,7 +83,7 @@ router.get('/calendar-sync/settings', requireAuth, async (req, res) => {
     try {
         const connections = await db.query(`
             SELECT * FROM calendar_connections
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('calendar-sync/settings', {
@@ -104,7 +104,7 @@ router.get('/calendar-sync/history', requireAuth, async (req, res) => {
             SELECT csl.*, cc.provider, cc.provider_email
             FROM calendar_sync_log csl
             JOIN calendar_connections cc ON csl.connection_id = cc.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY csl.started_at DESC
         `, [req.user.id]);
 
@@ -124,7 +124,7 @@ router.get('/settings/calendar-sync', requireAuth, async (req, res) => {
     try {
         const connectionsResult = await db.query(`
             SELECT * FROM calendar_connections
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -133,7 +133,7 @@ router.get('/settings/calendar-sync', requireAuth, async (req, res) => {
             SELECT csl.*, cc.provider, cc.provider_email
             FROM calendar_sync_log csl
             JOIN calendar_connections cc ON csl.connection_id = cc.id
-            WHERE cc.user_id = $1
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
             ORDER BY csl.started_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -242,7 +242,7 @@ router.get('/api/calendar-sync/google/callback', async (req, res) => {
 router.post('/api/calendar-sync/:connectionId/sync', requireAuth, async (req, res) => {
     try {
         const connectionResult = await db.query(`
-            SELECT * FROM calendar_connections WHERE id = $1 AND user_id = $2
+            SELECT * FROM calendar_connections WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.connectionId, req.user.id]);
 
         if (connectionResult.rows.length === 0) {
@@ -328,7 +328,7 @@ async function syncGoogleCalendar(connection, userId) {
             SELECT ce.*, csm.provider_event_id
             FROM calendar_events ce
             LEFT JOIN calendar_sync_mapping csm ON ce.id = csm.local_event_id AND csm.connection_id = $1
-            WHERE ce.user_id = $2 AND ce.start_time >= NOW() - INTERVAL '30 days'
+            WHERE (ce.user_id = $2 OR ce.user_id IS NULL) AND ce.start_time >= NOW() - INTERVAL '30 days'
         `, [connection.id, userId]);
 
         for (const event of localEvents.rows) {
@@ -448,7 +448,7 @@ router.delete('/api/calendar-sync/:connectionId', requireAuth, async (req, res) 
 
         // Delete connection
         await db.query(`
-            DELETE FROM calendar_connections WHERE id = $1 AND user_id = $2
+            DELETE FROM calendar_connections WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.connectionId, req.user.id]);
 
         res.json({ success: true });
@@ -465,7 +465,7 @@ router.put('/api/calendar-sync/:connectionId', requireAuth, async (req, res) => 
 
         await db.query(`
             UPDATE calendar_connections SET sync_direction = $1, sync_status = $2, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3 AND user_id = $4
+            WHERE id = $3 AND (user_id = $4 OR user_id IS NULL)
         `, [sync_direction, sync_status, req.params.connectionId, req.user.id]);
 
         res.json({ success: true });
@@ -482,7 +482,7 @@ router.get('/api/calendar-sync/:connectionId/status', requireAuth, async (req, r
             SELECT cc.*,
                    (SELECT COUNT(*) FROM calendar_sync_mapping WHERE connection_id = cc.id) as synced_events
             FROM calendar_connections cc
-            WHERE cc.id = $1 AND cc.user_id = $2
+            WHERE cc.id = $1 AND (cc.user_id = $2 OR cc.user_id IS NULL)
         `, [req.params.connectionId, req.user.id]);
 
         if (result.rows.length === 0) {

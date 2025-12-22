@@ -17,13 +17,13 @@ router.get('/calendar', requireAuth, async (req, res) => {
     try {
         // Get cases for dropdown
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
         // Get clients for dropdown
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 AND status = \'active\' ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) AND status = \'active\' ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -50,7 +50,7 @@ router.get('/deadlines', requireAuth, async (req, res) => {
             FROM deadlines d
             LEFT JOIN cases c ON d.case_id = c.id
             LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE d.user_id = $1
+            WHERE (d.user_id = $1 OR d.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -73,7 +73,7 @@ router.get('/deadlines', requireAuth, async (req, res) => {
 
         // Get cases for dropdown
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
@@ -113,7 +113,7 @@ async function renderTasksPage(req, res) {
             FROM tasks t
             LEFT JOIN cases c ON t.case_id = c.id
             LEFT JOIN users u ON t.assigned_to = u.id
-            WHERE t.user_id = $1
+            WHERE (t.user_id = $1 OR t.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -141,7 +141,7 @@ async function renderTasksPage(req, res) {
         const tasksResult = await db.query(query, params);
 
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
@@ -150,7 +150,7 @@ async function renderTasksPage(req, res) {
                 COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
                 COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress_count,
                 COUNT(*) FILTER (WHERE status = 'completed') as completed_count
-            FROM tasks WHERE user_id = $1
+            FROM tasks WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('calendar/tasks', {
@@ -187,7 +187,7 @@ router.get('/api/calendar/events', requireAuth, async (req, res) => {
             FROM calendar_events e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
-            WHERE e.user_id = $1
+            WHERE (e.user_id = $1 OR e.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -284,7 +284,7 @@ router.get('/api/calendar/events/:id', requireAuth, async (req, res) => {
             SELECT e.*, c.title as case_title
             FROM calendar_events e
             LEFT JOIN cases c ON e.case_id = c.id
-            WHERE e.id = $1 AND e.user_id = $2
+            WHERE e.id = $1 AND (e.user_id = $2 OR e.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -347,7 +347,7 @@ router.put('/api/calendar/events/:id', requireAuth, async (req, res) => {
 router.delete('/api/calendar/events/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM calendar_events WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM calendar_events WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 
@@ -378,7 +378,7 @@ router.get('/api/deadlines', requireAuth, async (req, res) => {
             SELECT d.*, c.title as case_title, c.case_number
             FROM deadlines d
             LEFT JOIN cases c ON d.case_id = c.id
-            WHERE d.user_id = $1
+            WHERE (d.user_id = $1 OR d.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -424,7 +424,7 @@ router.post('/api/deadlines', requireAuth, async (req, res) => {
         // Verify case ownership
         if (case_id) {
             const caseCheck = await db.query(
-                'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
+                'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
                 [case_id, req.user.id]
             );
             if (caseCheck.rows.length === 0) {
@@ -502,7 +502,7 @@ router.get('/api/deadlines/:id', requireAuth, async (req, res) => {
             SELECT d.*, c.title as case_title, c.case_number
             FROM deadlines d
             LEFT JOIN cases c ON d.case_id = c.id
-            WHERE d.id = $1 AND d.user_id = $2
+            WHERE d.id = $1 AND (d.user_id = $2 OR d.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -520,7 +520,7 @@ router.get('/api/deadlines/:id', requireAuth, async (req, res) => {
 router.delete('/api/deadlines/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM deadlines WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM deadlines WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 
@@ -551,7 +551,7 @@ router.get('/api/tasks', requireAuth, async (req, res) => {
             SELECT t.*, c.title as case_title
             FROM tasks t
             LEFT JOIN cases c ON t.case_id = c.id
-            WHERE t.user_id = $1
+            WHERE (t.user_id = $1 OR t.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -658,7 +658,7 @@ router.get('/api/tasks/:id', requireAuth, async (req, res) => {
             SELECT t.*, c.title as case_title, c.case_number
             FROM tasks t
             LEFT JOIN cases c ON t.case_id = c.id
-            WHERE t.id = $1 AND t.user_id = $2
+            WHERE t.id = $1 AND (t.user_id = $2 OR t.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -676,7 +676,7 @@ router.get('/api/tasks/:id', requireAuth, async (req, res) => {
 router.delete('/api/tasks/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM tasks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 

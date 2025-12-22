@@ -655,7 +655,7 @@ router.post('/api/clients/:id/portal-access', requireAuth, async (req, res) => {
 
         // Verify client belongs to user
         const clientResult = await db.query(
-            'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 

@@ -264,116 +264,167 @@
     </nav>
 
     <div class="container-fluid py-4">
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/clients">Clients</a></li>
-                <li class="breadcrumb-item active"><%= title %></li>
-            </ol>
-        </nav>
-
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>
-                    <% if (client.client_type === 'business') { %>
-                        <i class="fas fa-building me-2"></i><%= client.company_name %>
-                    <% } else { %>
-                        <i class="fas fa-user me-2"></i><%= client.first_name %> <%= client.last_name %>
-                    <% } %>
-                    <span class="badge bg-<%= client.status === 'active' ? 'success' : 'secondary' %> ms-2"><%= client.status %></span>
-                </h2>
+                <h2><i class="fas fa-users me-2"></i>Clients</h2>
+                <p class="text-muted mb-0">Manage your client relationships</p>
             </div>
-            <div>
-                <a href="/clients/<%= client.id %>/edit" class="btn btn-outline-primary me-2"><i class="fas fa-edit me-1"></i>Edit</a>
-                <button class="btn btn-outline-danger" onclick="deleteClient()"><i class="fas fa-trash me-1"></i>Delete</button>
+            <a href="/clients/new" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Client
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All Status</option>
+                            <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+                            <option value="inactive" <%= filters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                            <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Type</label>
+                        <select name="type" class="form-select">
+                            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All Types</option>
+                            <option value="individual" <%= filters.type === 'individual' ? 'selected' : '' %>>Individual</option>
+                            <option value="business" <%= filters.type === 'business' ? 'selected' : '' %>>Business</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Name, email..." value="<%= filters.search || '' %>">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-secondary w-100">
+                            <i class="fas fa-search me-1"></i>Filter
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-lg-4 mb-4">
-                <div class="card">
-                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Client Information</h5></div>
-                    <div class="card-body">
-                        <% if (client.email) { %><p><i class="fas fa-envelope text-muted me-2"></i><%= client.email %></p><% } %>
-                        <% if (client.phone) { %><p><i class="fas fa-phone text-muted me-2"></i><%= client.phone %></p><% } %>
-                        <% if (client.address) { %><p><i class="fas fa-map-marker-alt text-muted me-2"></i><%= client.address %></p><% } %>
+        <!-- Clients Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <% if (clients.length === 0) { %>
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No clients found. <a href="/clients/new">Add your first client</a></p>
                     </div>
-                </div>
-
-                <div class="card mt-4">
-                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Billing</h5></div>
-                    <div class="card-body">
-                        <p>Total Billed: $<%= parseFloat(billing.total_billed || 0).toFixed(2) %></p>
-                        <p>Total Paid: $<%= parseFloat(billing.total_paid || 0).toFixed(2) %></p>
-                        <p>Outstanding: $<%= parseFloat(billing.outstanding || 0).toFixed(2) %></p>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Contact</th>
+                                    <th>Cases</th>
+                                    <th>Total Billed</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% clients.forEach(client => { %>
+                                    <tr class="clickable-row" data-href="/clients/<%= client.id %>" style="cursor: pointer;">
+                                        <td>
+                                            <span class="fw-semibold">
+                                                <% if (client.client_type === 'business') { %>
+                                                    <i class="fas fa-building me-1 text-muted"></i>
+                                                    <%= client.company_name %>
+                                                <% } else { %>
+                                                    <i class="fas fa-user me-1 text-muted"></i>
+                                                    <%= client.first_name %> <%= client.last_name %>
+                                                <% } %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<%= client.client_type === 'business' ? 'info' : 'secondary' %>">
+                                                <%= client.client_type %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (client.email) { %>
+                                                <small><i class="fas fa-envelope me-1"></i><%= client.email %></small><br>
+                                            <% } %>
+                                            <% if (client.phone) { %>
+                                                <small><i class="fas fa-phone me-1"></i><%= client.phone %></small>
+                                            <% } %>
+                                        </td>
+                                        <td><%= client.case_count || 0 %></td>
+                                        <td>$<%= parseFloat(client.total_billed || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) %></td>
+                                        <td>
+                                            <span class="badge bg-<%= client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'secondary' %>">
+                                                <%= client.status %>
+                                            </span>
+                                        </td>
+                                        <td class="actions-cell">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="/clients/<%= client.id %>/edit" class="btn btn-outline-secondary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-outline-danger btn-delete-client" data-id="<%= client.id %>" data-name="<%= client.company_name || client.first_name + ' ' + client.last_name %>" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-lg-8">
-                <div class="card mb-4">
-                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Cases (<%= cases.length %>)</h5></div>
-                    <div class="card-body p-0">
-                        <% if (cases.length === 0) { %>
-                            <div class="text-center py-4"><p class="text-muted">No cases</p></div>
-                        <% } else { %>
-                            <table class="table table-hover mb-0">
-                                <thead><tr><th>Case</th><th>Status</th></tr></thead>
-                                <tbody>
-                                    <% cases.forEach(function(c) { %>
-                                        <tr style="cursor:pointer" onclick="window.location='/cases/<%= c.id %>'">
-                                            <td><%= c.title %></td>
-                                            <td><%= c.status %></td>
-                                        </tr>
-                                    <% }); %>
-                                </tbody>
-                            </table>
-                        <% } %>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Invoices (<%= invoices.length %>)</h5></div>
-                    <div class="card-body p-0">
-                        <% if (invoices.length === 0) { %>
-                            <div class="text-center py-4"><p class="text-muted">No invoices</p></div>
-                        <% } else { %>
-                            <table class="table table-hover mb-0">
-                                <thead><tr><th>Invoice</th><th>Total</th><th>Status</th></tr></thead>
-                                <tbody>
-                                    <% invoices.forEach(function(inv) { %>
-                                        <tr style="cursor:pointer" onclick="window.location='/billing/invoices/<%= inv.id %>'">
-                                            <td><%= inv.invoice_number %></td>
-                                            <td>$<%= parseFloat(inv.total).toFixed(2) %></td>
-                                            <td><%= inv.status %></td>
-                                        </tr>
-                                    <% }); %>
-                                </tbody>
-                            </table>
-                        <% } %>
-                    </div>
-                </div>
+                <% } %>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        function deleteClient() {
-            if (confirm('Delete this client? This cannot be undone.')) {
-                fetch('/api/clients/<%= client.id %>', { method: 'DELETE' })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) window.location='/clients';
-                    else alert('Error: ' + (d.error || 'Failed to delete client'));
+        // Clickable rows
+        document.querySelectorAll('.clickable-row').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a')) return;
+                window.location.href = this.dataset.href;
+            });
+        });
+
+        // Delete client buttons
+        document.querySelectorAll('.btn-delete-client').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deleteClient(this.dataset.id, this.dataset.name);
+            });
+        });
+
+        // Delete client
+        function deleteClient(id, name) {
+            if (confirm('Are you sure you want to delete client "' + name + '"? This action cannot be undone.')) {
+                fetch('/api/clients/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
                 })
-                .catch(function(err) {
-                    alert('Failed to delete client');
-                    console.error(err);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting client: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error deleting client: ' + err.message);
                 });
             }
         }
     </script>
 
-    <footer class="footer bg-dark text-light py-5">    <div class="container">        <div class="row">            <!-- Company Info -->            <div class="col-lg-4 col-md-6 mb-4">                <div class="d-flex align-items-center mb-3">                    <div class="brand-icon me-2 text-primary">                        <i class="fas fa-balance-scale fa-2x"></i>                    </div>                    <span class="h4 mb-0 text-white">LegalPractice<span class="text-primary">AI</span></span>                </div>                <p class="text-muted mb-3">                    Complete AI-powered legal practice management. Trusted by attorneys and law firms nationwide.                </p>                <div class="social-links">                    <a href="#" class="text-muted me-3" aria-label="Facebook"><i class="fab fa-facebook-f fa-lg"></i></a>                    <a href="#" class="text-muted me-3" aria-label="Twitter"><i class="fab fa-twitter fa-lg"></i></a>                    <a href="#" class="text-muted me-3" aria-label="LinkedIn"><i class="fab fa-linkedin-in fa-lg"></i></a>                    <a href="#" class="text-muted" aria-label="Instagram"><i class="fab fa-instagram fa-lg"></i></a>                </div>            </div>            <!-- Quick Links -->            <div class="col-lg-2 col-md-6 mb-4">                <h6 class="text-white text-uppercase mb-3">Quick Links</h6>                <ul class="list-unstyled footer-links">                    <li class="mb-2"><a href="/" class="text-muted">Home</a></li>                    <li class="mb-2"><a href="/services" class="text-muted">Services</a></li>                    <li class="mb-2"><a href="/about" class="text-muted">About Us</a></li>                    <li class="mb-2"><a href="/faq" class="text-muted">FAQ</a></li>                    <li class="mb-2"><a href="/contact" class="text-muted">Contact</a></li>                    <li class="mb-2"><a href="/pricing" class="text-muted">Pricing</a></li>                </ul>            </div>            <!-- Legal Documents -->            <div class="col-lg-3 col-md-6 mb-4">                <h6 class="text-white text-uppercase mb-3">Document Categories</h6>                <ul class="list-unstyled footer-links">                    <li class="mb-2"><a href="/form/business_formation" class="text-muted">Business Formation</a></li>                    <li class="mb-2"><a href="/form/real_estate" class="text-muted">Real Estate</a></li>                    <li class="mb-2"><a href="/form/family_law" class="text-muted">Family Law</a></li>                    <li class="mb-2"><a href="/form/estate_planning" class="text-muted">Estate Planning</a></li>                    <li class="mb-2"><a href="/form/contracts" class="text-muted">Contracts</a></li>                    <li class="mb-2"><a href="/form/employment_law" class="text-muted">Employment Law</a></li>                </ul>            </div>            <!-- Legal & Contact -->            <div class="col-lg-3 col-md-6 mb-4">                <h6 class="text-white text-uppercase mb-3">Legal</h6>                <ul class="list-unstyled footer-links">                    <li class="mb-2"><a href="/privacy-policy" class="text-muted">Privacy Policy</a></li>                    <li class="mb-2"><a href="/terms-of-service" class="text-muted">Terms of Service</a></li>                    <li class="mb-2"><a href="/disclaimer" class="text-muted">Legal Disclaimer</a></li>                    <li class="mb-2"><a href="/refund-policy" class="text-muted">Refund Policy</a></li>                    <li class="mb-2"><a href="/cookie-policy" class="text-muted">Cookie Policy</a></li>                </ul>                <h6 class="text-white text-uppercase mt-4 mb-3">Contact</h6>                <p class="text-muted mb-1"><i class="fas fa-map-marker-alt me-2"></i>2807 Hampton Woods Dr, Richmond VA 23233</p>                <p class="text-muted mb-1"><i class="fas fa-envelope me-2"></i>support@legalpracticeai.com</p>                <p class="text-muted mb-1"><i class="fas fa-phone me-2"></i>804-360-1129</p>            </div>        </div>        <!-- Disclaimer -->        <div class="row mt-4">            <div class="col-12">                <div class="border-top border-secondary pt-4">                    <p class="text-muted small mb-0">                        <strong>Important Legal Disclaimer:</strong> LegalPracticeAI provides legal document templates for informational purposes only.                        Our AI-generated documents are not a substitute for professional legal advice. Laws vary by jurisdiction, and all documents                        should be reviewed by a qualified attorney before use. Use of this service does not create an attorney-client relationship.                    </p>                </div>            </div>        </div>        <!-- Copyright -->        <div class="row mt-4">            <div class="col-md-6">                <p class="text-muted small mb-0">&copy; <%= new Date().getFullYear() %> LegalPracticeAI. All rights reserved.</p>            </div>            <div class="col-md-6 text-md-end">                <p class="text-muted small mb-0">                    <a href="/sitemap.xml" class="text-muted me-3">Sitemap</a>                    <a href="/accessibility" class="text-muted">Accessibility</a>                </p>            </div>        </div>    </div></footer><style>.footer {    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;}.footer-links a {    transition: color 0.3s ease, padding-left 0.3s ease;    color: rgba(255,255,255,0.7) !important;}.footer-links a:hover {    color: #fff !important;    padding-left: 5px;    text-decoration: none;}.social-links a {    transition: color 0.3s ease;    color: rgba(255,255,255,0.7) !important;}.social-links a:hover {    color: #fff !important;}.footer .text-muted {    color: rgba(255,255,255,0.7) !important;}.footer .text-white {    color: #fff !important;}.footer .border-secondary {    border-color: rgba(255,255,255,0.2) !important;}</style>
+    <%- include('../partials/footer') %>
 </body>
 </html>

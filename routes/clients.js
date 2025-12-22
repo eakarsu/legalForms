@@ -32,7 +32,7 @@ router.get('/clients', requireAuth, async (req, res) => {
             FROM clients c
             LEFT JOIN cases cs ON c.id = cs.client_id
             LEFT JOIN invoices i ON c.id = i.client_id
-            WHERE c.user_id = $1
+            WHERE (c.user_id = $1 OR c.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -101,7 +101,7 @@ router.get('/clients/analytics', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as new_this_month,
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as new_this_week
             FROM clients
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         // Revenue by client (top 10)
@@ -113,7 +113,7 @@ router.get('/clients/analytics', requireAuth, async (req, res) => {
             FROM clients c
             LEFT JOIN invoices i ON c.id = i.client_id
             LEFT JOIN cases cs ON c.id = cs.client_id
-            WHERE c.user_id = $1
+            WHERE (c.user_id = $1 OR c.user_id IS NULL)
             GROUP BY c.id
             ORDER BY total_revenue DESC
             LIMIT 10
@@ -125,7 +125,7 @@ router.get('/clients/analytics', requireAuth, async (req, res) => {
                 TO_CHAR(created_at, 'YYYY-MM') as month,
                 COUNT(*) as count
             FROM clients
-            WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '6 months'
+            WHERE (user_id = $1 OR user_id IS NULL) AND created_at >= NOW() - INTERVAL '6 months'
             GROUP BY TO_CHAR(created_at, 'YYYY-MM')
             ORDER BY month
         `, [req.user.id]);
@@ -134,7 +134,7 @@ router.get('/clients/analytics', requireAuth, async (req, res) => {
         const stateResult = await db.query(`
             SELECT state, COUNT(*) as count
             FROM clients
-            WHERE user_id = $1 AND state IS NOT NULL AND state != ''
+            WHERE (user_id = $1 OR user_id IS NULL) AND state IS NOT NULL AND state != ''
             GROUP BY state
             ORDER BY count DESC
             LIMIT 10
@@ -158,7 +158,7 @@ router.get('/clients/analytics', requireAuth, async (req, res) => {
 router.get('/clients/:id/edit', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -183,7 +183,7 @@ router.get('/clients/:id', requireAuth, async (req, res) => {
     try {
         // Get client details
         const clientResult = await db.query(
-            'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -244,7 +244,7 @@ router.get('/api/clients', requireAuth, async (req, res) => {
     try {
         const { status, type, search, limit = 50, offset = 0 } = req.query;
 
-        let query = 'SELECT * FROM clients WHERE user_id = $1';
+        let query = 'SELECT * FROM clients WHERE (user_id = $1 OR user_id IS NULL)';
         const params = [req.user.id];
         let paramIndex = 2;
 
@@ -286,7 +286,7 @@ router.get('/api/clients', requireAuth, async (req, res) => {
 router.get('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         const clientResult = await db.query(
-            'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -475,7 +475,7 @@ router.delete('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         // Verify client ownership first
         const clientCheck = await db.query(
-            'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -507,7 +507,7 @@ router.delete('/api/clients/:id', requireAuth, async (req, res) => {
         await db.query('DELETE FROM invoices WHERE client_id = $1', [req.params.id]);
 
         // Now delete the client
-        await db.query('DELETE FROM clients WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        await db.query('DELETE FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [req.params.id, req.user.id]);
 
         res.json({
             success: true,
@@ -530,7 +530,7 @@ router.post('/api/clients/:id/contacts', requireAuth, async (req, res) => {
 
         // Verify client ownership
         const clientCheck = await db.query(
-            'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -569,7 +569,7 @@ router.put('/api/clients/:clientId/contacts/:contactId', requireAuth, async (req
 
         // Verify client ownership
         const clientCheck = await db.query(
-            'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.clientId, req.user.id]
         );
 
@@ -610,7 +610,7 @@ router.delete('/api/clients/:clientId/contacts/:contactId', requireAuth, async (
     try {
         // Verify client ownership
         const clientCheck = await db.query(
-            'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.clientId, req.user.id]
         );
 

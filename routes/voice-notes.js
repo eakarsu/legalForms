@@ -56,7 +56,7 @@ router.get('/voice-notes', requireAuth, async (req, res) => {
             FROM voice_transcriptions vt
             LEFT JOIN clients c ON vt.client_id = c.id
             LEFT JOIN cases cs ON vt.case_id = cs.id
-            WHERE vt.user_id = $1
+            WHERE (vt.user_id = $1 OR vt.user_id IS NULL)
             ORDER BY vt.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -67,7 +67,7 @@ router.get('/voice-notes', requireAuth, async (req, res) => {
                 COALESCE(SUM(audio_duration_seconds), 0) as total_duration,
                 COUNT(CASE WHEN case_note_id IS NOT NULL THEN 1 END) as notes_created
             FROM voice_transcriptions
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('voice/dashboard', {
@@ -200,7 +200,7 @@ router.post('/api/voice-notes/cleanup', requireAuth, async (req, res) => {
         let transcription;
         if (transcription_id) {
             const result = await db.query(
-                'SELECT * FROM voice_transcriptions WHERE id = $1 AND user_id = $2',
+                'SELECT * FROM voice_transcriptions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
                 [transcription_id, req.user.id]
             );
             if (result.rows.length === 0) {
@@ -326,7 +326,7 @@ Respond in JSON:
 router.post('/api/voice-notes/:id/create-note', requireAuth, async (req, res) => {
     try {
         const transcriptionResult = await db.query(
-            'SELECT * FROM voice_transcriptions WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM voice_transcriptions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -382,7 +382,7 @@ router.post('/api/voice-notes/:id/create-note', requireAuth, async (req, res) =>
 router.get('/api/voice-notes/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM voice_transcriptions WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM voice_transcriptions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -401,7 +401,7 @@ router.get('/api/voice-notes/:id', requireAuth, async (req, res) => {
 router.delete('/api/voice-notes/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM voice_transcriptions WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM voice_transcriptions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 

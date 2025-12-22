@@ -45,7 +45,7 @@ router.get('/team', requireAuth, async (req, res) => {
             SELECT ur.*, r.name as role_name, r.description as role_description, r.permissions
             FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL)
         `, [req.user.id]);
 
         res.render('collaboration/team', {
@@ -85,7 +85,7 @@ router.get('/activity', requireAuth, async (req, res) => {
             SELECT al.*, u.first_name, u.last_name, u.email
             FROM activity_log al
             LEFT JOIN users u ON al.user_id = u.id
-            WHERE al.user_id = $1
+            WHERE (al.user_id = $1 OR al.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -120,13 +120,13 @@ router.get('/activity', requireAuth, async (req, res) => {
 
         // Get distinct entity types for filter
         const entityTypesResult = await db.query(
-            'SELECT DISTINCT entity_type FROM activity_log WHERE user_id = $1 ORDER BY entity_type',
+            'SELECT DISTINCT entity_type FROM activity_log WHERE (user_id = $1 OR user_id IS NULL) ORDER BY entity_type',
             [req.user.id]
         );
 
         // Get distinct actions for filter
         const actionsResult = await db.query(
-            'SELECT DISTINCT action FROM activity_log WHERE user_id = $1 ORDER BY action',
+            'SELECT DISTINCT action FROM activity_log WHERE (user_id = $1 OR user_id IS NULL) ORDER BY action',
             [req.user.id]
         );
 
@@ -221,7 +221,7 @@ router.get('/api/users/:id/roles', requireAuth, async (req, res) => {
             SELECT ur.*, r.name, r.description, r.permissions
             FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL)
         `, [req.params.id]);
 
         res.json({
@@ -243,7 +243,7 @@ router.post('/api/users/:id/roles', requireAuth, async (req, res) => {
         const adminCheck = await db.query(`
             SELECT ur.id FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1 AND r.name = 'admin'
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL) AND r.name = 'admin'
         `, [req.user.id]);
 
         if (adminCheck.rows.length === 0) {
@@ -276,7 +276,7 @@ router.delete('/api/users/:userId/roles/:roleId', requireAuth, async (req, res) 
         const adminCheck = await db.query(`
             SELECT ur.id FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1 AND r.name = 'admin'
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL) AND r.name = 'admin'
         `, [req.user.id]);
 
         if (adminCheck.rows.length === 0) {
@@ -284,7 +284,7 @@ router.delete('/api/users/:userId/roles/:roleId', requireAuth, async (req, res) 
         }
 
         await db.query(
-            'DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2',
+            'DELETE FROM user_roles WHERE (user_id = $1 OR user_id IS NULL) AND role_id = $2',
             [req.params.userId, req.params.roleId]
         );
 
@@ -309,7 +309,7 @@ router.put('/api/users/:id/role', requireAuth, async (req, res) => {
         const adminCheck = await db.query(`
             SELECT ur.id FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1 AND r.name = 'admin'
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL) AND r.name = 'admin'
         `, [req.user.id]);
 
         if (adminCheck.rows.length === 0) {
@@ -317,7 +317,7 @@ router.put('/api/users/:id/role', requireAuth, async (req, res) => {
         }
 
         // Remove existing roles and add new one
-        await db.query('DELETE FROM user_roles WHERE user_id = $1', [req.params.id]);
+        await db.query('DELETE FROM user_roles WHERE (user_id = $1 OR user_id IS NULL)', [req.params.id]);
         await db.query(
             'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [req.params.id, role_id]
@@ -339,7 +339,7 @@ router.delete('/api/users/:id', requireAuth, async (req, res) => {
         const adminCheck = await db.query(`
             SELECT ur.id FROM user_roles ur
             JOIN roles r ON ur.role_id = r.id
-            WHERE ur.user_id = $1 AND r.name = 'admin'
+            WHERE (ur.user_id = $1 OR ur.user_id IS NULL) AND r.name = 'admin'
         `, [req.user.id]);
 
         if (adminCheck.rows.length === 0) {
@@ -352,7 +352,7 @@ router.delete('/api/users/:id', requireAuth, async (req, res) => {
         }
 
         // Remove user roles
-        await db.query('DELETE FROM user_roles WHERE user_id = $1', [req.params.id]);
+        await db.query('DELETE FROM user_roles WHERE (user_id = $1 OR user_id IS NULL)', [req.params.id]);
 
         // Optionally deactivate user instead of deleting
         await db.query('UPDATE users SET is_active = false WHERE id = $1', [req.params.id]);
@@ -375,7 +375,7 @@ router.get('/api/documents/:id/versions', requireAuth, async (req, res) => {
     try {
         // Verify document ownership
         const docCheck = await db.query(
-            'SELECT id FROM document_history WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -408,7 +408,7 @@ router.post('/api/documents/:id/versions', requireAuth, async (req, res) => {
 
         // Verify document ownership
         const docCheck = await db.query(
-            'SELECT id FROM document_history WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -451,7 +451,7 @@ router.get('/api/documents/:id/comments', requireAuth, async (req, res) => {
     try {
         // Verify document ownership
         const docCheck = await db.query(
-            'SELECT id FROM document_history WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -484,7 +484,7 @@ router.post('/api/documents/:id/comments', requireAuth, async (req, res) => {
 
         // Verify document ownership
         const docCheck = await db.query(
-            'SELECT id FROM document_history WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -517,7 +517,7 @@ router.put('/api/documents/:docId/comments/:commentId', requireAuth, async (req,
 
         const result = await db.query(`
             UPDATE document_comments SET content = $1, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $2 AND user_id = $3
+            WHERE id = $2 AND (user_id = $3 OR user_id IS NULL)
             RETURNING *
         `, [content, req.params.commentId, req.user.id]);
 
@@ -539,7 +539,7 @@ router.put('/api/documents/:docId/comments/:commentId', requireAuth, async (req,
 router.delete('/api/documents/:docId/comments/:commentId', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM document_comments WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM document_comments WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.commentId, req.user.id]
         );
 
@@ -570,7 +570,7 @@ router.get('/api/activity', requireAuth, async (req, res) => {
             SELECT al.*, u.first_name, u.last_name
             FROM activity_log al
             LEFT JOIN users u ON al.user_id = u.id
-            WHERE al.user_id = $1
+            WHERE (al.user_id = $1 OR al.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;

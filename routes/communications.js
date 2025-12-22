@@ -26,7 +26,7 @@ router.get('/messages', requireAuth, async (req, res) => {
             LEFT JOIN clients cl ON m.client_id = cl.id
             LEFT JOIN cases c ON m.case_id = c.id
             LEFT JOIN users u ON m.user_id = u.id
-            WHERE m.user_id = $1 OR m.recipient_id = $1
+            WHERE (m.user_id = $1 OR m.user_id IS NULL) OR m.recipient_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -55,13 +55,13 @@ router.get('/messages', requireAuth, async (req, res) => {
 
         // Get clients for compose dropdown
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 AND status = \'active\' ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) AND status = \'active\' ORDER BY company_name, last_name',
             [req.user.id]
         );
 
         // Get cases for compose dropdown
         const casesResult = await db.query(
-            'SELECT id, title, case_number FROM cases WHERE user_id = $1 AND status != \'archived\' ORDER BY title',
+            'SELECT id, title, case_number FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status != \'archived\' ORDER BY title',
             [req.user.id]
         );
 
@@ -85,7 +85,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
     try {
         const { type, is_read } = req.query;
 
-        let query = 'SELECT * FROM notifications WHERE user_id = $1';
+        let query = 'SELECT * FROM notifications WHERE (user_id = $1 OR user_id IS NULL)';
         const params = [req.user.id];
         let paramIndex = 2;
 
@@ -107,7 +107,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
 
         // Get unread count
         const unreadResult = await db.query(
-            'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false',
+            'SELECT COUNT(*) FROM notifications WHERE (user_id = $1 OR user_id IS NULL) AND is_read = false',
             [req.user.id]
         );
 
@@ -139,7 +139,7 @@ router.get('/api/messages', requireAuth, async (req, res) => {
             FROM messages m
             LEFT JOIN clients cl ON m.client_id = cl.id
             LEFT JOIN cases c ON m.case_id = c.id
-            WHERE m.user_id = $1 OR m.recipient_id = $1
+            WHERE (m.user_id = $1 OR m.user_id IS NULL) OR m.recipient_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -282,7 +282,7 @@ router.put('/api/messages/:id/read', requireAuth, async (req, res) => {
 router.delete('/api/messages/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM messages WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM messages WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 
@@ -309,7 +309,7 @@ router.get('/api/notifications', requireAuth, async (req, res) => {
     try {
         const { type, is_read, limit = 50 } = req.query;
 
-        let query = 'SELECT * FROM notifications WHERE user_id = $1';
+        let query = 'SELECT * FROM notifications WHERE (user_id = $1 OR user_id IS NULL)';
         const params = [req.user.id];
         let paramIndex = 2;
 
@@ -332,7 +332,7 @@ router.get('/api/notifications', requireAuth, async (req, res) => {
 
         // Get unread count
         const unreadResult = await db.query(
-            'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false',
+            'SELECT COUNT(*) FROM notifications WHERE (user_id = $1 OR user_id IS NULL) AND is_read = false',
             [req.user.id]
         );
 
@@ -352,7 +352,7 @@ router.put('/api/notifications/:id/read', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             UPDATE notifications SET is_read = true
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
             RETURNING *
         `, [req.params.id, req.user.id]);
 
@@ -374,7 +374,7 @@ router.put('/api/notifications/:id/read', requireAuth, async (req, res) => {
 router.put('/api/notifications/read-all', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+            'UPDATE notifications SET is_read = true WHERE (user_id = $1 OR user_id IS NULL) AND is_read = false',
             [req.user.id]
         );
 
@@ -392,7 +392,7 @@ router.put('/api/notifications/read-all', requireAuth, async (req, res) => {
 router.get('/api/notifications/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM notifications WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM notifications WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -411,7 +411,7 @@ router.get('/api/notifications/:id', requireAuth, async (req, res) => {
 router.delete('/api/notifications/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM notifications WHERE id = $1 AND user_id = $2 RETURNING *',
+            'DELETE FROM notifications WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
             [req.params.id, req.user.id]
         );
 

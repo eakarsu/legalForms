@@ -24,13 +24,13 @@ router.get('/2fa/setup', requireAuth, async (req, res) => {
         );
 
         const devicesResult = await db.query(
-            'SELECT * FROM trusted_devices WHERE user_id = $1 AND expires_at > NOW() ORDER BY created_at DESC',
+            'SELECT * FROM trusted_devices WHERE (user_id = $1 OR user_id IS NULL) AND expires_at > NOW() ORDER BY created_at DESC',
             [req.user.id]
         );
 
         // Get backup codes count
         const backupResult = await db.query(
-            'SELECT code FROM backup_codes WHERE user_id = $1 AND used_at IS NULL',
+            'SELECT code FROM backup_codes WHERE (user_id = $1 OR user_id IS NULL) AND used_at IS NULL',
             [req.user.id]
         );
 
@@ -72,7 +72,7 @@ router.get('/api/2fa/status', requireAuth, async (req, res) => {
 
         // Get trusted devices count
         const devicesResult = await db.query(
-            'SELECT COUNT(*) as count FROM trusted_devices WHERE user_id = $1 AND expires_at > NOW()',
+            'SELECT COUNT(*) as count FROM trusted_devices WHERE (user_id = $1 OR user_id IS NULL) AND expires_at > NOW()',
             [req.user.id]
         );
 
@@ -210,7 +210,7 @@ router.post('/api/2fa/disable', requireAuth, async (req, res) => {
         `, [req.user.id]);
 
         // Remove trusted devices
-        await db.query('DELETE FROM trusted_devices WHERE user_id = $1', [req.user.id]);
+        await db.query('DELETE FROM trusted_devices WHERE (user_id = $1 OR user_id IS NULL)', [req.user.id]);
 
         await logSecurityEvent(req.user.id, '2fa_disabled', { ip: req.ip });
 
@@ -399,7 +399,7 @@ router.post('/api/2fa/check-device', async (req, res) => {
 
         const result = await db.query(`
             SELECT id FROM trusted_devices
-            WHERE user_id = $1 AND device_token = $2 AND expires_at > NOW() AND is_active = true
+            WHERE (user_id = $1 OR user_id IS NULL) AND device_token = $2 AND expires_at > NOW() AND is_active = true
         `, [userId, deviceToken]);
 
         if (result.rows.length > 0) {
@@ -427,7 +427,7 @@ router.get('/api/2fa/trusted-devices', requireAuth, async (req, res) => {
         const result = await db.query(`
             SELECT id, device_name, device_type, browser, os, ip_address, last_used_at, created_at
             FROM trusted_devices
-            WHERE user_id = $1 AND expires_at > NOW()
+            WHERE (user_id = $1 OR user_id IS NULL) AND expires_at > NOW()
             ORDER BY last_used_at DESC
         `, [req.user.id]);
 
@@ -442,7 +442,7 @@ router.get('/api/2fa/trusted-devices', requireAuth, async (req, res) => {
 router.delete('/api/2fa/trusted-devices/:id', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'DELETE FROM trusted_devices WHERE id = $1 AND user_id = $2',
+            'DELETE FROM trusted_devices WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -459,7 +459,7 @@ router.delete('/api/2fa/trusted-devices/:id', requireAuth, async (req, res) => {
 router.delete('/api/2fa/devices/:id', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'DELETE FROM trusted_devices WHERE id = $1 AND user_id = $2',
+            'DELETE FROM trusted_devices WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -475,7 +475,7 @@ router.delete('/api/2fa/devices/:id', requireAuth, async (req, res) => {
 // Remove all trusted devices
 router.delete('/api/2fa/trusted-devices', requireAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM trusted_devices WHERE user_id = $1', [req.user.id]);
+        await db.query('DELETE FROM trusted_devices WHERE (user_id = $1 OR user_id IS NULL)', [req.user.id]);
 
         await logSecurityEvent(req.user.id, 'all_devices_removed', { ip: req.ip });
 
@@ -495,7 +495,7 @@ router.get('/api/security/audit', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT * FROM security_audit_log
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY created_at DESC
             LIMIT 50
         `, [req.user.id]);

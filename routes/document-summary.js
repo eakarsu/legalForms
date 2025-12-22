@@ -24,7 +24,7 @@ router.get('/document-summary', requireAuth, async (req, res) => {
             FROM document_summaries ds
             LEFT JOIN clients c ON ds.client_id = c.id
             LEFT JOIN cases cs ON ds.case_id = cs.id
-            WHERE ds.user_id = $1
+            WHERE (ds.user_id = $1 OR ds.user_id IS NULL)
             ORDER BY ds.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -35,7 +35,7 @@ router.get('/document-summary', requireAuth, async (req, res) => {
                 COALESCE(SUM(word_count), 0) as total_words,
                 COUNT(CASE WHEN case_note_id IS NOT NULL THEN 1 END) as notes_created
             FROM document_summaries
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('document-summary/dashboard', {
@@ -54,12 +54,12 @@ router.get('/document-summary', requireAuth, async (req, res) => {
 router.get('/document-summary/new', requireAuth, async (req, res) => {
     try {
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name FROM clients WHERE user_id = $1 ORDER BY last_name',
+            'SELECT id, first_name, last_name, company_name FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name',
             [req.user.id]
         );
 
         const casesResult = await db.query(
-            'SELECT id, case_number, title FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT id, case_number, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY created_at DESC',
             [req.user.id]
         );
 
@@ -93,7 +93,7 @@ router.get('/document-summary/:id', requireAuth, async (req, res) => {
             FROM document_summaries ds
             LEFT JOIN clients c ON ds.client_id = c.id
             LEFT JOIN cases cs ON ds.case_id = cs.id
-            WHERE ds.id = $1 AND ds.user_id = $2
+            WHERE ds.id = $1 AND (ds.user_id = $2 OR ds.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (summaryResult.rows.length === 0) {
@@ -322,7 +322,7 @@ router.post('/api/document-summary/:id/regenerate', requireAuth, async (req, res
         const { summary_length, target_audience } = req.body;
 
         const summaryResult = await db.query(
-            'SELECT * FROM document_summaries WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM document_summaries WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -359,7 +359,7 @@ router.post('/api/document-summary/:id/regenerate', requireAuth, async (req, res
 router.post('/api/document-summary/:id/create-note', requireAuth, async (req, res) => {
     try {
         const summaryResult = await db.query(
-            'SELECT * FROM document_summaries WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM document_summaries WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -425,7 +425,7 @@ router.post('/api/document-summary/:id/create-note', requireAuth, async (req, re
 router.get('/api/document-summary/:id/key-points', requireAuth, async (req, res) => {
     try {
         const summaryCheck = await db.query(
-            'SELECT id FROM document_summaries WHERE id = $1 AND user_id = $2',
+            'SELECT id FROM document_summaries WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -451,7 +451,7 @@ router.delete('/api/document-summary/:id', requireAuth, async (req, res) => {
         await db.query('DELETE FROM summary_key_points WHERE summary_id = $1', [req.params.id]);
 
         const result = await db.query(
-            'DELETE FROM document_summaries WHERE id = $1 AND user_id = $2 RETURNING id',
+            'DELETE FROM document_summaries WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING id',
             [req.params.id, req.user.id]
         );
 
@@ -476,7 +476,7 @@ router.get('/api/document-summary', requireAuth, async (req, res) => {
             FROM document_summaries ds
             LEFT JOIN clients c ON ds.client_id = c.id
             LEFT JOIN cases cs ON ds.case_id = cs.id
-            WHERE ds.user_id = $1
+            WHERE (ds.user_id = $1 OR ds.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;

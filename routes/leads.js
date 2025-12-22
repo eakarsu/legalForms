@@ -142,7 +142,7 @@ router.get('/leads/forms/:id/preview', requireAuth, async (req, res) => {
             SELECT ift.*, u.first_name as attorney_first_name, u.last_name as attorney_last_name
             FROM intake_form_templates ift
             JOIN users u ON ift.user_id = u.id
-            WHERE ift.id = $1 AND ift.user_id = $2
+            WHERE ift.id = $1 AND (ift.user_id = $2 OR ift.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -183,7 +183,7 @@ router.get('/leads', requireAuth, async (req, res) => {
                    (SELECT COUNT(*) FROM lead_activities WHERE lead_id = l.id) as activity_count
             FROM leads l
             LEFT JOIN intake_form_templates ift ON l.form_id = ift.id
-            WHERE l.user_id = $1
+            WHERE (l.user_id = $1 OR l.user_id IS NULL)
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -220,7 +220,7 @@ router.get('/leads', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'converted') as converted_count,
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as this_week
             FROM leads
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('leads/dashboard', {
@@ -241,7 +241,7 @@ router.get('/leads/forms', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT * FROM intake_form_templates
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -266,27 +266,27 @@ router.get('/leads/analytics', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as this_week,
                 COUNT(*) FILTER (WHERE status = 'converted') as converted,
                 COUNT(*) as total
-            FROM leads WHERE user_id = $1
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         // Leads by status
         const byStatus = await db.query(`
             SELECT status, COUNT(*) as count
-            FROM leads WHERE user_id = $1
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
             GROUP BY status ORDER BY count DESC
         `, [req.user.id]);
 
         // Leads by source
         const bySource = await db.query(`
             SELECT COALESCE(source, 'direct') as source, COUNT(*) as count
-            FROM leads WHERE user_id = $1
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
             GROUP BY source ORDER BY count DESC
         `, [req.user.id]);
 
         // Leads by practice area
         const byPracticeArea = await db.query(`
             SELECT COALESCE(practice_area, 'other') as practice_area, COUNT(*) as count
-            FROM leads WHERE user_id = $1
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
             GROUP BY practice_area ORDER BY count DESC
         `, [req.user.id]);
 
@@ -296,7 +296,7 @@ router.get('/leads/analytics', requireAuth, async (req, res) => {
                 TO_CHAR(created_at, 'Mon YYYY') as month,
                 COUNT(*) as count
             FROM leads
-            WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '6 months'
+            WHERE (user_id = $1 OR user_id IS NULL) AND created_at >= NOW() - INTERVAL '6 months'
             GROUP BY TO_CHAR(created_at, 'Mon YYYY'), DATE_TRUNC('month', created_at)
             ORDER BY DATE_TRUNC('month', created_at)
         `, [req.user.id]);
@@ -341,7 +341,7 @@ router.get('/leads/forms/:id/edit', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT * FROM intake_form_templates
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -368,7 +368,7 @@ router.get('/leads/forms/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT * FROM intake_form_templates
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -382,7 +382,7 @@ router.get('/leads/forms/:id', requireAuth, async (req, res) => {
             SELECT l.*,
                    CASE WHEN l.status = 'converted' THEN true ELSE false END as is_converted
             FROM leads l
-            WHERE l.form_id = $1 AND l.user_id = $2
+            WHERE l.form_id = $1 AND (l.user_id = $2 OR l.user_id IS NULL)
             ORDER BY l.created_at DESC
             LIMIT 20
         `, [req.params.id, req.user.id]);
@@ -407,7 +407,7 @@ router.get('/leads/:id', requireAuth, async (req, res) => {
             SELECT l.*, ift.name as form_name
             FROM leads l
             LEFT JOIN intake_form_templates ift ON l.form_id = ift.id
-            WHERE l.id = $1 AND l.user_id = $2
+            WHERE l.id = $1 AND (l.user_id = $2 OR l.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (leadResult.rows.length === 0) {
@@ -510,7 +510,7 @@ router.put('/api/leads/:id/status', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             UPDATE leads SET status = $1, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $2 AND user_id = $3
+            WHERE id = $2 AND (user_id = $3 OR user_id IS NULL)
             RETURNING *
         `, [status, req.params.id, req.user.id]);
 
@@ -558,7 +558,7 @@ router.post('/api/leads/:id/activities', requireAuth, async (req, res) => {
 router.post('/api/leads/:id/convert', requireAuth, async (req, res) => {
     try {
         const leadResult = await db.query(
-            'SELECT * FROM leads WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM leads WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -677,7 +677,7 @@ router.put('/api/leads/forms/:id', requireAuth, async (req, res) => {
 router.delete('/api/leads/forms/:id', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'DELETE FROM intake_form_templates WHERE id = $1 AND user_id = $2',
+            'DELETE FROM intake_form_templates WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -692,7 +692,7 @@ router.delete('/api/leads/forms/:id', requireAuth, async (req, res) => {
 router.delete('/api/leads/:id', requireAuth, async (req, res) => {
     try {
         await db.query('DELETE FROM lead_activities WHERE lead_id = $1', [req.params.id]);
-        await db.query('DELETE FROM leads WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        await db.query('DELETE FROM leads WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {
@@ -711,7 +711,7 @@ async function calculateLeadScore(userId, formData, practiceArea) {
     try {
         // Get scoring rules
         const rulesResult = await db.query(
-            'SELECT * FROM lead_scoring_rules WHERE user_id = $1 AND is_active = true',
+            'SELECT * FROM lead_scoring_rules WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true',
             [userId]
         );
 

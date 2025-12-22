@@ -15,7 +15,7 @@ const getDocuSignClient = async (userId = null, useUserConfig = false) => {
         // Try to get user's DocuSign configuration first if requested
         if (useUserConfig && userId) {
             const userConfigResult = await db.query(
-                'SELECT * FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
+                'SELECT * FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true',
                 [userId]
             );
             
@@ -147,7 +147,7 @@ const checkPlatformUsageLimits = async (userId) => {
     
     // Get current usage
     const usageResult = await db.query(
-        'SELECT * FROM platform_usage WHERE user_id = $1 AND month_year = $2',
+        'SELECT * FROM platform_usage WHERE (user_id = $1 OR user_id IS NULL) AND month_year = $2',
         [userId, currentMonth]
     );
     
@@ -267,7 +267,7 @@ router.post('/send', requireAuth, async (req, res) => {
         
         // Get document details
         const docResult = await db.query(
-            'SELECT * FROM document_history WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [documentId, req.user.id]
         );
         
@@ -306,7 +306,7 @@ router.post('/send', requireAuth, async (req, res) => {
                 try {
                     // Check if user has their own DocuSign config
                     const hasUserConfig = await db.query(
-                        'SELECT id FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
+                        'SELECT id FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true',
                         [req.user.id]
                     );
                     
@@ -422,7 +422,7 @@ router.get('/status/:esignatureId', requireAuth, async (req, res) => {
             SELECT es.*, dh.title as document_title
             FROM esignature_requests es
             JOIN document_history dh ON es.document_id = dh.id
-            WHERE es.id = $1 AND es.user_id = $2
+            WHERE es.id = $1 AND (es.user_id = $2 OR es.user_id IS NULL)
         `, [esignatureId, req.user.id]);
         
         if (result.rows.length === 0) {
@@ -483,7 +483,7 @@ router.get('/list', requireAuth, async (req, res) => {
             SELECT es.*, dh.title as document_title
             FROM esignature_requests es
             JOIN document_history dh ON es.document_id = dh.id
-            WHERE es.user_id = $1
+            WHERE (es.user_id = $1 OR es.user_id IS NULL)
             ORDER BY es.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -635,7 +635,7 @@ router.get('/test-auth', async (req, res) => {
 router.get('/config', requireAuth, async (req, res) => {
     try {
         const userConfigResult = await db.query(
-            'SELECT id, integration_key, user_guid, account_id, base_path, is_active, created_at FROM user_docusign_configs WHERE user_id = $1',
+            'SELECT id, integration_key, user_guid, account_id, base_path, is_active, created_at FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL)',
             [req.user.id]
         );
         
@@ -718,7 +718,7 @@ router.post('/config', requireAuth, async (req, res) => {
 router.delete('/config', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'UPDATE user_docusign_configs SET is_active = false WHERE user_id = $1',
+            'UPDATE user_docusign_configs SET is_active = false WHERE (user_id = $1 OR user_id IS NULL)',
             [req.user.id]
         );
         

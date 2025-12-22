@@ -22,7 +22,7 @@ router.get('/billing/ai-suggestions', requireAuth, async (req, res) => {
             SELECT abs.*, c.title as case_title
             FROM ai_billing_suggestions abs
             LEFT JOIN cases c ON abs.case_id = c.id
-            WHERE abs.user_id = $1
+            WHERE (abs.user_id = $1 OR abs.user_id IS NULL)
             ORDER BY abs.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -34,12 +34,12 @@ router.get('/billing/ai-suggestions', requireAuth, async (req, res) => {
                 COUNT(CASE WHEN status = 'accepted' THEN 1 END) as accepted_count,
                 COALESCE(SUM(CASE WHEN status = 'accepted' THEN suggested_amount END), 0) as accepted_value
             FROM ai_billing_suggestions
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         const casesResult = await db.query(`
             SELECT id, case_number, title FROM cases
-            WHERE user_id = $1 AND status != 'closed'
+            WHERE (user_id = $1 OR user_id IS NULL) AND status != 'closed'
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -80,7 +80,7 @@ router.post('/api/ai-billing/scan-notes', requireAuth, async (req, res) => {
                 SELECT c.*, cl.first_name, cl.last_name
                 FROM cases c
                 LEFT JOIN clients cl ON c.client_id = cl.id
-                WHERE c.id = $1 AND c.user_id = $2
+                WHERE c.id = $1 AND (c.user_id = $2 OR c.user_id IS NULL)
             `, [case_id, req.user.id]);
 
             if (caseResult.rows.length === 0) {
@@ -112,7 +112,7 @@ router.post('/api/ai-billing/scan-notes', requireAuth, async (req, res) => {
                 SELECT cn.*, c.title as case_title
                 FROM case_notes cn
                 JOIN cases c ON cn.case_id = c.id
-                WHERE c.user_id = $1 AND cn.created_at >= NOW() - INTERVAL '${daysAgo} days'
+                WHERE (c.user_id = $1 OR c.user_id IS NULL) AND cn.created_at >= NOW() - INTERVAL '${daysAgo} days'
                 ORDER BY cn.created_at DESC
                 LIMIT 50
             `, [req.user.id]);
@@ -243,7 +243,7 @@ Respond in JSON format:
 router.post('/api/ai-billing/suggestions/:id/accept', requireAuth, async (req, res) => {
     try {
         const suggestionResult = await db.query(
-            'SELECT * FROM ai_billing_suggestions WHERE id = $1 AND user_id = $2',
+            'SELECT * FROM ai_billing_suggestions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
             [req.params.id, req.user.id]
         );
 
@@ -296,7 +296,7 @@ router.post('/api/ai-billing/suggestions/:id/reject', requireAuth, async (req, r
         await db.query(`
             UPDATE ai_billing_suggestions
             SET status = 'rejected'
-            WHERE id = $1 AND user_id = $2
+            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -315,7 +315,7 @@ router.get('/api/ai-billing/suggestions', requireAuth, async (req, res) => {
             SELECT abs.*, c.title as case_title
             FROM ai_billing_suggestions abs
             LEFT JOIN cases c ON abs.case_id = c.id
-            WHERE abs.user_id = $1
+            WHERE (abs.user_id = $1 OR abs.user_id IS NULL)
         `;
         const params = [req.user.id];
 

@@ -21,7 +21,7 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
         const analysesResult = await db.query(`
             SELECT aca.*
             FROM ai_conflict_analyses aca
-            WHERE aca.user_id = $1
+            WHERE (aca.user_id = $1 OR aca.user_id IS NULL)
             ORDER BY aca.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -32,7 +32,7 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
                 COUNT(CASE WHEN reviewed = false THEN 1 END) as pending_review,
                 COUNT(CASE WHEN potential_conflicts IS NOT NULL AND jsonb_array_length(potential_conflicts) > 0 THEN 1 END) as conflicts_found
             FROM ai_conflict_analyses
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('ai/conflicts-dashboard', {
@@ -64,7 +64,7 @@ router.post('/api/ai-conflicts/analyze', requireAuth, async (req, res) => {
         const existingPartiesResult = await db.query(`
             SELECT DISTINCT name, party_type, relationship
             FROM conflict_parties
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY name
         `, [req.user.id]);
 
@@ -214,7 +214,7 @@ router.post('/api/ai-conflicts/:id/review', requireAuth, async (req, res) => {
         await db.query(`
             UPDATE ai_conflict_analyses
             SET reviewed = true, reviewed_by = $1, reviewed_at = CURRENT_TIMESTAMP
-            WHERE id = $2 AND user_id = $3
+            WHERE id = $2 AND (user_id = $3 OR user_id IS NULL)
         `, [req.user.id, req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -229,7 +229,7 @@ router.get('/api/ai-conflicts/history', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT * FROM ai_conflict_analyses
-            WHERE user_id = $1
+            WHERE (user_id = $1 OR user_id IS NULL)
             ORDER BY created_at DESC
             LIMIT 50
         `, [req.user.id]);

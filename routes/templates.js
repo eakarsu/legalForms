@@ -13,7 +13,7 @@ class TemplateRecommendationEngine {
     async getUserProfile(userId) {
         if (!this.userProfiles.has(userId)) {
             const result = await db.query(
-                'SELECT * FROM user_profiles WHERE user_id = $1',
+                'SELECT * FROM user_profiles WHERE (user_id = $1 OR user_id IS NULL)',
                 [userId]
             );
             
@@ -44,7 +44,7 @@ class TemplateRecommendationEngine {
         const historyResult = await db.query(`
             SELECT document_type, specific_type, COUNT(*) as usage_count
             FROM document_history 
-            WHERE user_id = $1 
+            WHERE (user_id = $1 OR user_id IS NULL) 
             GROUP BY document_type, specific_type
             ORDER BY usage_count DESC
         `, [userId]);

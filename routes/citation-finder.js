@@ -13,7 +13,7 @@ router.get('/citation-finder', requireAuth, async (req, res) => {
             SELECT cs.*,
                    (SELECT COUNT(*) FROM legal_citations lc WHERE lc.search_id = cs.id) as citation_count
             FROM citation_searches cs
-            WHERE cs.user_id = $1
+            WHERE (cs.user_id = $1 OR cs.user_id IS NULL)
             ORDER BY cs.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -23,10 +23,10 @@ router.get('/citation-finder', requireAuth, async (req, res) => {
                 COUNT(*) as total_searches,
                 (SELECT COUNT(*) FROM legal_citations lc
                  JOIN citation_searches cs ON lc.search_id = cs.id
-                 WHERE cs.user_id = $1) as total_citations,
+                 WHERE (cs.user_id = $1 OR cs.user_id IS NULL)) as total_citations,
                 (SELECT COUNT(*) FROM citation_searches
-                 WHERE user_id = $1 AND created_at > NOW() - INTERVAL '7 days') as recent_searches
-            FROM citation_searches WHERE user_id = $1
+                 WHERE (user_id = $1 OR user_id IS NULL) AND created_at > NOW() - INTERVAL '7 days') as recent_searches
+            FROM citation_searches WHERE (user_id = $1 OR user_id IS NULL)
         `, [req.user.id]);
 
         res.render('citation-finder/dashboard', {
@@ -45,7 +45,7 @@ router.get('/citation-finder/search', requireAuth, async (req, res) => {
     try {
         const cases = await db.query(`
             SELECT id, case_number, title FROM cases
-            WHERE user_id = $1 AND status != 'closed'
+            WHERE (user_id = $1 OR user_id IS NULL) AND status != 'closed'
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -65,7 +65,7 @@ router.get('/citation-finder/search', requireAuth, async (req, res) => {
 router.get('/citation-finder/results/:id', requireAuth, async (req, res) => {
     try {
         const search = await db.query(`
-            SELECT * FROM citation_searches WHERE id = $1 AND user_id = $2
+            SELECT * FROM citation_searches WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (search.rows.length === 0) {
@@ -268,7 +268,7 @@ router.get('/api/citation-finder/citation/:id', requireAuth, async (req, res) =>
             SELECT lc.*, cs.legal_issue, cs.jurisdiction
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
-            WHERE lc.id = $1 AND cs.user_id = $2
+            WHERE lc.id = $1 AND (cs.user_id = $2 OR cs.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
@@ -291,7 +291,7 @@ router.post('/api/citation-finder/citation/:id/save-to-case', requireAuth, async
             SELECT lc.*, cs.user_id
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
-            WHERE lc.id = $1 AND cs.user_id = $2
+            WHERE lc.id = $1 AND (cs.user_id = $2 OR cs.user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
@@ -328,7 +328,7 @@ router.delete('/api/citation-finder/search/:id', requireAuth, async (req, res) =
         `, [req.params.id]);
 
         await db.query(`
-            DELETE FROM citation_searches WHERE id = $1 AND user_id = $2
+            DELETE FROM citation_searches WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
