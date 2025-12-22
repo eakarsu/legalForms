@@ -21,10 +21,12 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth Strategy - using NextAuth-style callback URL for compatibility
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL || (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/google';
+    console.log('Google OAuth callback URL:', googleCallbackURL);
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/google'
+        callbackURL: googleCallbackURL
     }, async (accessToken, refreshToken, profile, done) => {
         try {
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
@@ -73,11 +75,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 console.log('Microsoft OAuth check - Client ID exists:', !!process.env.MICROSOFT_CLIENT_ID);
 console.log('Microsoft OAuth check - Client Secret exists:', !!process.env.MICROSOFT_CLIENT_SECRET);
 if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+    const microsoftCallbackURL = process.env.MICROSOFT_CALLBACK_URL || (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/azure-ad';
+    console.log('Microsoft OAuth callback URL:', microsoftCallbackURL);
     console.log('Registering Microsoft OAuth Strategy...');
     passport.use(new MicrosoftStrategy({
         clientID: process.env.MICROSOFT_CLIENT_ID,
         clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-        callbackURL: (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/azure-ad',
+        callbackURL: microsoftCallbackURL,
         scope: ['user.read']
     }, async (accessToken, refreshToken, profile, done) => {
         try {
