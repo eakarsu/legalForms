@@ -12,7 +12,47 @@ const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
 // =====================================================
-// 2FA SETUP ROUTES
+// PAGE ROUTES
+// =====================================================
+
+// 2FA Setup Page
+router.get('/2fa/setup', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT two_factor_enabled, two_factor_verified_at FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        const devicesResult = await db.query(
+            'SELECT * FROM trusted_devices WHERE user_id = $1 AND expires_at > NOW() ORDER BY created_at DESC',
+            [req.user.id]
+        );
+
+        // Get backup codes count
+        const backupResult = await db.query(
+            'SELECT code FROM backup_codes WHERE user_id = $1 AND used_at IS NULL',
+            [req.user.id]
+        );
+
+        res.render('2fa/setup', {
+            title: 'Two-Factor Authentication',
+            user: {
+                ...req.user,
+                two_factor_enabled: result.rows[0]?.two_factor_enabled || false,
+                two_factor_verified_at: result.rows[0]?.two_factor_verified_at
+            },
+            trustedDevices: devicesResult.rows,
+            backupCodes: backupResult.rows.map(r => r.code),
+            active: 'settings'
+        });
+    } catch (error) {
+        console.error('2FA setup page error:', error);
+        res.render('error', { message: 'Failed to load 2FA setup page' });
+    }
+});
+
+// =====================================================
+// 2FA API ROUTES
 // =====================================================
 
 // Get 2FA status

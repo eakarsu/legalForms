@@ -162,12 +162,16 @@ const loginValidation = [
 // Handle login
 router.post('/login', loginValidation, async (req, res) => {
     try {
+        console.log('=== LOGIN ATTEMPT ===');
         const errors = validationResult(req);
         const { email, password, redirectUrl = '/' } = req.body;
+        console.log('Email:', email);
+        console.log('Redirect URL:', redirectUrl);
 
         if (!errors.isEmpty()) {
+            console.log('Validation errors:', errors.array());
             return res.render('auth/login', {
-                title: 'Login - LegalFormsAI',
+                title: 'Login - LegalPracticeAI',
                 errors: errors.array(),
                 redirectUrl: redirectUrl
             });
@@ -178,23 +182,28 @@ router.post('/login', loginValidation, async (req, res) => {
             'SELECT id, email, password_hash, first_name, last_name FROM users WHERE email = $1',
             [email]
         );
+        console.log('User found:', userResult.rows.length > 0);
 
         if (userResult.rows.length === 0) {
+            console.log('No user found with email:', email);
             return res.render('auth/login', {
-                title: 'Login - LegalFormsAI',
+                title: 'Login - LegalPracticeAI',
                 errors: [{ msg: 'Invalid email or password' }],
                 redirectUrl: redirectUrl
             });
         }
 
         const user = userResult.rows[0];
+        console.log('User ID:', user.id, 'Name:', user.first_name, user.last_name);
 
         // Verify password
         const isValidPassword = await verifyPassword(password, user.password_hash);
+        console.log('Password valid:', isValidPassword);
 
         if (!isValidPassword) {
+            console.log('Invalid password for user:', email);
             return res.render('auth/login', {
-                title: 'Login - LegalFormsAI',
+                title: 'Login - LegalPracticeAI',
                 errors: [{ msg: 'Invalid email or password' }],
                 redirectUrl: redirectUrl
             });
@@ -208,10 +217,12 @@ router.post('/login', loginValidation, async (req, res) => {
 
         // Create session
         req.session.userId = user.id;
+        console.log('Session userId set to:', user.id);
         req.session.save((err) => {
             if (err) {
                 console.error('Session save error:', err);
             }
+            console.log('Session saved, redirecting to:', redirectUrl);
             res.redirect(redirectUrl);
         });
 
