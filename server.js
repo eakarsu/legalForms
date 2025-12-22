@@ -24,6 +24,8 @@ const pgSession = require('connect-pg-simple')(session);
 const db = require('./config/database');
 const authRoutes = require('./routes/auth');
 const { optionalAuth } = require('./middleware/auth');
+const passport = require('./config/passport');
+const { seedDemoDataForUser } = require('./lib/seedUserDemoData');
 
 // Import new feature modules
 const { validateCompliance, complianceChecker } = require('./middleware/compliance');
@@ -186,6 +188,10 @@ app.use(session({
     },
     proxy: true
 }));
+
+// Initialize Passport for OAuth
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Add optional auth middleware to all routes
 app.use(optionalAuth);
@@ -1083,12 +1089,18 @@ app.get('/features/grow-practice', async (req, res) => {
   res.render('features/grow-practice', { title: 'Grow Your Law Practice - LegalPracticeAI', req, user });
 });
 
-// Register page
+// Register page - with demo data pre-filled
 app.get('/register', (req, res) => {
+  const demoData = {
+    firstName: 'John',
+    lastName: 'Smith',
+    email: 'john.smith@lawfirm.com'
+  };
+
   res.render('auth/register', {
     title: 'Create Account - LegalPracticeAI',
     errors: [],
-    formData: {}
+    formData: demoData
   });
 });
 
@@ -1132,8 +1144,13 @@ app.post('/register', async (req, res) => {
       [firstName, lastName, email, phone || null, address || null, hashedPassword]
     );
 
+    const newUserId = result.rows[0].id;
+
+    // Seed demo data for new user
+    await seedDemoDataForUser(newUserId);
+
     // Auto-login after registration
-    req.session.userId = result.rows[0].id;
+    req.session.userId = newUserId;
     res.redirect('/dashboard');
   } catch (error) {
     console.error('Registration error:', error);

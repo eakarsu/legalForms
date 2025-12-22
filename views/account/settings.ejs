@@ -1,0 +1,205 @@
+<%- include('../base-pm', { title: title }) %>
+<%- include('../partials/pm-nav', { active: 'settings' }) %>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-cog me-2"></i>Account Settings</h2>
+            <p class="text-muted mb-0">Manage your account preferences and security settings</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Profile Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Profile Information</h5>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="firstName" value="<%= user.first_name || '' %>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="lastName" value="<%= user.last_name || '' %>">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="<%= user.email %>" disabled>
+                            <small class="text-muted">Email cannot be changed</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" name="phone" value="<%= user.phone || '' %>">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Security</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Two-Factor Authentication</h6>
+                        <p class="text-muted small">Add an extra layer of security to your account</p>
+                        <a href="/2fa/setup" class="btn btn-outline-primary">
+                            <i class="fas fa-lock me-2"></i>Configure 2FA
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-4">
+                        <h6>Change Password</h6>
+                        <p class="text-muted small">Update your password regularly for security</p>
+                        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </button>
+                    </div>
+                    <hr>
+                    <div>
+                        <h6>Activity Log</h6>
+                        <p class="text-muted small">View your recent account activity</p>
+                        <a href="/activity" class="btn btn-outline-info">
+                            <i class="fas fa-history me-2"></i>View Activity
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notification Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                <label class="form-check-label" for="emailNotifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="deadlineReminders" checked>
+                                <label class="form-check-label" for="deadlineReminders">Deadline Reminders</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="caseUpdates" checked>
+                                <label class="form-check-label" for="caseUpdates">Case Updates</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="billingAlerts" checked>
+                                <label class="form-check-label" for="billingAlerts">Billing Alerts</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveNotificationSettings()">Save Preferences</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-control" name="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" name="newPassword" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" name="confirmPassword" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch('/api/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Profile updated successfully');
+        } else {
+            alert(data.error || 'Failed to update profile');
+        }
+    } catch (err) {
+        alert('Error updating profile');
+    }
+});
+
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+
+    if (data.newPassword !== data.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert('Password changed successfully');
+            bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+            e.target.reset();
+        } else {
+            alert(result.error || 'Failed to change password');
+        }
+    } catch (err) {
+        alert('Error changing password');
+    }
+});
+
+function saveNotificationSettings() {
+    alert('Notification preferences saved');
+}
+</script>
+
+<%- include('../partials/footer') %>

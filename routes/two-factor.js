@@ -41,13 +41,18 @@ router.get('/2fa/setup', requireAuth, async (req, res) => {
                 two_factor_enabled: result.rows[0]?.two_factor_enabled || false,
                 two_factor_verified_at: result.rows[0]?.two_factor_verified_at
             },
-            trustedDevices: devicesResult.rows,
-            backupCodes: backupResult.rows.map(r => r.code),
-            active: 'settings'
+            trustedDevices: devicesResult.rows || [],
+            backupCodes: backupResult.rows ? backupResult.rows.map(r => r.code) : [],
+            active: 'settings',
+            req
         });
     } catch (error) {
         console.error('2FA setup page error:', error);
-        res.render('error', { message: 'Failed to load 2FA setup page' });
+        console.error('2FA setup error stack:', error.stack);
+        res.render('error', {
+            message: 'Failed to load 2FA setup page',
+            error: process.env.NODE_ENV === 'development' ? error.message : null
+        });
     }
 });
 

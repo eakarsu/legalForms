@@ -55,6 +55,13 @@
             <p id="recordStatus" class="text-muted">Click to start recording</p>
             <div id="recordTimer" class="h4 d-none">00:00</div>
 
+            <!-- Demo Data Button -->
+            <div class="mt-3">
+                <button id="loadDemoBtn" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-alt me-1"></i>Load Sample Transcription
+                </button>
+            </div>
+
             <div id="transcriptionResult" class="text-start mt-4 d-none">
                 <hr>
                 <h6>Transcription:</h6>
@@ -62,7 +69,7 @@
                 <button id="cleanupBtn" class="btn btn-outline-primary me-2">
                     <i class="fas fa-magic me-1"></i>AI Cleanup
                 </button>
-                <button id="saveBtn" class="btn btn-success" disabled>
+                <button id="saveBtn" class="btn btn-success">
                     <i class="fas fa-save me-1"></i>Save
                 </button>
             </div>
@@ -215,10 +222,14 @@ async function transcribeAudio(blob) {
 }
 
 cleanupBtn.addEventListener('click', async function() {
-    if (!transcription.trim()) return;
+    if (!transcription.trim()) {
+        alert('No transcription to clean up');
+        return;
+    }
 
     this.disabled = true;
-    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Cleaning...';
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Cleaning with AI...';
+    console.log('Sending cleanup request with text:', transcription.substring(0, 100) + '...');
 
     try {
         const res = await fetch('/api/voice-notes/cleanup', {
@@ -226,14 +237,34 @@ cleanupBtn.addEventListener('click', async function() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ raw_text: transcription })
         });
+
+        console.log('Cleanup response status:', res.status);
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Cleanup error response:', errorText);
+            alert('Error: Server returned ' + res.status + ' - ' + errorText);
+            return;
+        }
+
         const data = await res.json();
+        console.log('Cleanup response data:', data);
+
         if (data.success) {
-            transcriptionText.textContent = data.cleanedText;
+            transcriptionText.innerHTML = `
+                <div class="alert alert-success mb-2">
+                    <i class="fas fa-check-circle me-1"></i>AI Cleanup Complete!
+                </div>
+                <div class="mb-3">${data.cleanedText}</div>
+                ${data.summary ? `<div class="alert alert-info"><strong>Summary:</strong> ${data.summary}</div>` : ''}
+                ${data.tags && data.tags.length ? `<div class="mt-2"><strong>Tags:</strong> ${data.tags.map(t => '<span class="badge bg-secondary me-1">' + t + '</span>').join('')}</div>` : ''}
+            `;
             transcription = data.cleanedText;
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
     } catch (e) {
+        console.error('Cleanup exception:', e);
         alert('Error: ' + e.message);
     } finally {
         this.disabled = false;
@@ -250,7 +281,7 @@ saveBtn.addEventListener('click', async function() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 raw_transcription: transcription,
-                audio_duration_seconds: Math.floor((Date.now() - startTime) / 1000)
+                audio_duration_seconds: Math.floor((Date.now() - startTime) / 1000) || 120
             })
         });
         const data = await res.json();
@@ -263,6 +294,33 @@ saveBtn.addEventListener('click', async function() {
     } catch (e) {
         alert('Error: ' + e.message);
     }
+});
+
+// Demo Data Button
+const loadDemoBtn = document.getElementById('loadDemoBtn');
+loadDemoBtn.addEventListener('click', function() {
+    const sampleTranscriptions = [
+        `Meeting with client John Smith regarding the personal injury case. He was involved in a car accident on December 15th at the intersection of Main Street and Oak Avenue. The other driver ran a red light and T-boned his vehicle on the driver's side. John sustained injuries including whiplash, a fractured rib, and contusions. He has accumulated medical bills totaling approximately $45,000. He missed six weeks of work resulting in lost wages of around $12,000. We discussed filing a claim against the at-fault driver's insurance company. I advised him to continue documenting all medical treatments and keep receipts for any out-of-pocket expenses. Next steps include sending a demand letter to the insurance company and gathering witness statements from two bystanders who saw the accident.`,
+
+        `Client consultation with Sarah Williams about her divorce proceedings. She has been married for 12 years and has two children ages 8 and 10. She is seeking primary custody of the children and equitable distribution of marital assets including the family home valued at $450,000 and retirement accounts totaling $280,000. Her husband has been uncooperative in negotiations. We discussed filing a motion for temporary support while the divorce is pending. I recommended she start gathering financial documents including tax returns, bank statements, and credit card statements for the past three years. We also discussed the possibility of mediation before going to trial.`,
+
+        `Deposition preparation notes for the Martinez employment discrimination case. Key points to cover: timeline of events from initial hiring in March 2022 through termination in November 2024. Document the three formal complaints filed with HR regarding discriminatory comments from supervisor. Review the email chain from September showing disparate treatment compared to similarly situated employees. Prepare exhibits including performance reviews which were all satisfactory prior to the complaints. Anticipate defendant's likely argument that termination was due to restructuring. Counter with evidence that plaintiff's position was filled within two weeks by a younger employee with less experience.`
+    ];
+
+    // Pick a random sample
+    const randomSample = sampleTranscriptions[Math.floor(Math.random() * sampleTranscriptions.length)];
+
+    transcription = randomSample;
+    transcriptionText.textContent = transcription;
+    transcriptionResult.classList.remove('d-none');
+    recordStatus.textContent = 'Sample transcription loaded. You can edit, clean up with AI, or save it.';
+    startTime = Date.now() - 120000; // Simulate 2 minutes recording
+
+    // Make transcription editable
+    transcriptionText.contentEditable = true;
+    transcriptionText.addEventListener('input', function() {
+        transcription = this.textContent;
+    });
 });
 </script>
 <%- include('../partials/footer') %>

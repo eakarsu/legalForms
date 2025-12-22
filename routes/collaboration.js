@@ -27,8 +27,18 @@ async function logActivity(userId, action, entityType, entityId, details, ipAddr
 // Team management page
 router.get('/team', requireAuth, async (req, res) => {
     try {
-        // Get team members (users with roles in same organization - for now, just show roles)
+        // Get all roles
         const rolesResult = await db.query('SELECT * FROM roles ORDER BY name');
+
+        // Get all users with their roles
+        const usersResult = await db.query(`
+            SELECT u.id, u.email, u.first_name, u.last_name, u.created_at,
+                   r.name as role_name, r.id as role_id
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            ORDER BY u.created_at DESC
+        `);
 
         // Get user's roles
         const userRolesResult = await db.query(`
@@ -41,12 +51,28 @@ router.get('/team', requireAuth, async (req, res) => {
         res.render('collaboration/team', {
             title: 'Team Management',
             roles: rolesResult.rows,
+            users: usersResult.rows,
             userRoles: userRolesResult.rows,
+            user: req.user,
             req
         });
     } catch (error) {
         console.error('Error loading team page:', error);
         res.status(500).render('error', { message: 'Error loading team page' });
+    }
+});
+
+// Account Settings page
+router.get('/settings', requireAuth, async (req, res) => {
+    try {
+        res.render('account/settings', {
+            title: 'Account Settings',
+            user: req.user,
+            req
+        });
+    } catch (error) {
+        console.error('Error loading settings page:', error);
+        res.status(500).render('error', { message: 'Error loading settings page' });
     }
 });
 
@@ -110,11 +136,63 @@ router.get('/activity', requireAuth, async (req, res) => {
             entityTypes: entityTypesResult.rows.map(r => r.entity_type),
             actions: actionsResult.rows.map(r => r.action),
             filters: { entity_type, action, date_from, date_to },
+            user: req.user,
             req
         });
     } catch (error) {
         console.error('Error loading activity log:', error);
         res.status(500).render('error', { message: 'Error loading activity log' });
+    }
+});
+
+// =====================================================
+// PROFILE API
+// =====================================================
+
+// Update profile
+router.put('/api/profile', requireAuth, async (req, res) => {
+    try {
+        const { firstName, lastName, phone } = req.body;
+        await db.query(
+            'UPDATE users SET first_name = $1, last_name = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
+            [firstName, lastName, phone, req.user.id]
+        );
+        await logActivity(req.user.id, 'profile_updated', 'user', req.user.id, {}, req.ip);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ error: 'Failed to update profile' });
+    }
+});
+
+// Change password
+router.post('/api/change-password', requireAuth, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const bcrypt = require('bcryptjs');
+
+        // Get current password hash
+        const result = await db.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+
+        if (!result.rows[0].password_hash) {
+            return res.status(400).json({ error: 'Cannot change password for OAuth accounts' });
+        }
+
+        // Verify current password
+        const valid = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+        if (!valid) {
+            return res.status(400).json({ error: 'Current password is incorrect' });
+        }
+
+        // Hash and save new password
+        const newHash = await bcrypt.hash(newPassword, 12);
+        await db.query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [newHash, req.user.id]);
+
+        await logActivity(req.user.id, 'password_changed', 'user', req.user.id, {}, req.ip);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Failed to change password' });
     }
 });
 

@@ -5,6 +5,8 @@ const db = require('../config/database');
 const { hashPassword, verifyPassword, requireAuth } = require('../middleware/auth');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const passport = require('../config/passport');
+const { seedDemoDataForUser } = require('../lib/seedUserDemoData');
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -17,12 +19,19 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Registration page
+// Registration page with demo data
 router.get('/register', (req, res) => {
+    // Pre-fill with demo data for new users to see example format
+    const demoData = {
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'john.smith@lawfirm.com'
+    };
+
     res.render('auth/register', {
         title: 'Create Account - LegalFormsAI',
         errors: [],
-        formData: {}
+        formData: demoData
     });
 });
 
@@ -97,6 +106,9 @@ router.post('/register', registerValidation, async (req, res) => {
         );
 
         const newUser = userResult.rows[0];
+
+        // Seed demo data for new user
+        await seedDemoDataForUser(newUser.id);
 
         // Send verification email (optional)
         if (process.env.SMTP_HOST) {
@@ -246,7 +258,60 @@ router.post('/logout', (req, res) => {
     });
 });
 
+// Google OAuth Routes
+router.get('/auth/google', (req, res, next) => {
+    const callbackURL = (process.env.SITE_URL || 'http://localhost:3000') + '/auth/google/callback';
+    console.log('=== GOOGLE AUTH DEBUG ===');
+    console.log('Callback URL being used:', callbackURL);
+    console.log('SITE_URL env:', process.env.SITE_URL);
+    console.log('=========================');
+    next();
+}, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
+router.get('/api/auth/callback/google',
+    passport.authenticate('google', { failureRedirect: '/login?error=google_auth_failed' }),
+    (req, res) => {
+        // Successful authentication - set session
+        req.session.userId = req.user.id;
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+            }
+            res.redirect('/dashboard');
+        });
+    }
+);
+
+// Test route to check if Microsoft auth is available
+router.get('/auth/microsoft/test', (req, res) => {
+    res.json({
+        status: 'ok',
+        microsoft_configured: !!(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET)
+    });
+});
+
+// Microsoft OAuth Routes
+router.get('/auth/microsoft', (req, res, next) => {
+    const callbackURL = (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/azure-ad';
+    console.log('=== MICROSOFT AUTH DEBUG ===');
+    console.log('Callback URL being used:', callbackURL);
+    console.log('============================');
+    next();
+}, passport.authenticate('microsoft', { scope: ['user.read'] }));
+
+router.get('/api/auth/callback/azure-ad',
+    passport.authenticate('microsoft', { failureRedirect: '/login?error=microsoft_auth_failed' }),
+    (req, res) => {
+        // Successful authentication - set session
+        req.session.userId = req.user.id;
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+            }
+            res.redirect('/dashboard');
+        });
+    }
+);
 
 module.exports = router;
 
