@@ -260,10 +260,11 @@ router.post('/logout', (req, res) => {
 
 // Google OAuth Routes
 router.get('/auth/google', (req, res, next) => {
-    const callbackURL = (process.env.SITE_URL || 'http://localhost:3000') + '/auth/google/callback';
+    const callbackURL = process.env.GOOGLE_CALLBACK_URL || (process.env.SITE_URL || 'http://localhost:3000') + '/api/auth/callback/google';
     console.log('=== GOOGLE AUTH DEBUG ===');
+    console.log('GOOGLE_CALLBACK_URL env:', process.env.GOOGLE_CALLBACK_URL);
     console.log('Callback URL being used:', callbackURL);
-    console.log('SITE_URL env:', process.env.SITE_URL);
+    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET');
     console.log('=========================');
     next();
 }, passport.authenticate('google', { scope: ['profile', 'email'] }));

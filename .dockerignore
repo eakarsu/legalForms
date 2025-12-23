@@ -47,7 +47,8 @@ docker-compose*.yml
 
 # Local database files
 *.sql
-database/seed*.js
+# Keep seed files for Docker - they're needed for initial data population
+# database/seed*.js
 
 # Temporary files
 tmp

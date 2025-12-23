@@ -49,15 +49,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 return done(null, result.rows[0]);
             }
 
-            // Create new user
+            // Create new user (OAuth users get a placeholder password_hash since they authenticate via OAuth)
             const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
             const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
 
             result = await db.query(
-                `INSERT INTO users (email, first_name, last_name, google_id, email_verified, created_at)
-                 VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
+                `INSERT INTO users (email, password_hash, first_name, last_name, google_id, email_verified, created_at)
+                 VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP)
                  RETURNING *`,
-                [email, firstName, lastName, profile.id]
+                [email, 'OAUTH_USER_NO_PASSWORD', firstName, lastName, profile.id]
             );
 
             // Seed demo data for new user
@@ -105,15 +105,15 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
                 return done(null, result.rows[0]);
             }
 
-            // Create new user
+            // Create new user (OAuth users get a placeholder password_hash since they authenticate via OAuth)
             const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
             const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
 
             result = await db.query(
-                `INSERT INTO users (email, first_name, last_name, microsoft_id, email_verified, created_at)
-                 VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
+                `INSERT INTO users (email, password_hash, first_name, last_name, microsoft_id, email_verified, created_at)
+                 VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP)
                  RETURNING *`,
-                [email, firstName, lastName, profile.id]
+                [email, 'OAUTH_USER_NO_PASSWORD', firstName, lastName, profile.id]
             );
 
             // Seed demo data for new user
