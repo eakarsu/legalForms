@@ -1,0 +1,69 @@
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav" role="navigation" aria-label="Mobile navigation">
+    <a href="/" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'home' ? ' active' : '' %>" aria-label="Home">
+        <i class="fas fa-home" aria-hidden="true"></i>
+        <span>Home</span>
+    </a>
+
+    <a href="/forms" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'forms' ? ' active' : '' %>" aria-label="Forms">
+        <i class="fas fa-file-alt" aria-hidden="true"></i>
+        <span>Forms</span>
+    </a>
+
+    <% if (typeof user !== 'undefined' && user) { %>
+    <!-- Logged in user navigation -->
+    <a href="/form/business_formation" class="nav-item nav-action" aria-label="Create new document">
+        <div class="nav-action-btn">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+        </div>
+    </a>
+
+    <a href="/dashboard" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'dashboard' ? ' active' : '' %>" aria-label="Dashboard">
+        <i class="fas fa-th-large" aria-hidden="true"></i>
+        <span>Dashboard</span>
+    </a>
+
+    <a href="/account" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'account' ? ' active' : '' %>" aria-label="Account">
+        <i class="fas fa-user" aria-hidden="true"></i>
+        <span>Account</span>
+    </a>
+    <% } else { %>
+    <!-- Guest navigation -->
+    <a href="/form/business_formation" class="nav-item nav-action" aria-label="Create document">
+        <div class="nav-action-btn">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+        </div>
+    </a>
+
+    <a href="/about" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'about' ? ' active' : '' %>" aria-label="About">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <span>About</span>
+    </a>
+
+    <a href="/auth/login" class="nav-item<%= typeof currentPage !== 'undefined' && currentPage === 'login' ? ' active' : '' %>" aria-label="Sign In">
+        <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+        <span>Sign In</span>
+    </a>
+    <% } %>
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu-overlay" id="mobileMenuOverlay" style="display: none;"></div>
+
+<style>
+.mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1035;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-menu-overlay.active {
+    opacity: 1;
+}
+</style>

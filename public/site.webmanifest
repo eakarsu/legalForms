@@ -1,21 +1,66 @@
 {
-    "name": "LegalFormsAI - Legal Document Generator",
-    "short_name": "LegalFormsAI",
-    "description": "Generate professional legal documents with AI",
+    "name": "LegalPracticeAI - Legal Document Generator",
+    "short_name": "LegalPracticeAI",
+    "description": "Generate professional legal documents with AI. Business formation, real estate, family law, and more.",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ],
     "theme_color": "#667eea",
     "background_color": "#ffffff",
     "display": "standalone",
-    "start_url": "/"
+    "orientation": "portrait-primary",
+    "start_url": "/",
+    "scope": "/",
+    "id": "legalpracticeai",
+    "categories": ["business", "productivity", "utilities"],
+    "shortcuts": [
+        {
+            "name": "Create Business Document",
+            "short_name": "Business",
+            "description": "Create a new business formation document",
+            "url": "/form/business_formation",
+            "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Create Real Estate Document",
+            "short_name": "Real Estate",
+            "description": "Create a new real estate document",
+            "url": "/form/real_estate",
+            "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Family Law Forms",
+            "short_name": "Family Law",
+            "description": "Create family law documents",
+            "url": "/form/family_law",
+            "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/images/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "/images/screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
 }
