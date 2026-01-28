@@ -331,6 +331,61 @@ router.get('/payments/settings', requireAuth, async (req, res) => {
     }
 });
 
+// Get payments list (API for mobile)
+router.get('/api/payments', requireAuth, async (req, res) => {
+    try {
+        const { client_id, invoice_id } = req.query;
+
+        let query = `
+            SELECT op.*, i.invoice_number, c.first_name, c.last_name, c.company_name
+            FROM online_payments op
+            JOIN invoices i ON op.invoice_id = i.id
+            JOIN clients c ON op.client_id = c.id
+            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+        `;
+        const params = [req.user.id];
+        let paramIndex = 2;
+
+        if (client_id) {
+            query += ` AND op.client_id = $${paramIndex}`;
+            params.push(client_id);
+            paramIndex++;
+        }
+
+        if (invoice_id) {
+            query += ` AND op.invoice_id = $${paramIndex}`;
+            params.push(invoice_id);
+            paramIndex++;
+        }
+
+        query += ' ORDER BY op.created_at DESC';
+
+        const result = await db.query(query, params);
+        res.json({ success: true, payments: result.rows, count: result.rows.length });
+    } catch (error) {
+        console.error('Get payments API error:', error);
+        res.status(500).json({ error: 'Failed to get payments' });
+    }
+});
+
+// Get payment settings (API for mobile)
+router.get('/api/payments/settings', requireAuth, async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            settings: {
+                stripeEnabled: !!process.env.STRIPE_SECRET_KEY,
+                stripePublicKey: process.env.STRIPE_PUBLIC_KEY || null,
+                acceptedMethods: ['credit_card', 'bank_transfer'],
+                autoSendReceipts: true
+            }
+        });
+    } catch (error) {
+        console.error('Get payment settings API error:', error);
+        res.status(500).json({ error: 'Failed to get payment settings' });
+    }
+});
+
 // Create payment link for invoice
 router.post('/api/invoices/:id/payment-link', requireAuth, async (req, res) => {
     try {
@@ -556,5 +611,293 @@ async function handleFailedPayment(paymentIntent) {
         console.error('Handle failed payment error:', error);
     }
 }
+
+// =====================================================
+// ONLINE PAYMENTS & REFUNDS API
+// =====================================================
+
+// Get online payments history
+router.get('/api/payments/online', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT op.*, i.invoice_number, c.first_name, c.last_name, c.company_name
+            FROM online_payments op
+            LEFT JOIN invoices i ON op.invoice_id = i.id
+            LEFT JOIN clients c ON op.client_id = c.id
+            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            ORDER BY op.created_at DESC
+            LIMIT 100
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            payments: result.rows
+        });
+    } catch (error) {
+        console.error('Get online payments error:', error);
+        res.status(500).json({ error: 'Failed to get online payments' });
+    }
+});
+
+// Get refunds list
+router.get('/api/payments/refunds', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT op.*, i.invoice_number, c.first_name, c.last_name, c.company_name
+            FROM online_payments op
+            LEFT JOIN invoices i ON op.invoice_id = i.id
+            LEFT JOIN clients c ON op.client_id = c.id
+            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND op.status = 'refunded'
+            ORDER BY op.updated_at DESC
+            LIMIT 100
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            refunds: result.rows
+        });
+    } catch (error) {
+        console.error('Get refunds error:', error);
+        res.status(500).json({ error: 'Failed to get refunds' });
+    }
+});
+
+// Process a refund
+router.post('/api/payments/refunds', requireAuth, async (req, res) => {
+    try {
+        const { payment_id, amount, reason } = req.body;
+
+        // Get the payment
+        const paymentResult = await db.query(`
+            SELECT op.*, i.user_id
+            FROM online_payments op
+            JOIN invoices i ON op.invoice_id = i.id
+            WHERE op.id = $1 AND (i.user_id = $2 OR i.user_id IS NULL)
+        `, [payment_id, req.user.id]);
+
+        if (paymentResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Payment not found' });
+        }
+
+        const payment = paymentResult.rows[0];
+        const refundAmount = amount || payment.amount;
+
+        // Process refund via Stripe if configured
+        if (stripe && payment.stripe_payment_intent_id) {
+            try {
+                await stripe.refunds.create({
+                    payment_intent: payment.stripe_payment_intent_id,
+                    amount: Math.round(refundAmount * 100),
+                    reason: 'requested_by_customer'
+                });
+            } catch (stripeError) {
+                console.error('Stripe refund error:', stripeError);
+                return res.status(400).json({ error: 'Stripe refund failed: ' + stripeError.message });
+            }
+        }
+
+        // Update payment record
+        await db.query(`
+            UPDATE online_payments
+            SET status = 'refunded', refund_amount = $1, refund_reason = $2, refunded_at = NOW()
+            WHERE id = $3
+        `, [refundAmount, reason, payment_id]);
+
+        // Update invoice amount_paid
+        await db.query(`
+            UPDATE invoices
+            SET amount_paid = amount_paid - $1, status = CASE WHEN amount_paid - $1 <= 0 THEN 'sent' ELSE status END
+            WHERE id = $2
+        `, [refundAmount, payment.invoice_id]);
+
+        res.json({
+            success: true,
+            message: 'Refund processed successfully',
+            refundAmount: refundAmount
+        });
+    } catch (error) {
+        console.error('Process refund error:', error);
+        res.status(500).json({ error: 'Failed to process refund' });
+    }
+});
+
+// =====================================================
+// PAYMENT PLANS API
+// =====================================================
+
+// Get all payment plans
+router.get('/api/payment-plans', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT pp.*, c.first_name, c.last_name, c.company_name
+            FROM payment_plans pp
+            LEFT JOIN clients c ON pp.client_id = c.id
+            WHERE (pp.user_id = $1 OR pp.user_id IS NULL)
+            ORDER BY pp.created_at DESC
+        `, [req.user.id]);
+
+        // Map to iOS-friendly format
+        const plans = result.rows.map(plan => ({
+            id: plan.id,
+            clientId: plan.client_id,
+            clientName: plan.client_name || (plan.first_name ? `${plan.first_name} ${plan.last_name}` : 'Unknown'),
+            invoiceId: plan.invoice_id,
+            totalAmount: parseFloat(plan.total_amount) || 0,
+            paidAmount: parseFloat(plan.paid_amount) || 0,
+            numberOfPayments: plan.number_of_payments,
+            paymentAmount: parseFloat(plan.payment_amount) || 0,
+            frequency: plan.frequency || 'monthly',
+            startDate: plan.start_date,
+            nextPaymentDate: plan.next_payment_date,
+            status: plan.status || 'active',
+            notes: plan.notes,
+            createdAt: plan.created_at
+        }));
+
+        res.json({
+            success: true,
+            plans: plans,
+            count: plans.length
+        });
+    } catch (error) {
+        console.error('Get payment plans error:', error);
+        res.status(500).json({ error: 'Failed to get payment plans' });
+    }
+});
+
+// Get single payment plan
+router.get('/api/payment-plans/:id', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT pp.*, c.first_name, c.last_name, c.company_name
+            FROM payment_plans pp
+            LEFT JOIN clients c ON pp.client_id = c.id
+            WHERE pp.id = $1 AND (pp.user_id = $2 OR pp.user_id IS NULL)
+        `, [req.params.id, req.user.id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Payment plan not found' });
+        }
+
+        const plan = result.rows[0];
+        res.json({
+            success: true,
+            plan: {
+                id: plan.id,
+                clientId: plan.client_id,
+                clientName: plan.client_name || (plan.first_name ? `${plan.first_name} ${plan.last_name}` : 'Unknown'),
+                totalAmount: parseFloat(plan.total_amount) || 0,
+                paidAmount: parseFloat(plan.paid_amount) || 0,
+                numberOfPayments: plan.number_of_payments,
+                paymentAmount: parseFloat(plan.payment_amount) || 0,
+                frequency: plan.frequency || 'monthly',
+                startDate: plan.start_date,
+                nextPaymentDate: plan.next_payment_date,
+                status: plan.status || 'active',
+                notes: plan.notes
+            }
+        });
+    } catch (error) {
+        console.error('Get payment plan error:', error);
+        res.status(500).json({ error: 'Failed to get payment plan' });
+    }
+});
+
+// Create payment plan
+router.post('/api/payment-plans', requireAuth, async (req, res) => {
+    try {
+        const { client_id, client_name, invoice_id, total_amount, number_of_payments, frequency, start_date, notes } = req.body;
+
+        const paymentAmount = parseFloat(total_amount) / number_of_payments;
+
+        const result = await db.query(`
+            INSERT INTO payment_plans (client_id, client_name, invoice_id, total_amount, number_of_payments, payment_amount, frequency, start_date, next_payment_date, notes, user_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9, $10)
+            RETURNING *
+        `, [client_id, client_name, invoice_id, total_amount, number_of_payments, paymentAmount, frequency || 'monthly', start_date, notes, req.user.id]);
+
+        res.json({
+            success: true,
+            plan: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Create payment plan error:', error);
+        res.status(500).json({ error: 'Failed to create payment plan' });
+    }
+});
+
+// Update payment plan (record a payment)
+router.post('/api/payment-plans/:id/payment', requireAuth, async (req, res) => {
+    try {
+        const { amount } = req.body;
+
+        // Get current plan
+        const planResult = await db.query(
+            'SELECT * FROM payment_plans WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            [req.params.id, req.user.id]
+        );
+
+        if (planResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Payment plan not found' });
+        }
+
+        const plan = planResult.rows[0];
+        const newPaidAmount = parseFloat(plan.paid_amount) + parseFloat(amount);
+        const isComplete = newPaidAmount >= parseFloat(plan.total_amount);
+
+        // Calculate next payment date
+        let nextPaymentDate = null;
+        if (!isComplete) {
+            const currentNext = new Date(plan.next_payment_date || plan.start_date);
+            switch (plan.frequency) {
+                case 'weekly':
+                    currentNext.setDate(currentNext.getDate() + 7);
+                    break;
+                case 'biweekly':
+                    currentNext.setDate(currentNext.getDate() + 14);
+                    break;
+                case 'monthly':
+                default:
+                    currentNext.setMonth(currentNext.getMonth() + 1);
+            }
+            nextPaymentDate = currentNext;
+        }
+
+        await db.query(`
+            UPDATE payment_plans
+            SET paid_amount = $1, next_payment_date = $2, status = $3, updated_at = NOW()
+            WHERE id = $4
+        `, [newPaidAmount, nextPaymentDate, isComplete ? 'completed' : 'active', req.params.id]);
+
+        res.json({
+            success: true,
+            message: 'Payment recorded',
+            paidAmount: newPaidAmount,
+            status: isComplete ? 'completed' : 'active'
+        });
+    } catch (error) {
+        console.error('Record plan payment error:', error);
+        res.status(500).json({ error: 'Failed to record payment' });
+    }
+});
+
+// Delete payment plan
+router.delete('/api/payment-plans/:id', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(
+            'DELETE FROM payment_plans WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING id',
+            [req.params.id, req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Payment plan not found' });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete payment plan error:', error);
+        res.status(500).json({ error: 'Failed to delete payment plan' });
+    }
+});
 
 module.exports = router;

@@ -57,7 +57,7 @@ struct ProfileView: View {
                 // Account
                 Section("Account") {
                     NavigationLink {
-                        SettingsView()
+                        EditProfileView()
                     } label: {
                         SettingsRow(icon: "person", title: "Edit Profile", color: .blue)
                     }
@@ -197,8 +197,8 @@ struct SettingsRow: View {
     }
 }
 
-// MARK: - Settings View
-struct SettingsView: View {
+// MARK: - Edit Profile View
+struct EditProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
 

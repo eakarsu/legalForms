@@ -439,6 +439,164 @@ router.get('/leads/:id', requireAuth, async (req, res) => {
 // API ROUTES
 // =====================================================
 
+// Get all leads (API for mobile)
+router.get('/api/leads', requireAuth, async (req, res) => {
+    try {
+        const { status, practice_area, source } = req.query;
+
+        let query = `
+            SELECT l.*, ift.name as form_name,
+                   (SELECT COUNT(*) FROM lead_activities WHERE lead_id = l.id) as activity_count
+            FROM leads l
+            LEFT JOIN intake_form_templates ift ON l.form_id = ift.id
+            WHERE (l.user_id = $1 OR l.user_id IS NULL)
+        `;
+        const params = [req.user.id];
+        let paramIndex = 2;
+
+        if (status && status !== 'all') {
+            query += ` AND l.status = $${paramIndex}`;
+            params.push(status);
+            paramIndex++;
+        }
+
+        if (practice_area && practice_area !== 'all') {
+            query += ` AND l.practice_area = $${paramIndex}`;
+            params.push(practice_area);
+            paramIndex++;
+        }
+
+        if (source && source !== 'all') {
+            query += ` AND l.source = $${paramIndex}`;
+            params.push(source);
+            paramIndex++;
+        }
+
+        query += ' ORDER BY l.created_at DESC';
+
+        const leadsResult = await db.query(query, params);
+        res.json({ success: true, leads: leadsResult.rows, count: leadsResult.rows.length });
+    } catch (error) {
+        console.error('Get leads API error:', error);
+        res.status(500).json({ error: 'Failed to get leads' });
+    }
+});
+
+// Get leads analytics (API for mobile) - MUST BE BEFORE /:id route
+router.get('/api/leads/analytics', requireAuth, async (req, res) => {
+    try {
+        const stats = await db.query(`
+            SELECT
+                COUNT(*) as total_leads,
+                COUNT(*) FILTER (WHERE status = 'converted') as converted,
+                COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as this_month,
+                ROUND(COUNT(*) FILTER (WHERE status = 'converted')::numeric / NULLIF(COUNT(*), 0) * 100, 1) as conversion_rate
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
+        `, [req.user.id]);
+
+        const byStatus = await db.query(`
+            SELECT status, COUNT(*) as count
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
+            GROUP BY status
+        `, [req.user.id]);
+
+        const bySource = await db.query(`
+            SELECT source, COUNT(*) as count
+            FROM leads WHERE (user_id = $1 OR user_id IS NULL)
+            GROUP BY source
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            totalLeads: parseInt(stats.rows[0].total_leads) || 0,
+            converted: parseInt(stats.rows[0].converted) || 0,
+            conversionRate: stats.rows[0].conversion_rate || '0',
+            byStatus: byStatus.rows,
+            bySource: bySource.rows
+        });
+    } catch (error) {
+        console.error('Get leads analytics API error:', error);
+        res.status(500).json({ error: 'Failed to get analytics' });
+    }
+});
+
+// Get intake forms (API for mobile) - MUST BE BEFORE /:id route
+router.get('/api/leads/forms', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT * FROM intake_form_templates
+            WHERE (user_id = $1 OR user_id IS NULL)
+            ORDER BY created_at DESC
+        `, [req.user.id]);
+
+        res.json({ success: true, forms: result.rows });
+    } catch (error) {
+        console.error('Get intake forms API error:', error);
+        res.status(500).json({ error: 'Failed to get forms' });
+    }
+});
+
+// Get single lead (API for mobile)
+router.get('/api/leads/:id', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT l.*, ift.name as form_name
+            FROM leads l
+            LEFT JOIN intake_form_templates ift ON l.form_id = ift.id
+            WHERE l.id = $1 AND (l.user_id = $2 OR l.user_id IS NULL)
+        `, [req.params.id, req.user.id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Lead not found' });
+        }
+
+        res.json({ success: true, lead: result.rows[0] });
+    } catch (error) {
+        console.error('Get lead API error:', error);
+        res.status(500).json({ error: 'Failed to get lead' });
+    }
+});
+
+// Get lead activities (API for mobile)
+router.get('/api/leads/:id/activities', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT la.*, u.first_name, u.last_name
+            FROM lead_activities la
+            LEFT JOIN users u ON la.user_id = u.id
+            WHERE la.lead_id = $1
+            ORDER BY la.created_at DESC
+        `, [req.params.id]);
+
+        res.json({ success: true, activities: result.rows, count: result.rows.length });
+    } catch (error) {
+        console.error('Get lead activities API error:', error);
+        res.status(500).json({ error: 'Failed to get activities' });
+    }
+});
+
+// Delete lead (API for mobile)
+router.delete('/api/leads/:id', requireAuth, async (req, res) => {
+    try {
+        // Delete activities first
+        await db.query('DELETE FROM lead_activities WHERE lead_id = $1', [req.params.id]);
+
+        const result = await db.query(
+            'DELETE FROM leads WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING id',
+            [req.params.id, req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Lead not found' });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete lead API error:', error);
+        res.status(500).json({ error: 'Failed to delete lead' });
+    }
+});
+
 // Create lead manually
 router.post('/api/leads', requireAuth, async (req, res) => {
     try {

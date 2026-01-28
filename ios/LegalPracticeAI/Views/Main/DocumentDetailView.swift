@@ -15,11 +15,17 @@ struct DocumentDetailView: View {
     @State private var showDeleteConfirmation = false
 
     var statusColor: Color {
-        switch document.status {
-        case .draft: return .orange
-        case .final: return .green
-        case .signed: return .blue
+        switch document.status?.lowercased() {
+        case "draft": return .orange
+        case "final", "completed": return .green
+        case "signed": return .blue
+        case "pending": return .yellow
+        default: return .gray
         }
+    }
+
+    var documentTitle: String {
+        document.title ?? "Untitled Document"
     }
 
     var body: some View {
@@ -27,13 +33,13 @@ struct DocumentDetailView: View {
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
                 // Document Info
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
-                    Text(document.title)
+                    Text(documentTitle)
                         .font(.title2)
                         .fontWeight(.bold)
 
                     HStack(spacing: AppSpacing.md) {
                         // Status Badge
-                        Text(document.status.rawValue.uppercased())
+                        Text((document.status ?? "draft").uppercased())
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(statusColor)
@@ -42,9 +48,11 @@ struct DocumentDetailView: View {
                             .background(statusColor.opacity(0.1))
                             .clipShape(Capsule())
 
-                        Text("Created \(document.createdAt.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if let createdAt = document.createdAt {
+                            Text("Created \(createdAt.formatted(date: .abbreviated, time: .omitted))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -56,7 +64,7 @@ struct DocumentDetailView: View {
                         .foregroundColor(.secondary)
 
                     ScrollView {
-                        Text(document.content)
+                        Text(document.content ?? "No content available")
                             .font(.system(.body, design: .monospaced))
                             .padding()
                     }
@@ -167,7 +175,7 @@ struct DocumentDetailView: View {
             Text("This action cannot be undone.")
         }
         .sheet(isPresented: $showShareSheet) {
-            ShareSheet(items: [document.title])
+            ShareSheet(items: [documentTitle])
         }
     }
 }
@@ -190,6 +198,15 @@ struct ClientDetailView: View {
 
     @State private var showDeleteConfirmation = false
 
+    var fullAddress: String? {
+        var parts: [String] = []
+        if let address = client.address, !address.isEmpty { parts.append(address) }
+        if let city = client.city, !city.isEmpty { parts.append(city) }
+        if let state = client.state, !state.isEmpty { parts.append(state) }
+        if let zip = client.zip, !zip.isEmpty { parts.append(zip) }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: AppSpacing.xl) {
@@ -203,14 +220,25 @@ struct ClientDetailView: View {
                         .background(Color.accentColor)
                         .clipShape(Circle())
 
-                    Text(client.name)
+                    Text(client.displayName)
                         .font(.title2)
                         .fontWeight(.bold)
 
-                    if let company = client.company, !company.isEmpty {
+                    if client.clientType == "individual", let company = client.companyName, !company.isEmpty {
                         Text(company)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
+                    }
+
+                    if let status = client.status {
+                        Text(status.uppercased())
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(status == "active" ? .green : .secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background((status == "active" ? Color.green : Color.secondary).opacity(0.1))
+                            .clipShape(Capsule())
                     }
                 }
                 .padding(.top)
@@ -230,10 +258,10 @@ struct ClientDetailView: View {
                             .background(Color.accentColor)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
-                    .disabled(client.phone == nil)
+                    .disabled(client.phone == nil || client.phone?.isEmpty == true)
 
                     Button {
-                        if let url = URL(string: "mailto:\(client.email)") {
+                        if let email = client.email, let url = URL(string: "mailto:\(email)") {
                             UIApplication.shared.open(url)
                         }
                     } label: {
@@ -245,6 +273,7 @@ struct ClientDetailView: View {
                             .background(Color.accentColor)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
+                    .disabled(client.email == nil || client.email?.isEmpty == true)
                 }
                 .padding(.horizontal)
 
@@ -256,15 +285,17 @@ struct ClientDetailView: View {
                         .foregroundColor(.secondary)
 
                     VStack(spacing: 0) {
-                        ContactRow(icon: "envelope", label: "Email", value: client.email)
-                        Divider().padding(.leading, 44)
+                        if let email = client.email, !email.isEmpty {
+                            ContactRow(icon: "envelope", label: "Email", value: email)
+                            Divider().padding(.leading, 44)
+                        }
 
-                        if let phone = client.phone {
+                        if let phone = client.phone, !phone.isEmpty {
                             ContactRow(icon: "phone", label: "Phone", value: phone)
                             Divider().padding(.leading, 44)
                         }
 
-                        if let address = client.address {
+                        if let address = fullAddress {
                             ContactRow(icon: "mappin", label: "Address", value: address)
                         }
                     }
@@ -378,9 +409,9 @@ struct ContactRow: View {
         DocumentDetailView(document: Document(
             id: "1",
             title: "LLC Operating Agreement",
-            category: .businessFormation,
+            category: "business_formation",
             content: "This is a sample document content...",
-            status: .final,
+            status: "final",
             createdAt: Date(),
             updatedAt: Date()
         ))

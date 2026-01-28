@@ -806,4 +806,25 @@ router.post('/send-mock', async (req, res) => {
     }
 });
 
+// API: Get e-signature documents
+router.get('/api/esignature/documents', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT es.*
+            FROM esignature_requests es
+            WHERE (es.user_id = $1 OR es.user_id IS NULL)
+            ORDER BY es.created_at DESC
+            LIMIT 50
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            documents: result.rows
+        });
+    } catch (error) {
+        console.error('E-signature documents error:', error);
+        res.status(500).json({ error: 'Failed to get e-signature documents' });
+    }
+});
+
 module.exports = router;

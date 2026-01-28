@@ -86,6 +86,43 @@ router.get('/voice-notes', requireAuth, async (req, res) => {
 // API ROUTES
 // =====================================================
 
+// Get voice notes list
+router.get('/api/voice-notes', requireAuth, async (req, res) => {
+    try {
+        const { case_id, client_id } = req.query;
+
+        let query = `
+            SELECT vn.*, c.first_name, c.last_name, cs.title as case_title
+            FROM voice_notes vn
+            LEFT JOIN clients c ON vn.client_id = c.id
+            LEFT JOIN cases cs ON vn.case_id = cs.id
+            WHERE (vn.user_id = $1 OR vn.user_id IS NULL)
+        `;
+        const params = [req.user.id];
+
+        if (case_id) {
+            query += ` AND vn.case_id = $${params.length + 1}`;
+            params.push(case_id);
+        }
+        if (client_id) {
+            query += ` AND vn.client_id = $${params.length + 1}`;
+            params.push(client_id);
+        }
+
+        query += ' ORDER BY vn.created_at DESC LIMIT 50';
+
+        const result = await db.query(query, params);
+
+        res.json({
+            success: true,
+            voiceNotes: result.rows
+        });
+    } catch (error) {
+        console.error('Voice notes error:', error);
+        res.status(500).json({ error: 'Failed to get voice notes' });
+    }
+});
+
 // Transcribe uploaded audio using Whisper API
 router.post('/api/voice-notes/transcribe-audio', requireAuth, upload.single('audio'), async (req, res) => {
     try {

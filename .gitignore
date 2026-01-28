@@ -41,3 +41,10 @@ lerna-debug.log*
 *.tgz
 .npm/
 
+# iOS
+ios/LegalPracticeAI/Configuration.plist
+ios/DerivedData/
+ios/*.xcuserdata/
+ios/**/*.xcuserstate
+ios/**/*.xcuserdata/
+

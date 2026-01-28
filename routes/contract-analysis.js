@@ -585,4 +585,27 @@ router.get('/api/contract-analysis', requireAuth, async (req, res) => {
     }
 });
 
+// Get recent contract analyses
+router.get('/api/contract-analysis/recent', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT ca.*, c.first_name, c.last_name, cs.title as case_title
+            FROM contract_analyses ca
+            LEFT JOIN clients c ON ca.client_id = c.id
+            LEFT JOIN cases cs ON ca.case_id = cs.id
+            WHERE (ca.user_id = $1 OR ca.user_id IS NULL)
+            ORDER BY ca.created_at DESC
+            LIMIT 20
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            analyses: result.rows
+        });
+    } catch (error) {
+        console.error('Get recent analyses error:', error);
+        res.status(500).json({ error: 'Failed to get analyses' });
+    }
+});
+
 module.exports = router;

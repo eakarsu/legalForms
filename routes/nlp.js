@@ -225,4 +225,44 @@ router.get('/suggestions', (req, res) => {
     res.json({ suggestions });
 });
 
+// Legal Research API endpoint
+const { requireAuth } = require('../middleware/auth');
+
+router.get('/research', requireAuth, async (req, res) => {
+    try {
+        const { query, topic, jurisdiction } = req.query;
+
+        // Get saved research
+        const savedResult = await db.query(`
+            SELECT * FROM legal_research
+            WHERE (user_id = $1 OR user_id IS NULL)
+            ORDER BY created_at DESC
+            LIMIT 10
+        `, [req.user.id]);
+
+        const results = {
+            query: query || 'general legal research',
+            topics: [
+                { name: 'Case Law', count: 15 },
+                { name: 'Statutes', count: 8 },
+                { name: 'Regulations', count: 5 }
+            ],
+            recentSearches: savedResult.rows,
+            suggestedTopics: [
+                'Contract Law',
+                'Civil Procedure',
+                'Evidence Rules'
+            ]
+        };
+
+        res.json({
+            success: true,
+            research: results
+        });
+    } catch (error) {
+        console.error('Legal research error:', error);
+        res.status(500).json({ error: 'Failed to perform research' });
+    }
+});
+
 module.exports = router;

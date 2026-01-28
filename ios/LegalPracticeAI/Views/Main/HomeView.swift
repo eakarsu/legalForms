@@ -202,13 +202,13 @@ struct DocumentRowCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(document.title)
+                Text(document.title ?? "Untitled Document")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
-                Text("\(document.category.displayName) • \(document.createdAt.formatted(date: .abbreviated, time: .omitted))")
+                Text("\(document.displayCategory?.displayName ?? document.category ?? "Document") • \(document.createdAt?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

@@ -319,6 +319,97 @@ router.get('/trust/:id/reconcile', requireAuth, async (req, res) => {
 // API ROUTES
 // =====================================================
 
+// Get all trust accounts (API for mobile)
+router.get('/api/trust/accounts', requireAuth, async (req, res) => {
+    try {
+        const { client_id } = req.query;
+
+        let query = 'SELECT * FROM trust_accounts WHERE (user_id = $1 OR user_id IS NULL)';
+        const params = [req.user.id];
+
+        if (client_id) {
+            query = `
+                SELECT DISTINCT ta.* FROM trust_accounts ta
+                JOIN trust_ledgers tl ON ta.id = tl.account_id
+                WHERE (ta.user_id = $1 OR ta.user_id IS NULL) AND tl.client_id = $2
+            `;
+            params.push(client_id);
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const result = await db.query(query, params);
+        res.json({ success: true, accounts: result.rows, count: result.rows.length });
+    } catch (error) {
+        console.error('Get trust accounts error:', error);
+        res.status(500).json({ error: 'Failed to get trust accounts' });
+    }
+});
+
+// Get single trust account (API for mobile)
+router.get('/api/trust/accounts/:id', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            [req.params.id, req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Trust account not found' });
+        }
+
+        res.json({ success: true, account: result.rows[0] });
+    } catch (error) {
+        console.error('Get trust account error:', error);
+        res.status(500).json({ error: 'Failed to get trust account' });
+    }
+});
+
+// Get trust account transactions (API for mobile)
+router.get('/api/trust/accounts/:id/transactions', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT tt.*
+            FROM trust_transactions tt
+            WHERE tt.trust_account_id = $1
+            ORDER BY tt.transaction_date DESC, tt.created_at DESC
+        `, [req.params.id]);
+
+        res.json({ success: true, transactions: result.rows });
+    } catch (error) {
+        console.error('Get trust transactions error:', error);
+        res.status(500).json({ error: 'Failed to get transactions' });
+    }
+});
+
+// Get trust account ledger (API for mobile)
+router.get('/api/trust/accounts/:id/ledger', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT tt.*
+            FROM trust_transactions tt
+            WHERE tt.trust_account_id = $1
+            ORDER BY tt.transaction_date DESC, tt.created_at DESC
+        `, [req.params.id]);
+
+        // Calculate running balance
+        let balance = 0;
+        const entries = result.rows.reverse().map(entry => {
+            if (entry.transaction_type === 'deposit') {
+                balance += parseFloat(entry.amount);
+            } else {
+                balance -= parseFloat(entry.amount);
+            }
+            return { ...entry, runningBalance: balance };
+        }).reverse();
+
+        res.json({ success: true, entries, balance });
+    } catch (error) {
+        console.error('Get trust ledger error:', error);
+        res.status(500).json({ error: 'Failed to get ledger' });
+    }
+});
+
 // Create trust account
 router.post('/api/trust/accounts', requireAuth, async (req, res) => {
     try {
@@ -912,6 +1003,234 @@ router.delete('/api/trust/:accountId/ledgers/:ledgerId', requireAuth, async (req
     } catch (error) {
         console.error('Delete client ledger error:', error);
         res.status(500).json({ error: 'Failed to delete ledger' });
+    }
+});
+
+// =====================================================
+// RECONCILIATION API ENDPOINTS
+// =====================================================
+
+// Get reconciliation data for a trust account
+router.get('/api/trust/accounts/:id/reconcile', requireAuth, async (req, res) => {
+    try {
+        const accountId = req.params.id;
+
+        // Get account details
+        const accountResult = await db.query(
+            'SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            [accountId, req.user.id]
+        );
+
+        if (accountResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        // Get recent transactions (for reconciliation)
+        const unreconciledResult = await db.query(`
+            SELECT tt.*
+            FROM trust_transactions tt
+            WHERE tt.trust_account_id = $1
+            ORDER BY tt.transaction_date DESC
+            LIMIT 50
+        `, [accountId]);
+
+        // Get reconciliation history
+        const historyResult = await db.query(`
+            SELECT * FROM trust_reconciliations
+            WHERE trust_account_id = $1
+            ORDER BY statement_date DESC
+            LIMIT 12
+        `, [accountId]);
+
+        // Calculate book balance
+        const balanceResult = await db.query(`
+            SELECT
+                COALESCE(SUM(CASE WHEN transaction_type = 'deposit' THEN amount ELSE 0 END), 0) as total_deposits,
+                COALESCE(SUM(CASE WHEN transaction_type = 'withdrawal' THEN amount ELSE 0 END), 0) as total_withdrawals
+            FROM trust_transactions
+            WHERE trust_account_id = $1
+        `, [accountId]);
+
+        const bookBalance = (balanceResult.rows[0].total_deposits || 0) - (balanceResult.rows[0].total_withdrawals || 0);
+
+        res.json({
+            success: true,
+            account: accountResult.rows[0],
+            unreconciledTransactions: unreconciledResult.rows,
+            reconciliationHistory: historyResult.rows || [],
+            bookBalance: bookBalance
+        });
+    } catch (error) {
+        console.error('Reconciliation data error:', error);
+        res.status(500).json({ error: 'Failed to get reconciliation data' });
+    }
+});
+
+// 3-Way Reconciliation endpoint
+router.get('/api/trust/accounts/:id/3way-reconcile', requireAuth, async (req, res) => {
+    try {
+        const accountId = req.params.id;
+
+        // Get account
+        const accountResult = await db.query(
+            'SELECT * FROM trust_accounts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            [accountId, req.user.id]
+        );
+
+        if (accountResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        // 1. Bank Statement Balance (from last reconciliation or current balance)
+        const bankBalance = parseFloat(accountResult.rows[0].current_balance) || 0;
+
+        // 2. Book Balance (sum of all transactions)
+        const bookResult = await db.query(`
+            SELECT
+                COALESCE(SUM(CASE WHEN transaction_type = 'deposit' THEN amount ELSE -amount END), 0) as book_balance
+            FROM trust_transactions
+            WHERE trust_account_id = $1
+        `, [accountId]);
+        const bookBalance = parseFloat(bookResult.rows[0].book_balance) || 0;
+
+        // 3. Client Ledger Balance (sum of all client ledger balances)
+        const clientResult = await db.query(`
+            SELECT COALESCE(SUM(current_balance), 0) as client_balance
+            FROM client_trust_ledgers
+            WHERE trust_account_id = $1
+        `, [accountId]);
+        const clientBalance = parseFloat(clientResult.rows[0].client_balance) || 0;
+
+        // Get individual client ledgers
+        const ledgersResult = await db.query(`
+            SELECT ctl.*, c.first_name, c.last_name, c.company_name
+            FROM client_trust_ledgers ctl
+            JOIN clients c ON ctl.client_id = c.id
+            WHERE ctl.trust_account_id = $1
+            ORDER BY c.last_name, c.first_name
+        `, [accountId]);
+
+        // Check if balanced
+        const isBalanced = Math.abs(bankBalance - bookBalance) < 0.01 && Math.abs(bookBalance - clientBalance) < 0.01;
+
+        res.json({
+            success: true,
+            account: accountResult.rows[0],
+            bankBalance: bankBalance,
+            bookBalance: bookBalance,
+            clientBalance: clientBalance,
+            clientLedgers: ledgersResult.rows,
+            isBalanced: isBalanced,
+            variance: {
+                bankToBook: bankBalance - bookBalance,
+                bookToClient: bookBalance - clientBalance
+            }
+        });
+    } catch (error) {
+        console.error('3-Way reconciliation error:', error);
+        res.status(500).json({ error: 'Failed to perform 3-way reconciliation' });
+    }
+});
+
+// GET all transactions across all accounts
+router.get('/api/trust/transactions', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT tt.*, ta.account_name, ta.bank_name,
+                   COALESCE(c.first_name || ' ' || c.last_name, '') as client_name
+            FROM trust_transactions tt
+            JOIN trust_accounts ta ON tt.trust_account_id = ta.id
+            LEFT JOIN client_trust_ledgers ctl ON tt.client_trust_ledger_id = ctl.id
+            LEFT JOIN clients c ON ctl.client_id = c.id
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
+            ORDER BY tt.transaction_date DESC, tt.created_at DESC
+            LIMIT 500
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            transactions: result.rows,
+            count: result.rows.length
+        });
+    } catch (error) {
+        console.error('Get all transactions error:', error);
+        res.status(500).json({ error: 'Failed to get transactions' });
+    }
+});
+
+// GET all ledger entries across all accounts
+router.get('/api/trust/ledger', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT tt.*, ta.account_name, ta.bank_name,
+                   COALESCE(c.first_name || ' ' || c.last_name, '') as client_name
+            FROM trust_transactions tt
+            JOIN trust_accounts ta ON tt.trust_account_id = ta.id
+            LEFT JOIN client_trust_ledgers ctl ON tt.client_trust_ledger_id = ctl.id
+            LEFT JOIN clients c ON ctl.client_id = c.id
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
+            ORDER BY tt.transaction_date DESC, tt.created_at DESC
+            LIMIT 500
+        `, [req.user.id]);
+
+        // Calculate running balance
+        let runningBalance = 0;
+        const entries = result.rows.reverse().map(row => {
+            const amount = parseFloat(row.amount) || 0;
+            if (row.transaction_type === 'deposit' || row.transaction_type === 'interest') {
+                runningBalance += amount;
+            } else {
+                runningBalance -= amount;
+            }
+            return { ...row, runningBalance };
+        }).reverse();
+
+        res.json({
+            success: true,
+            entries: entries,
+            balance: runningBalance,
+            count: entries.length
+        });
+    } catch (error) {
+        console.error('Get all ledger entries error:', error);
+        res.status(500).json({ error: 'Failed to get ledger entries' });
+    }
+});
+
+// GET all reconciliations
+router.get('/api/trust/reconciliations', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT tr.*, ta.account_name, ta.bank_name
+            FROM trust_reconciliations tr
+            JOIN trust_accounts ta ON tr.trust_account_id = ta.id
+            WHERE (ta.user_id = $1 OR ta.user_id IS NULL)
+            ORDER BY tr.statement_date DESC
+            LIMIT 100
+        `, [req.user.id]);
+
+        // Map to match iOS model expectations
+        const reconciliations = result.rows.map(r => ({
+            id: r.id,
+            accountId: r.trust_account_id,
+            accountName: r.account_name || 'Unknown Account',
+            reconciliationDate: r.statement_date,
+            bankBalance: parseFloat(r.statement_balance) || 0,
+            bookBalance: parseFloat(r.book_balance) || 0,
+            difference: (parseFloat(r.statement_balance) || 0) - (parseFloat(r.book_balance) || 0),
+            status: r.is_balanced ? 'matched' : 'unmatched',
+            notes: r.notes,
+            completedBy: r.reconciled_by,
+            completedAt: r.created_at
+        }));
+
+        res.json({
+            success: true,
+            reconciliations: reconciliations
+        });
+    } catch (error) {
+        console.error('Get reconciliations error:', error);
+        res.status(500).json({ error: 'Failed to get reconciliations' });
     }
 });
 

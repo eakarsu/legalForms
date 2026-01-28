@@ -510,4 +510,27 @@ router.get('/api/document-summary', requireAuth, async (req, res) => {
     }
 });
 
+// Get recent summaries
+router.get('/api/document-summary/recent', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT ds.*, c.first_name, c.last_name, cs.title as case_title
+            FROM document_summaries ds
+            LEFT JOIN clients c ON ds.client_id = c.id
+            LEFT JOIN cases cs ON ds.case_id = cs.id
+            WHERE (ds.user_id = $1 OR ds.user_id IS NULL)
+            ORDER BY ds.created_at DESC
+            LIMIT 20
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            summaries: result.rows
+        });
+    } catch (error) {
+        console.error('Get recent summaries error:', error);
+        res.status(500).json({ error: 'Failed to get summaries' });
+    }
+});
+
 module.exports = router;

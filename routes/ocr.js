@@ -498,4 +498,25 @@ function extractEntities(text) {
     return entities;
 }
 
+// API: Get OCR documents list
+router.get('/api/ocr/documents', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT od.*
+            FROM ocr_documents od
+            WHERE (od.user_id = $1 OR od.user_id IS NULL)
+            ORDER BY od.created_at DESC
+            LIMIT 50
+        `, [req.user.id]);
+
+        res.json({
+            success: true,
+            documents: result.rows
+        });
+    } catch (error) {
+        console.error('OCR documents error:', error);
+        res.status(500).json({ error: 'Failed to get OCR documents' });
+    }
+});
+
 module.exports = router;

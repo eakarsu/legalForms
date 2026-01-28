@@ -134,6 +134,32 @@ final class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
+    // MARK: - Social Login
+    func socialLogin(provider: String, code: String, codeVerifier: String? = nil) async throws {
+        isLoading = true
+        error = nil
+
+        do {
+            let response = try await api.socialLogin(provider: provider, code: code, codeVerifier: codeVerifier)
+
+            // Save to keychain
+            _ = keychain.saveToken(response.token)
+            _ = keychain.saveUser(response.user)
+
+            self.user = response.user
+            self.isAuthenticated = true
+            isLoading = false
+        } catch let apiError as APIServiceError {
+            self.error = apiError.localizedDescription
+            isLoading = false
+            throw apiError
+        } catch {
+            self.error = "Social login failed. Please try again."
+            isLoading = false
+            throw error
+        }
+    }
+
     // MARK: - Clear Error
     func clearError() {
         error = nil

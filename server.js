@@ -23,7 +23,7 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const db = require('./config/database');
 const authRoutes = require('./routes/auth');
-const { optionalAuth } = require('./middleware/auth');
+const { optionalAuth, requireAuth } = require('./middleware/auth');
 const passport = require('./config/passport');
 const { seedDemoDataForUser } = require('./lib/seedUserDemoData');
 const stripeRoutes = require('./routes/stripe');
@@ -68,6 +68,7 @@ const aiCalendarRoutes = require('./routes/ai-calendar');
 const citationFinderRoutes = require('./routes/citation-finder');
 const aiCommunicationsRoutes = require('./routes/ai-communications');
 const aiIntakeRoutes = require('./routes/ai-intake');
+const additionalFeaturesRoutes = require('./routes/additional-features');
 
 require('dotenv').config();
 
@@ -241,6 +242,7 @@ app.use('/', citationFinderRoutes);
 app.use('/', aiCommunicationsRoutes);
 app.use('/', aiIntakeRoutes);
 app.use('/', stripeRoutes);
+app.use('/', additionalFeaturesRoutes);
 
 // Debug: Log registered routes
 console.log('Registered API routes:');
@@ -254,7 +256,68 @@ console.log('- /api/calendar/*');
 console.log('- /api/communications/*');
 console.log('- /api/collaboration/*');
 console.log('- /api/reports/*');
-//add
+console.log('- /api/dashboard');
+
+// API Dashboard endpoint for mobile
+app.get('/api/dashboard', requireAuth, async (req, res) => {
+  try {
+    // Get dashboard stats
+    const clientsCount = await db.query(
+      'SELECT COUNT(*) as count FROM clients WHERE user_id = $1',
+      [req.user.id]
+    );
+
+    const casesStats = await db.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'active') as active,
+        COUNT(*) FILTER (WHERE status = 'pending') as pending
+      FROM cases WHERE user_id = $1
+    `, [req.user.id]);
+
+    const invoiceStats = await db.query(`
+      SELECT
+        COALESCE(SUM(total), 0) as total_billed,
+        COALESCE(SUM(amount_paid), 0) as total_paid,
+        COALESCE(SUM(total) - SUM(amount_paid), 0) as outstanding
+      FROM invoices WHERE user_id = $1
+    `, [req.user.id]);
+
+    const upcomingDeadlines = await db.query(`
+      SELECT id, title, due_date, status, case_id
+      FROM deadlines
+      WHERE user_id = $1 AND status != 'completed' AND due_date >= CURRENT_DATE
+      ORDER BY due_date ASC
+      LIMIT 5
+    `, [req.user.id]);
+
+    const recentActivities = await db.query(`
+      SELECT id, activity_type as type, description, created_at
+      FROM lead_activities
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [req.user.id]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalClients: parseInt(clientsCount.rows[0]?.count) || 0,
+        totalCases: parseInt(casesStats.rows[0]?.total) || 0,
+        activeCases: parseInt(casesStats.rows[0]?.active) || 0,
+        pendingCases: parseInt(casesStats.rows[0]?.pending) || 0,
+        totalBilled: parseFloat(invoiceStats.rows[0]?.total_billed) || 0,
+        totalPaid: parseFloat(invoiceStats.rows[0]?.total_paid) || 0,
+        outstanding: parseFloat(invoiceStats.rows[0]?.outstanding) || 0
+      },
+      upcomingDeadlines: upcomingDeadlines.rows,
+      recentActivities: recentActivities.rows
+    });
+  } catch (error) {
+    console.error('Dashboard API error:', error);
+    res.status(500).json({ error: 'Failed to get dashboard data' });
+  }
+});
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -1667,6 +1730,102 @@ app.post('/generate', validateCompliance, async (req, res) => {
   }
 });
 
+// API alias for mobile apps - same as /generate
+app.post('/api/generate', validateCompliance, async (req, res) => {
+  try {
+    const {
+      form_type: formType,
+      specific_type: specificType,
+      form_data: userData,
+      format = 'txt',
+      generation_mode = 'ai_summary'
+    } = req.body;
+
+    console.log('API Generate request:', { formType, specificType, format, generation_mode, userDataKeys: Object.keys(userData || {}) });
+
+    if (!FORM_TYPES[formType]) {
+      console.log('Invalid form type:', formType, 'Available:', Object.keys(FORM_TYPES));
+      return res.status(400).json({ error: `Invalid form type: ${formType}` });
+    }
+
+    const allowedFormats = ['txt', 'pdf', 'docx'];
+    if (!allowedFormats.includes(format)) {
+      return res.status(400).json({ error: 'Invalid document format' });
+    }
+
+    if (req.complianceValidation && !req.complianceValidation.isCompliant) {
+      const highSeverityIssues = req.complianceValidation.issues.filter(issue => issue.severity === 'high');
+      if (highSeverityIssues.length > 0) {
+        return res.status(400).json({
+          error: 'Compliance issues must be resolved before generating document',
+          complianceIssues: req.complianceValidation.issues,
+          suggestions: req.complianceValidation.suggestions
+        });
+      }
+    }
+
+    // Use OpenRouter AI directly for all document generation (skips EJS template engine)
+    console.log('Generating document using OpenRouter AI with prompt files...');
+    const document = await generateDocument(formType, userData, specificType);
+
+    const timestamp = moment().format('YYYYMMDD_HHmmss');
+    const documentType = specificType || formType;
+    const baseFilename = `${documentType}_${timestamp}`;
+
+    let filename;
+
+    switch (format) {
+      case 'pdf':
+        filename = `${baseFilename}.pdf`;
+        await generatePDF(document, filename);
+        break;
+      case 'docx':
+        filename = `${baseFilename}.docx`;
+        const filepath = path.join(uploadDir, filename);
+        await generateWord(document, filepath);
+        break;
+      default:
+        filename = `${baseFilename}.txt`;
+        const txtPath = path.join(uploadDir, filename);
+        await fs.writeFile(txtPath, document, 'utf8');
+        break;
+    }
+
+    let documentId = null;
+    if (req.user) {
+      const docResult = await db.query(`
+        INSERT INTO document_history (user_id, document_type, specific_type, title, content, form_data, file_format, file_path)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id
+      `, [
+        req.user.id,
+        formType,
+        specificType,
+        `${documentType}_${timestamp}`,
+        document,
+        JSON.stringify(userData),
+        format,
+        filename
+      ]);
+      documentId = docResult.rows[0].id;
+    }
+
+    console.log('Document generated successfully:', { filename, format, documentId, contentLength: document?.length });
+
+    res.json({
+      success: true,
+      document: document,
+      filename: filename,
+      format: format,
+      documentId: documentId,
+      complianceValidation: req.complianceValidation
+    });
+  } catch (error) {
+    console.error('Error generating document:', error);
+    res.status(500).json({ error: 'Failed to generate document: ' + error.message });
+  }
+});
+
 app.post('/contact', (req, res) => {
   try {
     const { firstName, lastName, email, phone, subject, message } = req.body;
@@ -1760,6 +1919,634 @@ app.get('/api/form-fields/:formType/:specificType?', (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// ============================================
+// AI API ENDPOINTS (Using OpenRouter)
+// ============================================
+
+// AI Email Drafting
+app.post('/api/ai/draft-email', async (req, res) => {
+  try {
+    const { recipient, subject, context, tone = 'professional' } = req.body;
+
+    const prompt = `You are a legal professional drafting an email.
+Tone: ${tone}
+Recipient: ${recipient}
+Subject: ${subject}
+Context: ${context}
+
+Write a professional legal email. Be concise and clear.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const draft = response.data.choices[0].message.content;
+    res.json({ success: true, draft });
+  } catch (error) {
+    console.error('AI Email Draft error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI Case Predictions
+app.post('/api/ai/predict-case', async (req, res) => {
+  try {
+    const { caseName, caseType, facts, jurisdiction } = req.body;
+
+    const prompt = `As a legal analyst, analyze this case and provide predictions:
+Case: ${caseName}
+Type: ${caseType}
+Jurisdiction: ${jurisdiction}
+Facts: ${facts}
+
+Provide a JSON response with:
+1. winProbability (0-100)
+2. settlementRangeLow (dollar amount)
+3. settlementRangeHigh (dollar amount)
+4. timeToResolution (e.g., "6-12 months")
+5. keyFactors (array of 4 positive factors)
+6. risks (array of 3 risk factors)
+7. recommendations (array of 3 recommendations)
+
+Return ONLY valid JSON, no other text.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let prediction;
+    try {
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      prediction = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    } catch {
+      prediction = {
+        winProbability: 65,
+        settlementRangeLow: 50000,
+        settlementRangeHigh: 150000,
+        timeToResolution: "8-12 months",
+        keyFactors: ["Strong evidence", "Favorable jurisdiction", "Clear liability", "Credible witnesses"],
+        risks: ["Opposing counsel experience", "Damages disputed", "Timeline concerns"],
+        recommendations: ["Consider mediation", "Strengthen expert testimony", "Prepare summary judgment"]
+      };
+    }
+
+    res.json({ success: true, prediction });
+  } catch (error) {
+    console.error('AI Prediction error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI Citation Finder
+app.post('/api/ai/find-citations', async (req, res) => {
+  try {
+    const { query, jurisdiction = 'Federal' } = req.body;
+
+    const prompt = `As a legal research assistant, find relevant legal citations for:
+Query: ${query}
+Jurisdiction: ${jurisdiction}
+
+Provide a JSON array of 5 relevant citations with:
+- caseName
+- citation (e.g., "347 U.S. 483")
+- year
+- court
+- relevance (0.0-1.0)
+- keyHolding (brief summary)
+
+Return ONLY valid JSON array, no other text.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let citations;
+    try {
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      citations = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    } catch {
+      citations = [];
+    }
+
+    res.json({ success: true, citations });
+  } catch (error) {
+    console.error('Citation Finder error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI Legal Research
+app.post('/api/ai/legal-research', async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    const prompt = `As a legal research assistant, research this topic:
+${query}
+
+Provide a comprehensive JSON response with:
+- summary (2-3 paragraphs)
+- keyPoints (array of 5 key points)
+- relevantStatutes (array of relevant statutes)
+- caseReferences (array of 3 case references with name and brief holding)
+- practicalConsiderations (array of 3 practical tips)
+
+Return ONLY valid JSON, no other text.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let research;
+    try {
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      research = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    } catch {
+      research = { summary: response.data.choices[0].message.content, keyPoints: [], relevantStatutes: [], caseReferences: [], practicalConsiderations: [] };
+    }
+
+    res.json({ success: true, research });
+  } catch (error) {
+    console.error('Legal Research error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI Document Summarization
+app.post('/api/ai/summarize', async (req, res) => {
+  try {
+    const { content, documentType = 'legal document' } = req.body;
+
+    const prompt = `Summarize this ${documentType}:
+${content.substring(0, 8000)}
+
+Provide a JSON response with:
+- summary (concise summary)
+- keyPoints (array of 5 key points)
+- parties (array of parties involved)
+- dates (array of important dates)
+- obligations (array of key obligations)
+- risks (array of potential risks)
+
+Return ONLY valid JSON, no other text.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let summary;
+    try {
+      const jsonContent = response.data.choices[0].message.content;
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      summary = JSON.parse(jsonMatch ? jsonMatch[0] : jsonContent);
+    } catch {
+      summary = { summary: response.data.choices[0].message.content, keyPoints: [] };
+    }
+
+    res.json({ success: true, ...summary });
+  } catch (error) {
+    console.error('Summarization error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI Contract Analysis
+app.post('/api/ai/analyze-contract', async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    const prompt = `Analyze this contract:
+${content.substring(0, 8000)}
+
+Provide a JSON response with:
+- overallRisk (low/medium/high)
+- riskScore (1-10)
+- summary (brief summary)
+- clauses (array of clause objects with: name, type, risk, summary)
+- missingClauses (array of recommended missing clauses)
+- recommendations (array of recommendations)
+- keyTerms (array of key terms with: term, definition, concern if any)
+
+Return ONLY valid JSON, no other text.`;
+
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-haiku',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let analysis;
+    try {
+      const jsonContent = response.data.choices[0].message.content;
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      analysis = JSON.parse(jsonMatch ? jsonMatch[0] : jsonContent);
+    } catch {
+      analysis = { overallRisk: 'medium', riskScore: 5, summary: 'Analysis complete', clauses: [], recommendations: [] };
+    }
+
+    res.json({ success: true, ...analysis });
+  } catch (error) {
+    console.error('Contract Analysis error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// DATABASE API ENDPOINTS (PostgreSQL)
+// ============================================
+
+// Leads API
+app.get('/api/leads', async (req, res) => {
+  try {
+    const { status, source } = req.query;
+    let query = 'SELECT * FROM leads WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
+
+    if (status) {
+      query += ` AND status = $${paramIndex++}`;
+      params.push(status);
+    }
+    if (source) {
+      query += ` AND source = $${paramIndex++}`;
+      params.push(source);
+    }
+    query += ' ORDER BY created_at DESC';
+
+    const result = await db.query(query, params);
+    res.json({ success: true, leads: result.rows });
+  } catch (error) {
+    console.error('Leads fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/leads', async (req, res) => {
+  try {
+    const { name, first_name, last_name, email, phone, source, practice_area, case_type, notes, estimated_value } = req.body;
+    const leadName = name || `${first_name || ''} ${last_name || ''}`.trim();
+    const result = await db.query(
+      'INSERT INTO leads (name, email, phone, source, practice_area, notes, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id',
+      [leadName, email, phone, source || 'website', practice_area || case_type, notes, 'new']
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Lead create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/leads/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, first_name, last_name, email, phone, source, practice_area, case_type, notes, status, estimated_value } = req.body;
+    const leadName = name || `${first_name || ''} ${last_name || ''}`.trim();
+    const result = await db.query(
+      'UPDATE leads SET name = $1, email = $2, phone = $3, source = $4, practice_area = $5, notes = $6, status = COALESCE($7, status), updated_at = NOW() WHERE id = $8 RETURNING *',
+      [leadName, email, phone, source, practice_area || case_type, notes, status, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+    res.json({ success: true, lead: result.rows[0] });
+  } catch (error) {
+    console.error('Lead update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/leads/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const result = await db.query(
+      'UPDATE leads SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+    res.json({ success: true, lead: result.rows[0] });
+  } catch (error) {
+    console.error('Lead status update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/leads/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM leads WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Lead delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Leads Analytics
+app.get('/api/leads/analytics', async (req, res) => {
+  try {
+    const total = await db.query('SELECT COUNT(*) as count FROM leads');
+    const byStatus = await db.query('SELECT status, COUNT(*) as count FROM leads GROUP BY status');
+    const bySource = await db.query('SELECT source, COUNT(*) as count FROM leads GROUP BY source');
+    const converted = await db.query("SELECT COUNT(*) as count FROM leads WHERE status = 'converted'");
+
+    res.json({
+      success: true,
+      totalLeads: parseInt(total.rows[0]?.count) || 0,
+      converted: parseInt(converted.rows[0]?.count) || 0,
+      conversionRate: total.rows[0]?.count > 0 ? ((converted.rows[0]?.count || 0) / total.rows[0].count * 100).toFixed(1) : '0',
+      byStatus: byStatus.rows,
+      bySource: bySource.rows
+    });
+  } catch (error) {
+    console.error('Leads analytics error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Lead Activities
+app.get('/api/leads/:id/activities', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query('SELECT * FROM lead_activities WHERE lead_id = $1 ORDER BY created_at DESC', [id]);
+    res.json({ success: true, activities: result.rows });
+  } catch (error) {
+    console.error('Lead activities fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/leads/:id/activities', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, description, notes } = req.body;
+    const result = await db.query(
+      'INSERT INTO lead_activities (lead_id, type, description, notes, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+      [id, type, description, notes]
+    );
+    res.json({ success: true, activity: result.rows[0] });
+  } catch (error) {
+    console.error('Lead activity create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Expenses API
+app.get('/api/expenses', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM expenses ORDER BY date DESC');
+    res.json({ success: true, expenses: result.rows });
+  } catch (error) {
+    console.error('Expenses fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/expenses', async (req, res) => {
+  try {
+    const { description, amount, category, case_id, billable, date } = req.body;
+    const result = await db.query(
+      'INSERT INTO expenses (description, amount, category, case_id, billable, date, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id',
+      [description, amount, category, case_id, billable, date]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Expense create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Messages API
+app.get('/api/messages', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM messages ORDER BY created_at DESC LIMIT 50');
+    res.json({ success: true, messages: result.rows });
+  } catch (error) {
+    console.error('Messages fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/messages', async (req, res) => {
+  try {
+    const { from_name, subject, content, client_id } = req.body;
+    const result = await db.query(
+      'INSERT INTO messages (from_name, subject, content, client_id, is_read, created_at) VALUES ($1, $2, $3, $4, false, NOW()) RETURNING id',
+      [from_name, subject, content, client_id]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Message create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Tasks API
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = 'SELECT * FROM tasks';
+    const params = [];
+
+    if (status) {
+      query += ' WHERE status = $1';
+      params.push(status);
+    }
+    query += ' ORDER BY due_date ASC';
+
+    const result = await db.query(query, params);
+    res.json({ success: true, tasks: result.rows });
+  } catch (error) {
+    console.error('Tasks fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const { title, description, due_date, priority, case_id, assigned_to } = req.body;
+    const result = await db.query(
+      'INSERT INTO tasks (title, description, due_date, priority, case_id, assigned_to, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id',
+      [title, description, due_date, priority || 'medium', case_id, assigned_to, 'pending']
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Task create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Deadlines API
+app.get('/api/deadlines', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM deadlines ORDER BY due_date ASC');
+    res.json({ success: true, deadlines: result.rows });
+  } catch (error) {
+    console.error('Deadlines fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Trust Accounts API
+app.get('/api/trust-accounts', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM trust_accounts ORDER BY created_at DESC');
+    res.json({ success: true, accounts: result.rows });
+  } catch (error) {
+    console.error('Trust accounts fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Trust Transactions API
+app.get('/api/trust-transactions', async (req, res) => {
+  try {
+    const { account_id } = req.query;
+    let query = 'SELECT * FROM trust_transactions';
+    const params = [];
+
+    if (account_id) {
+      query += ' WHERE account_id = $1';
+      params.push(account_id);
+    }
+    query += ' ORDER BY date DESC';
+
+    const result = await db.query(query, params);
+    res.json({ success: true, transactions: result.rows });
+  } catch (error) {
+    console.error('Trust transactions fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Conflict Checks API
+app.get('/api/conflicts', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM conflict_checks ORDER BY created_at DESC');
+    res.json({ success: true, conflicts: result.rows });
+  } catch (error) {
+    console.error('Conflicts fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/conflicts/check', async (req, res) => {
+  try {
+    const { party_name, party_type, case_id } = req.body;
+
+    // Check for conflicts
+    const matchResult = await db.query(
+      'SELECT * FROM conflict_parties WHERE LOWER(name) LIKE LOWER($1)',
+      [`%${party_name}%`]
+    );
+
+    const hasConflict = matchResult.rows.length > 0;
+
+    // Log the check
+    await db.query(
+      'INSERT INTO conflict_checks (party_name, party_type, case_id, has_conflict, created_at) VALUES ($1, $2, $3, $4, NOW())',
+      [party_name, party_type, case_id, hasConflict]
+    );
+
+    res.json({ success: true, hasConflict, matches: matchResult.rows });
+  } catch (error) {
+    console.error('Conflict check error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Payments API
+app.get('/api/payments', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM payments ORDER BY date DESC');
+    res.json({ success: true, payments: result.rows });
+  } catch (error) {
+    console.error('Payments fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/payments', async (req, res) => {
+  try {
+    const { client_id, invoice_id, amount, method, reference } = req.body;
+    const result = await db.query(
+      'INSERT INTO payments (client_id, invoice_id, amount, method, reference, date, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, NOW()) RETURNING id',
+      [client_id, invoice_id, amount, method, reference]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Payment create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reports API
+app.get('/api/reports/summary', async (req, res) => {
+  try {
+    const cases = await db.query('SELECT COUNT(*) as count FROM cases');
+    const clients = await db.query('SELECT COUNT(*) as count FROM clients');
+    const revenue = await db.query('SELECT COALESCE(SUM(amount), 0) as total FROM payments');
+    const openCases = await db.query("SELECT COUNT(*) as count FROM cases WHERE status = 'active'");
+    const billableHours = await db.query('SELECT COALESCE(SUM(hours), 0) as total FROM time_entries WHERE billable = true');
+
+    res.json({
+      success: true,
+      totalCases: parseInt(cases.rows[0]?.count) || 0,
+      totalClients: parseInt(clients.rows[0]?.count) || 0,
+      revenue: parseFloat(revenue.rows[0]?.total) || 0,
+      openCases: parseInt(openCases.rows[0]?.count) || 0,
+      billableHours: parseFloat(billableHours.rows[0]?.total) || 0
+    });
+  } catch (error) {
+    console.error('Reports summary error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // 404 handler

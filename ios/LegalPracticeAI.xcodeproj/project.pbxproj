@@ -13,11 +13,17 @@
 		1A0000000000000000000010 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000010 /* User.swift */; };
 		1A0000000000000000000011 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000011 /* Document.swift */; };
 		1A0000000000000000000012 /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000012 /* Client.swift */; };
+		1A0000000000000000000013 /* Case.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000013 /* Case.swift */; };
+		1A0000000000000000000014 /* Invoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000014 /* Invoice.swift */; };
+		1A0000000000000000000015 /* CalendarEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000015 /* CalendarEvent.swift */; };
+		1A0000000000000000000016 /* Dashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000016 /* Dashboard.swift */; };
+		1A0000000000000000000017 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000017 /* AIModels.swift */; };
 		1A0000000000000000000020 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000020 /* APIService.swift */; };
 		1A0000000000000000000021 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000021 /* KeychainService.swift */; };
 		1A0000000000000000000030 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000030 /* AuthViewModel.swift */; };
 		1A0000000000000000000031 /* DocumentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000031 /* DocumentsViewModel.swift */; };
 		1A0000000000000000000032 /* ClientsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000032 /* ClientsViewModel.swift */; };
+		1A0000000000000000000033 /* CasesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000033 /* CasesViewModel.swift */; };
 		1A0000000000000000000040 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000040 /* ThemeManager.swift */; };
 		1A0000000000000000000050 /* AuthNavigationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000050 /* AuthNavigationView.swift */; };
 		1A0000000000000000000051 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000051 /* LoginView.swift */; };
@@ -31,6 +37,31 @@
 		1A0000000000000000000065 /* CreateDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000065 /* CreateDocumentView.swift */; };
 		1A0000000000000000000066 /* DocumentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000066 /* DocumentDetailView.swift */; };
 		1A0000000000000000000067 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000067 /* SettingsView.swift */; };
+		1A0000000000000000000068 /* CasesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000068 /* CasesView.swift */; };
+		1A0000000000000000000069 /* InvoicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000069 /* InvoicesView.swift */; };
+		1A0000000000000000000070 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000070 /* CalendarView.swift */; };
+		1A0000000000000000000080 /* AIDraftingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000080 /* AIDraftingView.swift */; };
+		1A0000000000000000000081 /* AIBillingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000081 /* AIBillingView.swift */; };
+		1A0000000000000000000082 /* VoiceNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000082 /* VoiceNotesView.swift */; };
+		1A0000000000000000000083 /* DocumentSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000083 /* DocumentSummaryView.swift */; };
+		1A0000000000000000000084 /* ContractAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000084 /* ContractAnalysisView.swift */; };
+		1A0000000000000000000090 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000090 /* Config.swift */; };
+		1A0000000000000000000091 /* Configuration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000091 /* Configuration.plist */; };
+		1A0000000000000000000100 /* Lead.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000100 /* Lead.swift */; };
+		1A0000000000000000000101 /* Conflict.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000101 /* Conflict.swift */; };
+		1A0000000000000000000102 /* Appointment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000102 /* Appointment.swift */; };
+		1A0000000000000000000103 /* TrustAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000103 /* TrustAccount.swift */; };
+		1A0000000000000000000104 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000104 /* Task.swift */; };
+		1A0000000000000000000105 /* Communication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000105 /* Communication.swift */; };
+		1A0000000000000000000106 /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000106 /* Report.swift */; };
+		1A0000000000000000000110 /* LeadsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000110 /* LeadsViewModel.swift */; };
+		1A0000000000000000000120 /* LeadsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000120 /* LeadsViews.swift */; };
+		1A0000000000000000000121 /* ConflictsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000121 /* ConflictsViews.swift */; };
+		1A0000000000000000000122 /* BillingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000122 /* BillingViews.swift */; };
+		1A0000000000000000000123 /* TrustViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000123 /* TrustViews.swift */; };
+		1A0000000000000000000124 /* PaymentsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000124 /* PaymentsViews.swift */; };
+		1A0000000000000000000125 /* TasksViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000125 /* TasksViews.swift */; };
+		1A0000000000000000000126 /* CalendarViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000010000000000000126 /* CalendarViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,11 +73,17 @@
 		1A0000010000000000000010 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		1A0000010000000000000011 /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
 		1A0000010000000000000012 /* Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Client.swift; sourceTree = "<group>"; };
+		1A0000010000000000000013 /* Case.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Case.swift; sourceTree = "<group>"; };
+		1A0000010000000000000014 /* Invoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invoice.swift; sourceTree = "<group>"; };
+		1A0000010000000000000015 /* CalendarEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEvent.swift; sourceTree = "<group>"; };
+		1A0000010000000000000016 /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
+		1A0000010000000000000017 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModels.swift; sourceTree = "<group>"; };
 		1A0000010000000000000020 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		1A0000010000000000000021 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		1A0000010000000000000030 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		1A0000010000000000000031 /* DocumentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsViewModel.swift; sourceTree = "<group>"; };
 		1A0000010000000000000032 /* ClientsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientsViewModel.swift; sourceTree = "<group>"; };
+		1A0000010000000000000033 /* CasesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CasesViewModel.swift; sourceTree = "<group>"; };
 		1A0000010000000000000040 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		1A0000010000000000000050 /* AuthNavigationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthNavigationView.swift; sourceTree = "<group>"; };
 		1A0000010000000000000051 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -60,6 +97,31 @@
 		1A0000010000000000000065 /* CreateDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateDocumentView.swift; sourceTree = "<group>"; };
 		1A0000010000000000000066 /* DocumentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentDetailView.swift; sourceTree = "<group>"; };
 		1A0000010000000000000067 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000068 /* CasesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CasesView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000069 /* InvoicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoicesView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000070 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000080 /* AIDraftingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDraftingView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000081 /* AIBillingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBillingView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000082 /* VoiceNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceNotesView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000083 /* DocumentSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentSummaryView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000084 /* ContractAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractAnalysisView.swift; sourceTree = "<group>"; };
+		1A0000010000000000000090 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		1A0000010000000000000091 /* Configuration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Configuration.plist; sourceTree = "<group>"; };
+		1A0000010000000000000100 /* Lead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lead.swift; sourceTree = "<group>"; };
+		1A0000010000000000000101 /* Conflict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conflict.swift; sourceTree = "<group>"; };
+		1A0000010000000000000102 /* Appointment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Appointment.swift; sourceTree = "<group>"; };
+		1A0000010000000000000103 /* TrustAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAccount.swift; sourceTree = "<group>"; };
+		1A0000010000000000000104 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
+		1A0000010000000000000105 /* Communication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Communication.swift; sourceTree = "<group>"; };
+		1A0000010000000000000106 /* Report.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Report.swift; sourceTree = "<group>"; };
+		1A0000010000000000000110 /* LeadsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeadsViewModel.swift; sourceTree = "<group>"; };
+		1A0000010000000000000120 /* LeadsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeadsViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000121 /* ConflictsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConflictsViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000122 /* BillingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000123 /* TrustViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000124 /* PaymentsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentsViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000125 /* TasksViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksViews.swift; sourceTree = "<group>"; };
+		1A0000010000000000000126 /* CalendarViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +154,8 @@
 				1A00000A0000000000000000 /* Utilities */,
 				1A0000010000000000000003 /* Assets.xcassets */,
 				1A0000010000000000000004 /* Info.plist */,
+				1A0000010000000000000090 /* Config.swift */,
+				1A0000010000000000000091 /* Configuration.plist */,
 			);
 			path = LegalPracticeAI;
 			sourceTree = "<group>";
@@ -119,6 +183,18 @@
 				1A0000010000000000000010 /* User.swift */,
 				1A0000010000000000000011 /* Document.swift */,
 				1A0000010000000000000012 /* Client.swift */,
+				1A0000010000000000000013 /* Case.swift */,
+				1A0000010000000000000014 /* Invoice.swift */,
+				1A0000010000000000000015 /* CalendarEvent.swift */,
+				1A0000010000000000000016 /* Dashboard.swift */,
+				1A0000010000000000000017 /* AIModels.swift */,
+				1A0000010000000000000100 /* Lead.swift */,
+				1A0000010000000000000101 /* Conflict.swift */,
+				1A0000010000000000000102 /* Appointment.swift */,
+				1A0000010000000000000103 /* TrustAccount.swift */,
+				1A0000010000000000000104 /* Task.swift */,
+				1A0000010000000000000105 /* Communication.swift */,
+				1A0000010000000000000106 /* Report.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -138,6 +214,8 @@
 				1A0000010000000000000030 /* AuthViewModel.swift */,
 				1A0000010000000000000031 /* DocumentsViewModel.swift */,
 				1A0000010000000000000032 /* ClientsViewModel.swift */,
+				1A0000010000000000000033 /* CasesViewModel.swift */,
+				1A0000010000000000000110 /* LeadsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -147,6 +225,13 @@
 			children = (
 				1A00000B0000000000000000 /* Auth */,
 				1A00000C0000000000000000 /* Main */,
+				1A00000DD000000000000000 /* AI */,
+				1A00000EE000000000000000 /* Leads */,
+				1A00000EE000000000000001 /* Conflicts */,
+				1A00000EE000000000000002 /* Billing */,
+				1A00000EE000000000000003 /* Trust */,
+				1A00000EE000000000000004 /* Payments */,
+				1A00000EE000000000000005 /* Tasks */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -181,8 +266,72 @@
 				1A0000010000000000000065 /* CreateDocumentView.swift */,
 				1A0000010000000000000066 /* DocumentDetailView.swift */,
 				1A0000010000000000000067 /* SettingsView.swift */,
+				1A0000010000000000000068 /* CasesView.swift */,
+				1A0000010000000000000069 /* InvoicesView.swift */,
+				1A0000010000000000000070 /* CalendarView.swift */,
+				1A0000010000000000000126 /* CalendarViews.swift */,
 			);
 			path = Main;
+			sourceTree = "<group>";
+		};
+		1A00000DD000000000000000 /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000080 /* AIDraftingView.swift */,
+				1A0000010000000000000081 /* AIBillingView.swift */,
+				1A0000010000000000000082 /* VoiceNotesView.swift */,
+				1A0000010000000000000083 /* DocumentSummaryView.swift */,
+				1A0000010000000000000084 /* ContractAnalysisView.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000000 /* Leads */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000120 /* LeadsViews.swift */,
+			);
+			path = Leads;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000001 /* Conflicts */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000121 /* ConflictsViews.swift */,
+			);
+			path = Conflicts;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000002 /* Billing */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000122 /* BillingViews.swift */,
+			);
+			path = Billing;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000003 /* Trust */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000123 /* TrustViews.swift */,
+			);
+			path = Trust;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000004 /* Payments */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000124 /* PaymentsViews.swift */,
+			);
+			path = Payments;
+			sourceTree = "<group>";
+		};
+		1A00000EE000000000000005 /* Tasks */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000010000000000000125 /* TasksViews.swift */,
+			);
+			path = Tasks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -244,6 +393,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0000000000000000000003 /* Assets.xcassets in Resources */,
+				1A0000000000000000000091 /* Configuration.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -259,11 +409,17 @@
 				1A0000000000000000000010 /* User.swift in Sources */,
 				1A0000000000000000000011 /* Document.swift in Sources */,
 				1A0000000000000000000012 /* Client.swift in Sources */,
+				1A0000000000000000000013 /* Case.swift in Sources */,
+				1A0000000000000000000014 /* Invoice.swift in Sources */,
+				1A0000000000000000000015 /* CalendarEvent.swift in Sources */,
+				1A0000000000000000000016 /* Dashboard.swift in Sources */,
+				1A0000000000000000000017 /* AIModels.swift in Sources */,
 				1A0000000000000000000020 /* APIService.swift in Sources */,
 				1A0000000000000000000021 /* KeychainService.swift in Sources */,
 				1A0000000000000000000030 /* AuthViewModel.swift in Sources */,
 				1A0000000000000000000031 /* DocumentsViewModel.swift in Sources */,
 				1A0000000000000000000032 /* ClientsViewModel.swift in Sources */,
+				1A0000000000000000000033 /* CasesViewModel.swift in Sources */,
 				1A0000000000000000000040 /* ThemeManager.swift in Sources */,
 				1A0000000000000000000050 /* AuthNavigationView.swift in Sources */,
 				1A0000000000000000000051 /* LoginView.swift in Sources */,
@@ -277,6 +433,30 @@
 				1A0000000000000000000065 /* CreateDocumentView.swift in Sources */,
 				1A0000000000000000000066 /* DocumentDetailView.swift in Sources */,
 				1A0000000000000000000067 /* SettingsView.swift in Sources */,
+				1A0000000000000000000068 /* CasesView.swift in Sources */,
+				1A0000000000000000000069 /* InvoicesView.swift in Sources */,
+				1A0000000000000000000070 /* CalendarView.swift in Sources */,
+				1A0000000000000000000080 /* AIDraftingView.swift in Sources */,
+				1A0000000000000000000081 /* AIBillingView.swift in Sources */,
+				1A0000000000000000000082 /* VoiceNotesView.swift in Sources */,
+				1A0000000000000000000083 /* DocumentSummaryView.swift in Sources */,
+				1A0000000000000000000084 /* ContractAnalysisView.swift in Sources */,
+				1A0000000000000000000090 /* Config.swift in Sources */,
+				1A0000000000000000000100 /* Lead.swift in Sources */,
+				1A0000000000000000000101 /* Conflict.swift in Sources */,
+				1A0000000000000000000102 /* Appointment.swift in Sources */,
+				1A0000000000000000000103 /* TrustAccount.swift in Sources */,
+				1A0000000000000000000104 /* Task.swift in Sources */,
+				1A0000000000000000000105 /* Communication.swift in Sources */,
+				1A0000000000000000000106 /* Report.swift in Sources */,
+				1A0000000000000000000110 /* LeadsViewModel.swift in Sources */,
+				1A0000000000000000000120 /* LeadsViews.swift in Sources */,
+				1A0000000000000000000121 /* ConflictsViews.swift in Sources */,
+				1A0000000000000000000122 /* BillingViews.swift in Sources */,
+				1A0000000000000000000123 /* TrustViews.swift in Sources */,
+				1A0000000000000000000124 /* PaymentsViews.swift in Sources */,
+				1A0000000000000000000125 /* TasksViews.swift in Sources */,
+				1A0000000000000000000126 /* CalendarViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,6 +590,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = VKPMTL7RAU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LegalPracticeAI/Info.plist;
@@ -440,6 +621,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = VKPMTL7RAU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LegalPracticeAI/Info.plist;

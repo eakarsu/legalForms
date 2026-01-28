@@ -376,6 +376,43 @@ router.post('/api/conflicts/check', requireAuth, async (req, res) => {
     }
 });
 
+// Get all conflict parties (API for mobile)
+router.get('/api/conflicts/parties', requireAuth, async (req, res) => {
+    try {
+        const { search, case_id, client_id } = req.query;
+
+        let query = 'SELECT * FROM conflict_parties WHERE (user_id = $1 OR user_id IS NULL)';
+        const params = [req.user.id];
+        let paramIndex = 2;
+
+        if (search) {
+            query += ` AND (name ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR email ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        if (case_id) {
+            query += ` AND case_id = $${paramIndex}`;
+            params.push(case_id);
+            paramIndex++;
+        }
+
+        if (client_id) {
+            query += ` AND client_id = $${paramIndex}`;
+            params.push(client_id);
+            paramIndex++;
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const result = await db.query(query, params);
+        res.json({ success: true, parties: result.rows, count: result.rows.length });
+    } catch (error) {
+        console.error('Get conflict parties error:', error);
+        res.status(500).json({ error: 'Failed to get conflict parties' });
+    }
+});
+
 // Add party to database
 router.post('/api/conflicts/parties', requireAuth, async (req, res) => {
     try {
@@ -414,6 +451,24 @@ router.put('/api/conflicts/:id/status', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Update conflict status error:', error);
         res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
+// Get waivers for a conflict (API for mobile)
+router.get('/api/conflicts/:id/waivers', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT cw.*, cc.search_term
+            FROM conflict_waivers cw
+            JOIN conflict_checks cc ON cw.conflict_check_id = cc.id
+            WHERE cw.conflict_check_id = $1 AND (cc.user_id = $2 OR cc.user_id IS NULL)
+            ORDER BY cw.created_at DESC
+        `, [req.params.id, req.user.id]);
+
+        res.json({ success: true, waivers: result.rows });
+    } catch (error) {
+        console.error('Get conflict waivers error:', error);
+        res.status(500).json({ error: 'Failed to get waivers' });
     }
 });
 
@@ -582,6 +637,112 @@ router.post('/api/cases/:id/extract-parties', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Extract parties error:', error);
         res.status(500).json({ error: 'Failed to extract parties' });
+    }
+});
+
+// API: Get conflict check history (JSON for mobile)
+router.get('/api/conflicts/history', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT cc.id, cc.search_terms as search_name, cc.check_type as search_type,
+                   cc.status, cc.waiver_notes as notes, cc.created_at, cc.reviewed_at as checked_at,
+                   c.first_name as client_first, c.last_name as client_last
+            FROM conflict_checks cc
+            LEFT JOIN clients c ON cc.client_id = c.id
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
+            ORDER BY cc.created_at DESC
+            LIMIT 100
+        `, [req.user.id]);
+
+        // Transform to match iOS model
+        const checks = result.rows.map(row => {
+            // search_terms is JSON, extract a display name from it
+            let searchName = 'Unknown';
+            if (row.search_name) {
+                if (typeof row.search_name === 'string') {
+                    searchName = row.search_name;
+                } else if (row.search_name.names && row.search_name.names.length > 0) {
+                    searchName = row.search_name.names.join(', ');
+                } else if (row.search_name.companies && row.search_name.companies.length > 0) {
+                    searchName = row.search_name.companies.join(', ');
+                }
+            }
+            return {
+                id: row.id,
+                search_name: searchName,
+                search_type: row.search_type || 'client',
+                status: row.status || 'clear',
+                results: [],
+                checked_by: row.client_first ? `${row.client_first} ${row.client_last}` : null,
+                checked_at: row.checked_at,
+                notes: row.notes,
+                created_at: row.created_at
+            };
+        });
+
+        res.json({ success: true, checks, count: checks.length });
+    } catch (error) {
+        console.error('API conflict history error:', error);
+        res.status(500).json({ success: false, error: 'Failed to load conflict history' });
+    }
+});
+
+// API: Get all conflict waivers (JSON for mobile)
+router.get('/api/conflicts/waivers', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT cw.id, cw.conflict_check_id, cw.waiver_type, cw.waiver_text as conflict_description,
+                   cw.obtained_from as signed_by, cw.obtained_date as signed_at,
+                   cw.parties_involved, cw.created_at,
+                   c.first_name, c.last_name,
+                   cc.search_terms
+            FROM conflict_waivers cw
+            JOIN conflict_checks cc ON cw.conflict_check_id = cc.id
+            LEFT JOIN clients c ON cc.client_id = c.id
+            WHERE (cc.user_id = $1 OR cc.user_id IS NULL)
+            ORDER BY cw.obtained_date DESC, cw.created_at DESC
+        `, [req.user.id]);
+
+        // Transform to match iOS model
+        const waivers = result.rows.map(row => {
+            // Determine client name from multiple sources
+            let clientName = 'N/A';
+            if (row.first_name && row.last_name) {
+                clientName = `${row.first_name} ${row.last_name}`;
+            } else if (row.signed_by) {
+                clientName = row.signed_by;
+            } else if (row.parties_involved && row.parties_involved.length > 0) {
+                clientName = row.parties_involved.join(', ');
+            } else if (row.search_terms) {
+                const terms = row.search_terms;
+                if (terms.names && terms.names.length > 0) {
+                    clientName = terms.names.join(', ');
+                } else if (terms.companies && terms.companies.length > 0) {
+                    clientName = terms.companies.join(', ');
+                }
+            }
+
+            // Determine status based on signed_at
+            const status = row.signed_at ? 'signed' : 'pending';
+
+            return {
+                id: row.id,
+                conflict_check_id: row.conflict_check_id,
+                client_name: clientName,
+                conflict_description: row.conflict_description || 'Conflict waiver',
+                waiver_type: row.waiver_type || 'standard',
+                signed_at: row.signed_at,
+                signed_by: row.signed_by,
+                status: status,
+                expires_at: null,
+                created_at: row.created_at
+            };
+        });
+
+        res.json({ success: true, waivers, count: waivers.length });
+    } catch (error) {
+        console.error('API conflict waivers error:', error);
+        res.status(500).json({ success: false, error: 'Failed to load waivers' });
     }
 });
 

@@ -679,6 +679,37 @@ router.get('/reports/clients/export-csv', requireAuth, async (req, res) => {
 // REPORTS API
 // =====================================================
 
+// Summary report (API for mobile) - matches web dashboard metrics
+router.get('/api/reports/summary', requireAuth, async (req, res) => {
+    try {
+        // Get key metrics matching the web dashboard
+        const metricsResult = await db.query(`
+            SELECT
+                (SELECT COALESCE(SUM(amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status = 'paid' AND paid_date >= DATE_TRUNC('year', CURRENT_DATE)) as total_revenue,
+                (SELECT COALESCE(SUM(duration_minutes) / 60.0, 0) FROM time_entries WHERE (user_id = $1 OR user_id IS NULL) AND date >= DATE_TRUNC('year', CURRENT_DATE)) as total_hours,
+                (SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status = 'open') as active_cases,
+                (SELECT COALESCE(SUM(total - amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue')) as outstanding_ar,
+                (SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL)) as total_cases,
+                (SELECT COUNT(*) FROM clients WHERE (user_id = $1 OR user_id IS NULL)) as total_clients
+        `, [req.user.id]);
+
+        const metrics = metricsResult.rows[0] || {};
+
+        res.json({
+            success: true,
+            total_revenue: parseFloat(metrics.total_revenue) || 0,
+            total_hours: parseFloat(metrics.total_hours) || 0,
+            active_cases: parseInt(metrics.active_cases) || 0,
+            outstanding_ar: parseFloat(metrics.outstanding_ar) || 0,
+            total_cases: parseInt(metrics.total_cases) || 0,
+            total_clients: parseInt(metrics.total_clients) || 0
+        });
+    } catch (error) {
+        console.error('Reports summary API error:', error);
+        res.status(500).json({ error: 'Failed to get reports summary' });
+    }
+});
+
 // Revenue report data
 router.get('/api/reports/revenue', requireAuth, async (req, res) => {
     try {
@@ -770,14 +801,14 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
 
         const result = await db.query(query, params);
 
-        // Get totals
+        // Get totals - use alias te to match dateFilter
         const totalsResult = await db.query(`
             SELECT
-                COALESCE(SUM(amount), 0) as total_revenue,
-                COALESCE(SUM(duration_minutes), 0) as total_minutes,
+                COALESCE(SUM(te.amount), 0) as total_revenue,
+                COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                 COUNT(*) as total_entries
-            FROM time_entries
-            WHERE (user_id = $1 OR user_id IS NULL) ${dateFilter}
+            FROM time_entries te
+            WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
         `, params);
 
         res.json({
@@ -1037,29 +1068,32 @@ router.get('/api/reports/aging', requireAuth, async (req, res) => {
             ORDER BY days_overdue DESC
         `, [req.user.id]);
 
-        // Summary by bucket
+        // Summary by bucket - use subquery to get clean ordering
         const summaryResult = await db.query(`
-            SELECT
-                CASE
-                    WHEN CURRENT_DATE - due_date <= 0 THEN 'current'
-                    WHEN CURRENT_DATE - due_date <= 30 THEN '1-30'
-                    WHEN CURRENT_DATE - due_date <= 60 THEN '31-60'
-                    WHEN CURRENT_DATE - due_date <= 90 THEN '61-90'
-                    ELSE '90+'
-                END as bucket,
-                COUNT(*) as invoice_count,
-                SUM(total - amount_paid) as total_balance
-            FROM invoices
-            WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue') AND total > amount_paid
-            GROUP BY bucket
-            ORDER BY
-                CASE bucket
-                    WHEN 'current' THEN 1
-                    WHEN '1-30' THEN 2
-                    WHEN '31-60' THEN 3
-                    WHEN '61-90' THEN 4
-                    ELSE 5
-                END
+            SELECT bucket, invoice_count, total_balance
+            FROM (
+                SELECT
+                    CASE
+                        WHEN CURRENT_DATE - due_date <= 0 THEN 'current'
+                        WHEN CURRENT_DATE - due_date <= 30 THEN '1-30'
+                        WHEN CURRENT_DATE - due_date <= 60 THEN '31-60'
+                        WHEN CURRENT_DATE - due_date <= 90 THEN '61-90'
+                        ELSE '90+'
+                    END as bucket,
+                    CASE
+                        WHEN CURRENT_DATE - due_date <= 0 THEN 1
+                        WHEN CURRENT_DATE - due_date <= 30 THEN 2
+                        WHEN CURRENT_DATE - due_date <= 60 THEN 3
+                        WHEN CURRENT_DATE - due_date <= 90 THEN 4
+                        ELSE 5
+                    END as sort_order,
+                    COUNT(*) as invoice_count,
+                    COALESCE(SUM(total - amount_paid), 0) as total_balance
+                FROM invoices
+                WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue') AND total > amount_paid
+                GROUP BY 1, 2
+            ) sub
+            ORDER BY sort_order
         `, [req.user.id]);
 
         res.json({

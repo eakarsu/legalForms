@@ -26,7 +26,7 @@ final class DocumentsViewModel: ObservableObject {
     // MARK: - Computed Properties
     var filteredDocuments: [Document] {
         guard !searchText.isEmpty else { return documents }
-        return documents.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        return documents.filter { ($0.title ?? "").localizedCaseInsensitiveContains(searchText) }
     }
 
     // MARK: - Load Documents
@@ -110,7 +110,7 @@ final class CreateDocumentViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isGenerating = false
     @Published var error: String?
-    @Published var generatedDocument: Document?
+    @Published var generatedResponse: GenerateDocumentResponse?
     @Published var templates: [DocumentTemplate] = []
 
     private let api = APIService.shared
@@ -157,10 +157,28 @@ final class CreateDocumentViewModel: ObservableObject {
         isLoading = false
     }
 
-    // MARK: - Generate Document
-    func generateDocument() async -> Bool {
-        guard let template = selectedTemplate else {
-            error = "Please select a template"
+    // MARK: - Generate Document (uses OpenRouter API via backend)
+    func generateDocument(
+        category: DocumentCategory,
+        template: String?,
+        clientName: String,
+        clientEmail: String,
+        naturalLanguageInput: String,
+        format: DocumentFormatType,
+        generationMode: GenerationModeType
+    ) async -> Bool {
+        guard !clientName.isEmpty else {
+            error = "Please enter your full legal name"
+            return false
+        }
+
+        guard !clientEmail.isEmpty else {
+            error = "Please enter your email address"
+            return false
+        }
+
+        guard !naturalLanguageInput.isEmpty else {
+            error = "Please describe your legal needs"
             return false
         }
 
@@ -169,20 +187,28 @@ final class CreateDocumentViewModel: ObservableObject {
 
         do {
             let request = GenerateDocumentRequest(
-                templateId: template.id,
-                formData: formData,
-                state: selectedState
+                category: category,
+                template: template,
+                clientName: clientName,
+                clientEmail: clientEmail,
+                naturalLanguageInput: naturalLanguageInput,
+                format: format,
+                generationMode: generationMode
             )
 
-            generatedDocument = try await api.generateDocument(request: request)
+            print("DEBUG: Sending generate request...")
+            generatedResponse = try await api.generateDocument(request: request)
+            print("DEBUG: Document generated successfully!")
             isGenerating = false
-            return true
+            return generatedResponse?.success ?? false
         } catch let apiError as APIServiceError {
+            print("DEBUG: API Error: \(apiError)")
             error = apiError.localizedDescription
             isGenerating = false
             return false
         } catch {
-            self.error = "Failed to generate document"
+            print("DEBUG: Unknown Error: \(error)")
+            self.error = "Failed to generate document: \(error.localizedDescription)"
             isGenerating = false
             return false
         }
@@ -194,7 +220,7 @@ final class CreateDocumentViewModel: ObservableObject {
         selectedTemplate = nil
         formData = [:]
         selectedState = "California"
-        generatedDocument = nil
+        generatedResponse = nil
         templates = []
     }
 }

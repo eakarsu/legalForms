@@ -24,9 +24,9 @@ final class ClientsViewModel: ObservableObject {
     var filteredClients: [Client] {
         guard !searchText.isEmpty else { return clients }
         return clients.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.email.localizedCaseInsensitiveContains(searchText) ||
-            ($0.company?.localizedCaseInsensitiveContains(searchText) ?? false)
+            $0.displayName.localizedCaseInsensitiveContains(searchText) ||
+            ($0.email?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+            ($0.companyName?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
 
@@ -38,7 +38,7 @@ final class ClientsViewModel: ObservableObject {
         do {
             let response = try await api.getClients()
             clients = response.clients
-            totalCount = response.total
+            totalCount = response.count
         } catch let apiError as APIServiceError {
             error = apiError.localizedDescription
         } catch {
@@ -54,22 +54,34 @@ final class ClientsViewModel: ObservableObject {
     }
 
     // MARK: - Create Client
-    func createClient(name: String, email: String, phone: String?, company: String?, address: String?, notes: String?) async -> Bool {
-        guard !name.isEmpty, !email.isEmpty else {
-            error = "Name and email are required"
-            return false
-        }
-
+    func createClient(
+        clientType: String,
+        firstName: String?,
+        lastName: String?,
+        companyName: String?,
+        email: String?,
+        phone: String?,
+        address: String?,
+        city: String?,
+        state: String?,
+        zip: String?,
+        notes: String?
+    ) async -> Bool {
         isLoading = true
         error = nil
 
         do {
             let request = CreateClientRequest(
-                name: name,
+                clientType: clientType,
+                firstName: firstName,
+                lastName: lastName,
+                companyName: companyName,
                 email: email,
                 phone: phone,
-                company: company,
                 address: address,
+                city: city,
+                state: state,
+                zip: zip,
                 notes: notes
             )
 
@@ -92,7 +104,7 @@ final class ClientsViewModel: ObservableObject {
     // MARK: - Delete Client
     func deleteClient(_ client: Client) async -> Bool {
         do {
-            try await api.deleteClient(id: client.id)
+            try await api.deleteClient(id: String(client.id))
             clients.removeAll { $0.id == client.id }
             totalCount -= 1
             return true

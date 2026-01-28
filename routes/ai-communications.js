@@ -43,6 +43,45 @@ router.get('/communications/ai-drafts', requireAuth, async (req, res) => {
     }
 });
 
+// API: Get AI communication suggestions
+router.get('/api/ai-communications/suggestions', requireAuth, async (req, res) => {
+    try {
+        const { client_id, case_id } = req.query;
+
+        // Get recent drafts
+        const draftsResult = await db.query(`
+            SELECT * FROM ai_communication_drafts
+            WHERE (user_id = $1 OR user_id IS NULL)
+            ORDER BY created_at DESC
+            LIMIT 10
+        `, [req.user.id]);
+
+        const suggestions = [
+            {
+                type: 'follow_up',
+                subject: 'Case Status Update',
+                template: 'Dear [Client],\n\nI wanted to provide you with an update...',
+                reason: 'Regular client communication'
+            },
+            {
+                type: 'reminder',
+                subject: 'Upcoming Deadline',
+                template: 'Dear [Client],\n\nThis is a reminder about...',
+                reason: 'Proactive deadline management'
+            }
+        ];
+
+        res.json({
+            success: true,
+            suggestions: suggestions,
+            recentDrafts: draftsResult.rows
+        });
+    } catch (error) {
+        console.error('AI suggestions error:', error);
+        res.status(500).json({ error: 'Failed to get suggestions' });
+    }
+});
+
 // API: Generate Email Draft
 router.post('/api/ai-communications/draft-email', requireAuth, async (req, res) => {
     const startTime = Date.now();

@@ -89,6 +89,47 @@ router.get('/citation-finder/results/:id', requireAuth, async (req, res) => {
     }
 });
 
+// API: Get Citation Search (GET version for mobile)
+router.get('/api/citation-finder/search', requireAuth, async (req, res) => {
+    try {
+        const { query, jurisdiction, practice_area } = req.query;
+
+        // Get recent searches
+        const recentResult = await db.query(`
+            SELECT * FROM citation_searches
+            WHERE (user_id = $1 OR user_id IS NULL)
+            ORDER BY created_at DESC
+            LIMIT 10
+        `, [req.user.id]);
+
+        // Sample citations
+        const citations = [
+            {
+                citation: 'Miranda v. Arizona, 384 U.S. 436 (1966)',
+                title: 'Miranda Rights',
+                relevance: 0.95,
+                jurisdiction: 'Federal'
+            },
+            {
+                citation: 'Brown v. Board of Education, 347 U.S. 483 (1954)',
+                title: 'Equal Protection',
+                relevance: 0.85,
+                jurisdiction: 'Federal'
+            }
+        ];
+
+        res.json({
+            success: true,
+            citations: citations,
+            recentSearches: recentResult.rows,
+            query: query || ''
+        });
+    } catch (error) {
+        console.error('Citation search error:', error);
+        res.status(500).json({ error: 'Failed to search citations' });
+    }
+});
+
 // API: Find Citations
 router.post('/api/citation-finder/search', requireAuth, async (req, res) => {
     const startTime = Date.now();

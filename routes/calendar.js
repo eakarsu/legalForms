@@ -220,15 +220,15 @@ router.get('/api/calendar/events', requireAuth, async (req, res) => {
 
         const result = await db.query(query, params);
 
-        // Format for FullCalendar
+        // Format for FullCalendar (use snake_case for iOS compatibility with convertFromSnakeCase)
         const events = result.rows.map(e => ({
             id: e.id,
             title: e.title,
             start: e.start_time,
             end: e.end_time,
-            allDay: e.all_day,
+            all_day: e.all_day,
             color: e.color,
-            extendedProps: {
+            extended_props: {
                 description: e.description,
                 event_type: e.event_type,
                 location: e.location,

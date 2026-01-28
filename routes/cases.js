@@ -550,6 +550,54 @@ router.delete('/api/cases/:id', requireAuth, async (req, res) => {
 // CASE NOTES ROUTES
 // =====================================================
 
+// Get all notes (across all cases)
+router.get('/api/notes', requireAuth, async (req, res) => {
+    try {
+        const { limit = 50 } = req.query;
+
+        const result = await db.query(`
+            SELECT n.*,
+                   c.title as case_title, c.case_number,
+                   u.first_name as user_first_name, u.last_name as user_last_name
+            FROM case_notes n
+            LEFT JOIN cases c ON n.case_id = c.id
+            LEFT JOIN users u ON n.user_id = u.id
+            WHERE n.user_id = $1 OR n.user_id IS NULL
+            ORDER BY n.created_at DESC
+            LIMIT $2
+        `, [req.user.id, limit]);
+
+        res.json({
+            success: true,
+            notes: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching notes:', error);
+        res.status(500).json({ error: 'Failed to fetch notes' });
+    }
+});
+
+// Get notes for specific case
+router.get('/api/cases/:id/notes', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT n.*, u.first_name as user_first_name, u.last_name as user_last_name
+            FROM case_notes n
+            LEFT JOIN users u ON n.user_id = u.id
+            WHERE n.case_id = $1
+            ORDER BY n.created_at DESC
+        `, [req.params.id]);
+
+        res.json({
+            success: true,
+            notes: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching case notes:', error);
+        res.status(500).json({ error: 'Failed to fetch notes' });
+    }
+});
+
 // Add note to case
 router.post('/api/cases/:id/notes', requireAuth, async (req, res) => {
     try {

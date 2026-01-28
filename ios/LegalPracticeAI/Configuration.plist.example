@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_BASE_URL</key>
+	<string>http://localhost:3000</string>
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com</string>
+	<key>MICROSOFT_CLIENT_ID</key>
+	<string>YOUR_MICROSOFT_CLIENT_ID</string>
+	<key>GOOGLE_REDIRECT_URI</key>
+	<string>com.legalpracticeai.ios:/oauth2callback</string>
+	<key>MICROSOFT_REDIRECT_URI</key>
+	<string>msauth.com.legalpracticeai.ios://auth</string>
+</dict>
+</plist>
