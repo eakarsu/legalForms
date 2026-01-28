@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_BASE_URL</key>
+	<string>http://localhost:3000</string>
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>617052667836-t08bitmdt8fot06kvnrpa368fkbisegc.apps.googleusercontent.com</string>
+	<key>MICROSOFT_CLIENT_ID</key>
+	<string>850bfa17-ff3a-4ca6-b53c-969515e5c02c</string>
+	<key>GOOGLE_REDIRECT_URI</key>
+	<string>com.googleusercontent.apps.617052667836-t08bitmdt8fot06kvnrpa368fkbisegc:/oauthredirect</string>
+	<key>MICROSOFT_REDIRECT_URI</key>
+	<string>msal850bfa17-ff3a-4ca6-b53c-969515e5c02c://auth</string>
+</dict>
+</plist>
