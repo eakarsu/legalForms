@@ -1,0 +1,101 @@
+/* Skeleton Loading Screens */
+.skeleton {
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-line {
+    height: 14px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.skeleton-line-sm {
+    height: 10px;
+    width: 60%;
+}
+
+.skeleton-line-lg {
+    height: 20px;
+}
+
+.skeleton-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.skeleton-card {
+    padding: 1.25rem;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+}
+
+.skeleton-card .skeleton-number {
+    height: 32px;
+    width: 60px;
+    margin: 0 auto 8px;
+}
+
+.skeleton-card .skeleton-label {
+    height: 12px;
+    width: 80px;
+    margin: 0 auto;
+}
+
+.skeleton-table-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    gap: 16px;
+}
+
+.skeleton-table-row .skeleton-cell {
+    height: 14px;
+    flex: 1;
+}
+
+.skeleton-table-row .skeleton-cell:first-child {
+    flex: 2;
+}
+
+.skeleton-table-row .skeleton-cell-sm {
+    height: 14px;
+    width: 80px;
+    flex: none;
+}
+
+.skeleton-badge {
+    height: 22px;
+    width: 60px;
+    border-radius: 12px;
+}
+
+.skeleton-btn {
+    height: 32px;
+    width: 70px;
+    border-radius: 4px;
+}
+
+/* Container for skeleton content */
+.skeleton-container {
+    transition: opacity 0.3s ease;
+}
+
+.skeleton-container.skeleton-hidden {
+    display: none;
+}
+
+/* Real content hidden initially */
+.skeleton-real-content {
+    transition: opacity 0.3s ease;
+}

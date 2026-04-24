@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="/css/custom.css" rel="stylesheet">
     <link href="/css/practice-management.css" rel="stylesheet">
+    <link href="/css/skeleton.css" rel="stylesheet">
     <style>
         .pm-navbar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -36,232 +37,33 @@
             background-color: #f8f9fa;
             font-family: 'Inter', sans-serif;
         }
+        .bulk-toolbar {
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+            gap: 12px;
+        }
+        .bulk-toolbar.active {
+            display: flex;
+        }
+        .bulk-toolbar .bulk-count {
+            font-weight: 600;
+        }
+        tr.row-selected {
+            background-color: #e8f0fe !important;
+        }
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <!-- Practice Management Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark pm-navbar">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="/dashboard">
-                <div class="brand-icon me-2">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <span class="brand-text">LegalPractice<span class="text-info">AI</span></span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#pmNavbar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="pmNavbar">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </a>
-                    </li>
-
-                    <!-- Clients -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle active" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-users me-1"></i>Clients
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/clients"><i class="fas fa-list me-2"></i>All Clients</a></li>
-                            <li><a class="dropdown-item" href="/clients/analytics"><i class="fas fa-chart-line me-2"></i>Analytics</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Leads -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-plus me-1"></i>Leads
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/leads"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/leads/forms"><i class="fas fa-file-alt me-2"></i>Intake Forms</a></li>
-                            <li><a class="dropdown-item" href="/leads/analytics"><i class="fas fa-chart-line me-2"></i>Analytics</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Conflicts -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-exclamation-triangle me-1"></i>Conflicts
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/conflicts"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/conflicts/new"><i class="fas fa-plus-circle me-2"></i>New Check</a></li>
-                            <li><a class="dropdown-item" href="/conflicts/history"><i class="fas fa-history me-2"></i>Check History</a></li>
-                            <li><a class="dropdown-item" href="/conflicts/parties"><i class="fas fa-users me-2"></i>Parties Database</a></li>
-                            <li><a class="dropdown-item" href="/conflicts/waivers"><i class="fas fa-file-signature me-2"></i>Waivers</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/ai-conflicts/dashboard"><i class="fas fa-robot me-2"></i>AI Analysis</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Cases -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-briefcase me-1"></i>Cases
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/cases"><i class="fas fa-list me-2"></i>All Cases</a></li>
-                            <li><a class="dropdown-item" href="/deadlines"><i class="fas fa-exclamation-circle me-2"></i>Deadlines</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Calendar -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-alt me-1"></i>Calendar
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/calendar"><i class="fas fa-calendar me-2"></i>Calendar View</a></li>
-                            <li><a class="dropdown-item" href="/deadlines"><i class="fas fa-clock me-2"></i>Deadlines</a></li>
-                            <li><a class="dropdown-item" href="/tasks"><i class="fas fa-tasks me-2"></i>Tasks</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/calendar/ai-assistant"><i class="fas fa-robot me-2"></i>AI Assistant</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Calendar Sync -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-sync me-1"></i>Cal Sync
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/calendar-sync"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/calendar-sync/settings"><i class="fas fa-cog me-2"></i>Sync Settings</a></li>
-                            <li><a class="dropdown-item" href="/calendar-sync/history"><i class="fas fa-history me-2"></i>Sync History</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Billing -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-dollar-sign me-1"></i>Billing
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/billing"><i class="fas fa-chart-line me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/billing/time"><i class="fas fa-stopwatch me-2"></i>Time Tracking</a></li>
-                            <li><a class="dropdown-item" href="/billing/invoices"><i class="fas fa-file-invoice-dollar me-2"></i>Invoices</a></li>
-                            <li><a class="dropdown-item" href="/billing/expenses"><i class="fas fa-receipt me-2"></i>Expenses</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/billing/ai-suggestions"><i class="fas fa-robot me-2"></i>AI Suggestions</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Trust Accounting -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-university me-1"></i>Trust
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/trust"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/trust/accounts"><i class="fas fa-piggy-bank me-2"></i>Accounts</a></li>
-                            <li><a class="dropdown-item" href="/trust/ledgers"><i class="fas fa-book me-2"></i>Client Ledgers</a></li>
-                            <li><a class="dropdown-item" href="/trust/transactions"><i class="fas fa-exchange-alt me-2"></i>Transactions</a></li>
-                            <li><a class="dropdown-item" href="/trust/reconciliation"><i class="fas fa-balance-scale me-2"></i>Reconciliation</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Payments -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-credit-card me-1"></i>Payments
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/payments"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/payments/links"><i class="fas fa-link me-2"></i>Payment Links</a></li>
-                            <li><a class="dropdown-item" href="/payments/transactions"><i class="fas fa-list me-2"></i>Transactions</a></li>
-                            <li><a class="dropdown-item" href="/payments/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Documents -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-alt me-1"></i>Documents
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/services"><i class="fas fa-file-contract me-2"></i>Document Generator</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/ai-drafting"><i class="fas fa-robot me-2"></i>AI Drafting</a></li>
-                            <li><a class="dropdown-item" href="/ocr"><i class="fas fa-file-image me-2"></i>Document OCR</a></li>
-                            <li><a class="dropdown-item" href="/contract-analysis"><i class="fas fa-file-contract me-2"></i>Contract Analysis</a></li>
-                            <li><a class="dropdown-item" href="/document-summary"><i class="fas fa-compress-alt me-2"></i>AI Summaries</a></li>
-                            <li><a class="dropdown-item" href="/citation-finder"><i class="fas fa-gavel me-2"></i>Citation Finder</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Messages -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-envelope me-1"></i>Messages
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/messages"><i class="fas fa-inbox me-2"></i>Inbox</a></li>
-                            <li><a class="dropdown-item" href="/notifications"><i class="fas fa-bell me-2"></i>Notifications</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/communications/ai-drafts"><i class="fas fa-robot me-2"></i>AI Drafts</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Reports -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-chart-bar me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/reports"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/reports/revenue"><i class="fas fa-dollar-sign me-2"></i>Revenue</a></li>
-                            <li><a class="dropdown-item" href="/reports/productivity"><i class="fas fa-clock me-2"></i>Productivity</a></li>
-                            <li><a class="dropdown-item" href="/reports/cases"><i class="fas fa-briefcase me-2"></i>Cases</a></li>
-                            <li><a class="dropdown-item" href="/reports/clients"><i class="fas fa-users me-2"></i>Clients</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- AI Tools -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-brain me-1"></i>AI Tools
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/voice-notes"><i class="fas fa-microphone me-2"></i>Voice Notes</a></li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <!-- Right side menu -->
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/portal/login" target="_blank" title="Client Portal">
-                            <i class="fas fa-external-link-alt"></i>
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i>Account
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/subscription"><i class="fas fa-crown me-2"></i>Subscription Plans</a></li>
-                            <li><a class="dropdown-item" href="/payment-methods"><i class="fas fa-credit-card me-2"></i>Payment Methods</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/team"><i class="fas fa-users-cog me-2"></i>Team</a></li>
-                            <li><a class="dropdown-item" href="/activity"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                            <li><a class="dropdown-item" href="/2fa/setup"><i class="fas fa-shield-alt me-2"></i>Two-Factor Auth</a></li>
-                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="/logout" method="POST" class="d-inline">
-                                    <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <%- include('../partials/pm-nav') %>
 
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -308,8 +110,32 @@
             </div>
         </div>
 
+        <!-- Bulk Action Toolbar -->
+        <div class="bulk-toolbar" id="bulkToolbar">
+            <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-edit me-1"></i>Update Status
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdateClients('active')">Active</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdateClients('inactive')">Inactive</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdateClients('archived')">Archived</a></li>
+                </ul>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="bulkDeleteClients()">
+                <i class="fas fa-trash me-1"></i>Delete Selected
+            </button>
+            <button class="btn btn-sm btn-outline-light ms-auto" onclick="clearSelection()">
+                <i class="fas fa-times me-1"></i>Clear
+            </button>
+        </div>
+
+        <!-- Skeleton Loading -->
+        <%- include('../partials/skeleton-table', { skeletonRows: 8 }) %>
+
         <!-- Clients Table -->
-        <div class="card">
+        <div class="card" id="clientsTableCard">
             <div class="card-body p-0">
                 <% if (clients.length === 0) { %>
                     <div class="text-center py-5">
@@ -321,6 +147,9 @@
                         <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
+                                    </th>
                                     <th>Name</th>
                                     <th>Type</th>
                                     <th>Contact</th>
@@ -333,6 +162,9 @@
                             <tbody>
                                 <% clients.forEach(client => { %>
                                     <tr class="clickable-row" data-href="/clients/<%= client.id %>" style="cursor: pointer;">
+                                        <td class="checkbox-cell actions-cell" onclick="event.stopPropagation();">
+                                            <input type="checkbox" class="form-check-input row-checkbox" data-id="<%= client.id %>">
+                                        </td>
                                         <td>
                                             <span class="fw-semibold">
                                                 <% if (client.client_type === 'business') { %>
@@ -384,44 +216,133 @@
         </div>
     </div>
 
+    <%- include('../partials/confirmation-modal') %>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/js/confirmation-dialog.js"></script>
     <script>
+        // Hide skeleton, show content
+        document.addEventListener('DOMContentLoaded', function() {
+            var skeleton = document.getElementById('skeletonTable');
+            if (skeleton) skeleton.style.display = 'none';
+        });
+
         // Clickable rows
         document.querySelectorAll('.clickable-row').forEach(function(row) {
             row.addEventListener('click', function(e) {
-                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a')) return;
+                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input[type="checkbox"]')) return;
                 window.location.href = this.dataset.href;
             });
         });
+
+        // Select All checkbox
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            var checked = this.checked;
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = checked;
+                cb.closest('tr').classList.toggle('row-selected', checked);
+            });
+            updateBulkToolbar();
+        });
+
+        // Individual checkboxes
+        document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                this.closest('tr').classList.toggle('row-selected', this.checked);
+                var allChecked = document.querySelectorAll('.row-checkbox').length === document.querySelectorAll('.row-checkbox:checked').length;
+                var selectAll = document.getElementById('selectAll');
+                if (selectAll) selectAll.checked = allChecked;
+                updateBulkToolbar();
+            });
+        });
+
+        function updateBulkToolbar() {
+            var count = document.querySelectorAll('.row-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('bulkToolbar').classList.toggle('active', count > 0);
+        }
+
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(function(cb) { return cb.dataset.id; });
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = false;
+                cb.closest('tr').classList.remove('row-selected');
+            });
+            var selectAll = document.getElementById('selectAll');
+            if (selectAll) selectAll.checked = false;
+            updateBulkToolbar();
+        }
 
         // Delete client buttons
         document.querySelectorAll('.btn-delete-client').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                deleteClient(this.dataset.id, this.dataset.name);
+                var id = this.dataset.id;
+                var name = this.dataset.name;
+                showConfirmDialog({
+                    title: 'Delete Client',
+                    message: 'Are you sure you want to delete client "' + name + '"? This action cannot be undone.',
+                    confirmText: 'Delete',
+                    confirmClass: 'btn-danger',
+                    onConfirm: function() { deleteClient(id); }
+                });
             });
         });
 
-        // Delete client
-        function deleteClient(id, name) {
-            if (confirm('Are you sure you want to delete client "' + name + '"? This action cannot be undone.')) {
-                fetch('/api/clients/' + id, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error deleting client: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => {
-                    alert('Error deleting client: ' + err.message);
-                });
-            }
+        function deleteClient(id) {
+            fetch('/api/clients/' + id, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else alert('Error: ' + (data.error || 'Unknown error'));
+            })
+            .catch(function(err) { alert('Error: ' + err.message); });
+        }
+
+        function bulkDeleteClients() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) return;
+            showConfirmDialog({
+                title: 'Delete ' + ids.length + ' Clients',
+                message: 'Are you sure you want to delete ' + ids.length + ' selected client(s)? This action cannot be undone.',
+                confirmText: 'Delete All',
+                confirmClass: 'btn-danger',
+                onConfirm: function() {
+                    fetch('/api/clients/bulk-delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: ids })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) location.reload();
+                        else alert('Error: ' + (data.error || 'Unknown error'));
+                    })
+                    .catch(function(err) { alert('Error: ' + err.message); });
+                }
+            });
+        }
+
+        function bulkUpdateClients(status) {
+            var ids = getSelectedIds();
+            if (ids.length === 0) return;
+            fetch('/api/clients/bulk-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids, updates: { status: status } })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else alert('Error: ' + (data.error || 'Unknown error'));
+            })
+            .catch(function(err) { alert('Error: ' + err.message); });
         }
     </script>
 

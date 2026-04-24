@@ -62,6 +62,21 @@ const requireAuth = async (req, res, next) => {
         }
 
         req.user = userResult.rows[0];
+
+        // Load user role
+        try {
+            const roleResult = await db.query(
+                `SELECT r.name as role_name FROM user_roles ur
+                 JOIN roles r ON ur.role_id = r.id
+                 WHERE ur.user_id = $1
+                 LIMIT 1`,
+                [userId]
+            );
+            req.user.role = roleResult.rows.length > 0 ? roleResult.rows[0].role_name : 'attorney';
+        } catch (roleErr) {
+            req.user.role = 'attorney'; // default role if table doesn't exist yet
+        }
+
         next();
     } catch (error) {
         console.error('Auth middleware error:', error);
@@ -103,10 +118,36 @@ const verifyPassword = async (password, hashedPassword) => {
     return await bcrypt.compare(password, hashedPassword);
 };
 
+// Role-based authorization middleware
+const requireRole = (...allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            if (req.path.startsWith('/api/')) {
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
+            return res.redirect('/login');
+        }
+
+        const userRole = req.user.role || 'attorney';
+
+        if (!allowedRoles.includes(userRole)) {
+            if (req.path.startsWith('/api/')) {
+                return res.status(403).json({ error: 'Insufficient permissions' });
+            }
+            return res.status(403).render('error', {
+                message: 'You do not have permission to access this resource.'
+            });
+        }
+
+        next();
+    };
+};
+
 module.exports = {
     requireAuth,
     optionalAuth,
     hashPassword,
-    verifyPassword
+    verifyPassword,
+    requireRole
 };
 

@@ -1,0 +1,14 @@
+<!-- Skeleton Stats Cards Loading Placeholder -->
+<div class="skeleton-container" id="skeletonCards">
+    <div class="row mb-4">
+        <% var cardCount = typeof skeletonCardCount !== 'undefined' ? skeletonCardCount : 4; %>
+        <% for (var i = 0; i < cardCount; i++) { %>
+        <div class="col-md-<%= 12 / cardCount %> mb-3">
+            <div class="skeleton-card text-center">
+                <div class="skeleton skeleton-number"></div>
+                <div class="skeleton skeleton-label"></div>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>

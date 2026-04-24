@@ -248,6 +248,195 @@ router.post('/login', loginValidation, async (req, res) => {
     }
 });
 
+// =====================================================
+// PASSWORD RESET ROUTES
+// =====================================================
+
+// Forgot password page
+router.get('/forgot-password', (req, res) => {
+    res.render('auth/forgot-password', {
+        title: 'Forgot Password - LegalFormsAI',
+        errors: [],
+        success: false
+    });
+});
+
+// Handle forgot password form
+router.post('/forgot-password', [
+    body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email address')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.render('auth/forgot-password', {
+                title: 'Forgot Password - LegalFormsAI',
+                errors: errors.array(),
+                success: false
+            });
+        }
+
+        const { email } = req.body;
+
+        // Find user
+        const userResult = await db.query(
+            'SELECT id, email, first_name FROM users WHERE email = $1',
+            [email]
+        );
+
+        // Always show success to prevent email enumeration
+        if (userResult.rows.length === 0) {
+            return res.render('auth/forgot-password', {
+                title: 'Forgot Password - LegalFormsAI',
+                errors: [],
+                success: true
+            });
+        }
+
+        const user = userResult.rows[0];
+        const resetToken = uuidv4();
+        const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+        // Store reset token
+        await db.query(
+            'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+            [resetToken, resetExpires, user.id]
+        );
+
+        // Send reset email
+        if (process.env.SMTP_HOST) {
+            try {
+                const resetUrl = `${process.env.SITE_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+                await transporter.sendMail({
+                    from: process.env.FROM_EMAIL || 'noreply@legalaiforms.com',
+                    to: email,
+                    subject: 'Password Reset - LegalFormsAI',
+                    html: `
+                        <h2>Password Reset Request</h2>
+                        <p>Hi ${user.first_name},</p>
+                        <p>You requested a password reset for your LegalFormsAI account. Click the link below to reset your password:</p>
+                        <p><a href="${resetUrl}">Reset Your Password</a></p>
+                        <p>This link will expire in 1 hour.</p>
+                        <p>If you didn't request this, please ignore this email.</p>
+                        <p>Best regards,<br>The LegalFormsAI Team</p>
+                    `
+                });
+            } catch (emailError) {
+                console.error('Password reset email error:', emailError);
+            }
+        } else {
+            console.log('Password reset token for', email, ':', resetToken);
+        }
+
+        res.render('auth/forgot-password', {
+            title: 'Forgot Password - LegalFormsAI',
+            errors: [],
+            success: true
+        });
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.render('auth/forgot-password', {
+            title: 'Forgot Password - LegalFormsAI',
+            errors: [{ msg: 'An error occurred. Please try again.' }],
+            success: false
+        });
+    }
+});
+
+// Reset password page
+router.get('/reset-password', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.redirect('/forgot-password');
+    }
+
+    // Validate token
+    const userResult = await db.query(
+        'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
+        [token]
+    );
+
+    if (userResult.rows.length === 0) {
+        return res.render('auth/forgot-password', {
+            title: 'Forgot Password - LegalFormsAI',
+            errors: [{ msg: 'Invalid or expired reset link. Please request a new one.' }],
+            success: false
+        });
+    }
+
+    res.render('auth/reset-password', {
+        title: 'Reset Password - LegalFormsAI',
+        errors: [],
+        token
+    });
+});
+
+// Handle reset password form
+router.post('/reset-password', [
+    body('password')
+        .isLength({ min: 8 })
+        .withMessage('Password must be at least 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+    body('confirmPassword')
+        .custom((value, { req }) => {
+            if (value !== req.body.password) {
+                throw new Error('Passwords do not match');
+            }
+            return true;
+        })
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        const { token, password } = req.body;
+
+        if (!errors.isEmpty()) {
+            return res.render('auth/reset-password', {
+                title: 'Reset Password - LegalFormsAI',
+                errors: errors.array(),
+                token
+            });
+        }
+
+        // Find user by token
+        const userResult = await db.query(
+            'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
+            [token]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.render('auth/forgot-password', {
+                title: 'Forgot Password - LegalFormsAI',
+                errors: [{ msg: 'Invalid or expired reset link. Please request a new one.' }],
+                success: false
+            });
+        }
+
+        // Hash new password and clear reset token
+        const hashedPassword = await hashPassword(password);
+        await db.query(
+            'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+            [hashedPassword, userResult.rows[0].id]
+        );
+
+        // Redirect to login with success
+        res.render('auth/login', {
+            title: 'Login - LegalFormsAI',
+            errors: [{ msg: 'Password reset successfully! Please log in with your new password.' }],
+            redirectUrl: '/'
+        });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.render('auth/reset-password', {
+            title: 'Reset Password - LegalFormsAI',
+            errors: [{ msg: 'An error occurred. Please try again.' }],
+            token: req.body.token
+        });
+    }
+});
+
 // Logout
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {

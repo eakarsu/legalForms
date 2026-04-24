@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 // =====================================================
 // E-SIGNATURES
@@ -300,7 +300,7 @@ router.get('/api/users/me', requireAuth, async (req, res) => {
 // =====================================================
 
 // Get team members
-router.get('/api/team', requireAuth, async (req, res) => {
+router.get('/api/team', requireAuth, requireRole('admin', 'attorney'), async (req, res) => {
     try {
         const result = await db.query(`
             SELECT tm.*, u.email, u.first_name, u.last_name

@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 
 // Validation rules
@@ -543,6 +543,71 @@ router.delete('/api/cases/:id', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error deleting case:', error);
         res.status(500).json({ error: 'Failed to delete case: ' + error.message });
+    }
+});
+
+// =====================================================
+// BULK OPERATIONS
+// =====================================================
+
+// Bulk delete cases
+router.post('/api/cases/bulk-delete', requireAuth, async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No case IDs provided' });
+        }
+
+        let deleted = 0;
+        for (const id of ids) {
+            const check = await db.query(
+                'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+                [id, req.user.id]
+            );
+            if (check.rows.length === 0) continue;
+
+            await db.query('DELETE FROM case_notes WHERE case_id = $1', [id]);
+            await db.query('DELETE FROM case_documents WHERE case_id = $1', [id]);
+            await db.query('DELETE FROM time_entries WHERE case_id = $1', [id]);
+            await db.query('DELETE FROM deadlines WHERE case_id = $1', [id]);
+            await db.query('DELETE FROM calendar_events WHERE case_id = $1', [id]);
+            await db.query('DELETE FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [id, req.user.id]);
+            deleted++;
+        }
+
+        res.json({ success: true, deleted });
+    } catch (error) {
+        console.error('Bulk delete cases error:', error);
+        res.status(500).json({ error: 'Failed to delete cases' });
+    }
+});
+
+// Bulk update cases
+router.post('/api/cases/bulk-update', requireAuth, async (req, res) => {
+    try {
+        const { ids, updates } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No case IDs provided' });
+        }
+        if (!updates || !updates.status) {
+            return res.status(400).json({ error: 'No updates provided' });
+        }
+
+        const allowedStatuses = ['open', 'pending', 'closed'];
+        if (!allowedStatuses.includes(updates.status)) {
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        const result = await db.query(
+            `UPDATE cases SET status = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ANY($2::uuid[]) AND (user_id = $3 OR user_id IS NULL)`,
+            [updates.status, ids, req.user.id]
+        );
+
+        res.json({ success: true, updated: result.rowCount });
+    } catch (error) {
+        console.error('Bulk update cases error:', error);
+        res.status(500).json({ error: 'Failed to update cases' });
     }
 });
 

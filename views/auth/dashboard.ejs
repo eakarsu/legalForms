@@ -44,48 +44,56 @@
     <!-- Main Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="feature-icon-large mx-auto mb-3">
-                        <i class="fas fa-file-alt"></i>
+            <a href="/my-documents" class="text-decoration-none">
+                <div class="card text-center border-0 shadow-sm h-100 stat-card-link">
+                    <div class="card-body">
+                        <div class="feature-icon-large mx-auto mb-3">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h3 class="text-primary"><%= documentCount || 0 %></h3>
+                        <p class="text-muted mb-0">Documents</p>
                     </div>
-                    <h3 class="text-primary"><%= documentCount || 0 %></h3>
-                    <p class="text-muted mb-0">Documents</p>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-                        <i class="fas fa-users"></i>
+            <a href="/clients" class="text-decoration-none">
+                <div class="card text-center border-0 shadow-sm h-100 stat-card-link">
+                    <div class="card-body">
+                        <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3 class="text-success"><%= typeof clientCount !== 'undefined' ? clientCount : 0 %></h3>
+                        <p class="text-muted mb-0">Clients</p>
                     </div>
-                    <h3 class="text-success"><%= typeof clientCount !== 'undefined' ? clientCount : 0 %></h3>
-                    <p class="text-muted mb-0">Clients</p>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
-                        <i class="fas fa-briefcase"></i>
+            <a href="/cases" class="text-decoration-none">
+                <div class="card text-center border-0 shadow-sm h-100 stat-card-link">
+                    <div class="card-body">
+                        <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <h3 class="text-warning"><%= typeof caseCount !== 'undefined' ? caseCount : 0 %></h3>
+                        <p class="text-muted mb-0">Active Cases</p>
                     </div>
-                    <h3 class="text-warning"><%= typeof caseCount !== 'undefined' ? caseCount : 0 %></h3>
-                    <p class="text-muted mb-0">Active Cases</p>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);">
-                        <i class="fas fa-user-plus"></i>
+            <a href="/leads" class="text-decoration-none">
+                <div class="card text-center border-0 shadow-sm h-100 stat-card-link">
+                    <div class="card-body">
+                        <div class="feature-icon-large mx-auto mb-3" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3 class="text-purple"><%= typeof leadCount !== 'undefined' ? leadCount : 0 %></h3>
+                        <p class="text-muted mb-0">New Leads</p>
                     </div>
-                    <h3 class="text-purple"><%= typeof leadCount !== 'undefined' ? leadCount : 0 %></h3>
-                    <p class="text-muted mb-0">New Leads</p>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -299,6 +307,13 @@
 .card.border-success { border-color: #28a745 !important; }
 .card.border-info { border-color: #17a2b8 !important; }
 .card.border-warning { border-color: #ffc107 !important; }
+.stat-card-link {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card-link:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
 </style>
 
 <%- include('../partials/footer') %>

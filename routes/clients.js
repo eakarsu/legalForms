@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 
 // Validation rules for clients
@@ -516,6 +516,89 @@ router.delete('/api/clients/:id', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error deleting client:', error);
         res.status(500).json({ error: 'Failed to delete client: ' + error.message });
+    }
+});
+
+// =====================================================
+// BULK OPERATIONS
+// =====================================================
+
+// Bulk delete clients
+router.post('/api/clients/bulk-delete', requireAuth, async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No client IDs provided' });
+        }
+
+        let deleted = 0;
+        for (const id of ids) {
+            // Verify ownership
+            const check = await db.query(
+                'SELECT id FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+                [id, req.user.id]
+            );
+            if (check.rows.length === 0) continue;
+
+            // Delete related data
+            await db.query('DELETE FROM client_contacts WHERE client_id = $1', [id]);
+            await db.query('DELETE FROM client_trust_ledgers WHERE client_id = $1', [id]);
+
+            const clientCases = await db.query('SELECT id FROM cases WHERE client_id = $1', [id]);
+            for (const c of clientCases.rows) {
+                await db.query('DELETE FROM case_notes WHERE case_id = $1', [c.id]);
+                await db.query('DELETE FROM case_documents WHERE case_id = $1', [c.id]);
+                await db.query('DELETE FROM time_entries WHERE case_id = $1', [c.id]);
+                await db.query('DELETE FROM deadlines WHERE case_id = $1', [c.id]);
+                await db.query('DELETE FROM calendar_events WHERE case_id = $1', [c.id]);
+            }
+            await db.query('DELETE FROM cases WHERE client_id = $1', [id]);
+
+            const clientInvoices = await db.query('SELECT id FROM invoices WHERE client_id = $1', [id]);
+            for (const inv of clientInvoices.rows) {
+                await db.query('DELETE FROM invoice_items WHERE invoice_id = $1', [inv.id]);
+                await db.query('DELETE FROM payments WHERE invoice_id = $1', [inv.id]);
+            }
+            await db.query('DELETE FROM invoices WHERE client_id = $1', [id]);
+
+            await db.query('DELETE FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [id, req.user.id]);
+            deleted++;
+        }
+
+        res.json({ success: true, deleted });
+    } catch (error) {
+        console.error('Bulk delete clients error:', error);
+        res.status(500).json({ error: 'Failed to delete clients' });
+    }
+});
+
+// Bulk update clients
+router.post('/api/clients/bulk-update', requireAuth, async (req, res) => {
+    try {
+        const { ids, updates } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No client IDs provided' });
+        }
+        if (!updates || !updates.status) {
+            return res.status(400).json({ error: 'No updates provided' });
+        }
+
+        // Only allow status updates for safety
+        const allowedStatuses = ['active', 'inactive', 'archived'];
+        if (!allowedStatuses.includes(updates.status)) {
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        const result = await db.query(
+            `UPDATE clients SET status = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ANY($2::uuid[]) AND (user_id = $3 OR user_id IS NULL)`,
+            [updates.status, ids, req.user.id]
+        );
+
+        res.json({ success: true, updated: result.rowCount });
+    } catch (error) {
+        console.error('Bulk update clients error:', error);
+        res.status(500).json({ error: 'Failed to update clients' });
     }
 });
 

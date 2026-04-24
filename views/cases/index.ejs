@@ -1,6 +1,23 @@
 <%- include('../base-pm', { title: title }) %>
 <%- include('../partials/pm-nav', { active: 'cases' }) %>
 
+<link href="/css/skeleton.css" rel="stylesheet">
+<style>
+    .bulk-toolbar {
+        display: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+        gap: 12px;
+    }
+    .bulk-toolbar.active { display: flex; }
+    tr.row-selected { background-color: #e8f0fe !important; }
+    .checkbox-cell { width: 40px; text-align: center; }
+</style>
+
     <div class="pm-container">
         <div class="pm-header">
             <div class="pm-header-content">
@@ -97,8 +114,32 @@
             </div>
         </div>
 
+        <!-- Bulk Action Toolbar -->
+        <div class="bulk-toolbar" id="bulkToolbar">
+            <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-edit me-1"></i>Update Status
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdate('open')">Open</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdate('pending')">Pending</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="bulkUpdate('closed')">Closed</a></li>
+                </ul>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                <i class="fas fa-trash me-1"></i>Delete Selected
+            </button>
+            <button class="btn btn-sm btn-outline-light ms-auto" onclick="clearSelection()">
+                <i class="fas fa-times me-1"></i>Clear
+            </button>
+        </div>
+
+        <!-- Skeleton Loading -->
+        <%- include('../partials/skeleton-table', { skeletonRows: 8 }) %>
+
         <!-- Cases Table -->
-        <div class="card">
+        <div class="card" id="casesTableCard">
             <div class="card-body p-0">
                 <% if (cases.length === 0) { %>
                     <div class="text-center py-5">
@@ -110,6 +151,9 @@
                         <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
+                                    </th>
                                     <th>Case</th>
                                     <th>Client</th>
                                     <th>Type</th>
@@ -122,6 +166,9 @@
                             <tbody>
                                 <% cases.forEach(c => { %>
                                     <tr class="clickable-row" data-href="/cases/<%= c.id %>" style="cursor: pointer;">
+                                        <td class="checkbox-cell actions-cell" onclick="event.stopPropagation();">
+                                            <input type="checkbox" class="form-check-input row-checkbox" data-id="<%= c.id %>">
+                                        </td>
                                         <td>
                                             <span class="fw-semibold"><%= c.title %></span>
                                             <br><small class="text-muted"><%= c.case_number %></small>
@@ -168,41 +215,131 @@
         </div>
     </div>
 
+    <%- include('../partials/confirmation-modal') %>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/confirmation-dialog.js"></script>
     <script>
+        // Hide skeleton on load
+        document.addEventListener('DOMContentLoaded', function() {
+            var skeleton = document.getElementById('skeletonTable');
+            if (skeleton) skeleton.style.display = 'none';
+        });
+
         // Clickable rows
         document.querySelectorAll('.clickable-row').forEach(function(row) {
             row.addEventListener('click', function(e) {
-                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a')) return;
+                if (e.target.closest('.actions-cell') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input[type="checkbox"]')) return;
                 window.location.href = this.dataset.href;
             });
         });
+
+        // Select All
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            var checked = this.checked;
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = checked;
+                cb.closest('tr').classList.toggle('row-selected', checked);
+            });
+            updateBulkToolbar();
+        });
+
+        // Individual checkboxes
+        document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                this.closest('tr').classList.toggle('row-selected', this.checked);
+                var allChecked = document.querySelectorAll('.row-checkbox').length === document.querySelectorAll('.row-checkbox:checked').length;
+                var selectAll = document.getElementById('selectAll');
+                if (selectAll) selectAll.checked = allChecked;
+                updateBulkToolbar();
+            });
+        });
+
+        function updateBulkToolbar() {
+            var count = document.querySelectorAll('.row-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('bulkToolbar').classList.toggle('active', count > 0);
+        }
+
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(function(cb) { return cb.dataset.id; });
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = false;
+                cb.closest('tr').classList.remove('row-selected');
+            });
+            var selectAll = document.getElementById('selectAll');
+            if (selectAll) selectAll.checked = false;
+            updateBulkToolbar();
+        }
 
         // Delete case buttons
         document.querySelectorAll('.btn-delete-case').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                deleteCase(this.dataset.id, this.dataset.title);
+                var id = this.dataset.id;
+                var title = this.dataset.title;
+                showConfirmDialog({
+                    title: 'Delete Case',
+                    message: 'Are you sure you want to delete case "' + title + '"? This will also delete all related time entries, notes, and documents.',
+                    confirmText: 'Delete',
+                    confirmClass: 'btn-danger',
+                    onConfirm: function() {
+                        fetch('/api/cases/' + id, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' }
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (data.success) location.reload();
+                            else alert('Error: ' + (data.error || 'Unknown error'));
+                        })
+                        .catch(function(err) { alert('Error: ' + err.message); });
+                    }
+                });
             });
         });
 
-        // Delete case
-        function deleteCase(id, title) {
-            if (confirm('Are you sure you want to delete case "' + title + '"? This will also delete all related time entries, notes, and documents.')) {
-                fetch('/api/cases/' + id, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error deleting case: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => alert('Error deleting case: ' + err.message));
-            }
+        function bulkDelete() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) return;
+            showConfirmDialog({
+                title: 'Delete ' + ids.length + ' Cases',
+                message: 'Are you sure you want to delete ' + ids.length + ' selected case(s)? This will also delete all related data.',
+                confirmText: 'Delete All',
+                confirmClass: 'btn-danger',
+                onConfirm: function() {
+                    fetch('/api/cases/bulk-delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: ids })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) location.reload();
+                        else alert('Error: ' + (data.error || 'Unknown error'));
+                    })
+                    .catch(function(err) { alert('Error: ' + err.message); });
+                }
+            });
+        }
+
+        function bulkUpdate(status) {
+            var ids = getSelectedIds();
+            if (ids.length === 0) return;
+            fetch('/api/cases/bulk-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids, updates: { status: status } })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) location.reload();
+                else alert('Error: ' + (data.error || 'Unknown error'));
+            })
+            .catch(function(err) { alert('Error: ' + err.message); });
         }
     </script>
 <%- include('../partials/footer') %>

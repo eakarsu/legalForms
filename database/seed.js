@@ -983,6 +983,242 @@ async function seedDatabase() {
             console.log('  No documents found to comment on');
         }
 
+        // =====================================================
+        // SEED ROLES & USER ROLES
+        // =====================================================
+        console.log('\nSeeding roles...');
+
+        const roleNames = ['admin', 'attorney', 'paralegal', 'assistant', 'client'];
+        for (const roleName of roleNames) {
+            await client.query(`
+                INSERT INTO roles (name, description)
+                VALUES ($1, $2)
+                ON CONFLICT (name) DO NOTHING
+            `, [roleName, roleName.charAt(0).toUpperCase() + roleName.slice(1) + ' role']);
+        }
+
+        // Assign admin role to demo user
+        const adminRoleCheck = await client.query("SELECT id FROM roles WHERE name = 'admin'");
+        if (adminRoleCheck.rows.length > 0) {
+            await client.query(`
+                INSERT INTO user_roles (user_id, role_id)
+                VALUES ($1, $2)
+                ON CONFLICT (user_id, role_id) DO NOTHING
+            `, [userId, adminRoleCheck.rows[0].id]);
+        }
+        console.log('  Created 5 roles and assigned admin to demo user');
+
+        // =====================================================
+        // SEED CONFLICT PARTIES (15 parties)
+        // =====================================================
+        console.log('\nSeeding conflict parties...');
+
+        const partyNames = [
+            { name: 'ABC Corporation', party_type: 'organization', aliases: 'ABC Corp, ABC Inc' },
+            { name: 'John Doe', party_type: 'individual', aliases: 'J. Doe, Johnny Doe' },
+            { name: 'Smith & Associates LLC', party_type: 'organization', aliases: 'Smith Associates, S&A LLC' },
+            { name: 'Jane Williams', party_type: 'individual', aliases: 'J. Williams' },
+            { name: 'Pacific Holdings Inc', party_type: 'organization', aliases: 'Pacific Holdings, PHI' },
+            { name: 'Robert Chen', party_type: 'individual', aliases: 'Bob Chen, R. Chen' },
+            { name: 'Westside Development Group', party_type: 'organization', aliases: 'Westside Dev, WDG' },
+            { name: 'Maria Santos', party_type: 'individual', aliases: 'M. Santos' },
+            { name: 'Golden State Insurance Co', party_type: 'organization', aliases: 'Golden State, GSI' },
+            { name: 'David Kim', party_type: 'individual', aliases: 'D. Kim, Dave Kim' },
+            { name: 'TechVentures Capital LLC', party_type: 'organization', aliases: 'TechVentures, TVC' },
+            { name: 'Sarah Johnson-Park', party_type: 'individual', aliases: 'S. Johnson-Park, Sarah Park' },
+            { name: 'Meridian Healthcare Systems', party_type: 'organization', aliases: 'Meridian Health, MHS' },
+            { name: 'James O\'Brien', party_type: 'individual', aliases: 'Jim O\'Brien, J. O\'Brien' },
+            { name: 'Coastal Properties Management', party_type: 'organization', aliases: 'Coastal Properties, CPM' }
+        ];
+
+        const partyIds = [];
+        for (const party of partyNames) {
+            try {
+                const result = await client.query(`
+                    INSERT INTO conflict_parties (user_id, name, party_type, aliases, notes)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING id
+                `, [userId, party.name, party.party_type, party.aliases, 'Conflict party added during seeding']);
+                partyIds.push(result.rows[0].id);
+            } catch (e) {
+                console.log('  Skipping conflict party (table may not exist):', e.message);
+                break;
+            }
+        }
+        if (partyIds.length > 0) console.log(`  Created ${partyIds.length} conflict parties`);
+
+        // =====================================================
+        // SEED CONFLICT CHECKS (15 checks)
+        // =====================================================
+        console.log('\nSeeding conflict checks...');
+
+        if (partyIds.length > 0) {
+            const checkStatuses = ['clear', 'potential_conflict', 'conflict_found', 'waived'];
+            const checkTypes = ['new_client', 'new_matter', 'lateral_hire', 'business_transaction'];
+
+            for (let i = 0; i < 15; i++) {
+                try {
+                    await client.query(`
+                        INSERT INTO conflict_checks (user_id, check_type, searched_name, status, notes, checked_by)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                    `, [
+                        userId,
+                        randomItem(checkTypes),
+                        partyNames[i % partyNames.length].name,
+                        randomItem(checkStatuses),
+                        'Conflict check performed as part of intake process. All databases searched.',
+                        userId
+                    ]);
+                } catch (e) {
+                    console.log('  Skipping conflict check (table may not exist):', e.message);
+                    break;
+                }
+            }
+            console.log('  Created 15 conflict checks');
+        }
+
+        // =====================================================
+        // SEED TRUST ACCOUNTS (15 accounts)
+        // =====================================================
+        console.log('\nSeeding trust accounts...');
+
+        const trustAccountNames = [
+            'General IOLTA Account',
+            'Client Trust Account - Johnson',
+            'Client Trust Account - Williams',
+            'Client Trust Account - Brown',
+            'Retainer Trust - TechStart',
+            'Settlement Trust - Garcia',
+            'Client Trust Account - Davis',
+            'Estate Trust - Thompson',
+            'Client Trust Account - Wilson',
+            'Retainer Trust - Pacific Coast',
+            'Client Trust Account - Miller',
+            'Settlement Trust - Anderson',
+            'Client Trust Account - Taylor',
+            'Retainer Trust - Sunrise',
+            'Client Trust Account - Martinez'
+        ];
+
+        const trustAccountIds = [];
+        for (let i = 0; i < 15; i++) {
+            try {
+                const balance = parseFloat(randomAmount(1000, 50000));
+                const result = await client.query(`
+                    INSERT INTO trust_accounts (user_id, account_name, account_number, bank_name, account_type, balance, status)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    RETURNING id
+                `, [
+                    userId,
+                    trustAccountNames[i],
+                    `TRUST-${String(i + 1).padStart(6, '0')}`,
+                    randomItem(['First National Bank', 'Pacific Trust Bank', 'State Credit Union', 'Wells Fargo', 'Bank of America']),
+                    i === 0 ? 'iolta' : 'client_trust',
+                    balance,
+                    'active'
+                ]);
+                trustAccountIds.push(result.rows[0].id);
+            } catch (e) {
+                console.log('  Skipping trust account (table may not exist):', e.message);
+                break;
+            }
+        }
+        if (trustAccountIds.length > 0) console.log(`  Created ${trustAccountIds.length} trust accounts`);
+
+        // =====================================================
+        // SEED TRUST TRANSACTIONS (15 transactions)
+        // =====================================================
+        console.log('\nSeeding trust transactions...');
+
+        if (trustAccountIds.length > 0) {
+            const txnTypes = ['deposit', 'withdrawal', 'transfer', 'interest', 'fee'];
+            const txnDescriptions = [
+                'Client retainer deposit',
+                'Settlement disbursement',
+                'Filing fee payment',
+                'Expert witness payment',
+                'Retainer replenishment',
+                'Court cost advance',
+                'Transfer to operating',
+                'Interest earned',
+                'Bank service fee',
+                'Client refund',
+                'Retainer deposit - new matter',
+                'Mediation fee payment',
+                'Document filing costs',
+                'Investigation expenses',
+                'Escrow deposit'
+            ];
+
+            for (let i = 0; i < 15; i++) {
+                try {
+                    await client.query(`
+                        INSERT INTO trust_transactions (
+                            trust_account_id, client_id, transaction_type, amount,
+                            description, reference_number, transaction_date
+                        )
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    `, [
+                        trustAccountIds[i % trustAccountIds.length],
+                        clientIds[i % clientIds.length],
+                        randomItem(txnTypes),
+                        randomAmount(100, 10000),
+                        txnDescriptions[i],
+                        `TXN-${String(Math.floor(Math.random() * 1000000)).padStart(7, '0')}`,
+                        formatDate(randomDate(sixMonthsAgo, now))
+                    ]);
+                } catch (e) {
+                    console.log('  Skipping trust transaction (table may not exist):', e.message);
+                    break;
+                }
+            }
+            console.log('  Created 15 trust transactions');
+        }
+
+        // =====================================================
+        // SEED DOCUMENT HISTORY (15 entries)
+        // =====================================================
+        console.log('\nSeeding document history...');
+
+        const docTypes = ['contract', 'motion', 'brief', 'letter', 'agreement', 'notice', 'complaint', 'response'];
+        const docTitles = [
+            'Employment Agreement - Draft',
+            'Motion for Summary Judgment',
+            'Appellate Brief - Johnson v. Corp',
+            'Demand Letter - Personal Injury',
+            'Operating Agreement - LLC Formation',
+            'Notice of Hearing',
+            'Complaint - Discrimination Case',
+            'Response to Discovery',
+            'Settlement Agreement - Final',
+            'Non-Disclosure Agreement',
+            'Lease Agreement - Commercial',
+            'Power of Attorney - Healthcare',
+            'Last Will and Testament',
+            'Articles of Incorporation',
+            'Prenuptial Agreement - Draft'
+        ];
+
+        for (let i = 0; i < 15; i++) {
+            try {
+                await client.query(`
+                    INSERT INTO document_history (user_id, document_type, title, content, file_format, file_size)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [
+                    userId,
+                    randomItem(docTypes),
+                    docTitles[i],
+                    'Document content for ' + docTitles[i] + '. This is a sample document generated during the seeding process.',
+                    randomItem(['pdf', 'docx', 'pdf']),
+                    Math.floor(Math.random() * 500000) + 10000
+                ]);
+            } catch (e) {
+                console.log('  Skipping document history (error):', e.message);
+                break;
+            }
+        }
+        console.log('  Created 15 document history entries');
+
         console.log('\n========================================');
         console.log('Database seeding completed successfully!');
         console.log('========================================');
@@ -1006,7 +1242,14 @@ async function seedDatabase() {
         console.log('  - 20 Notifications');
         console.log('  - 20 Activity Log Entries');
         console.log('  - 15 Saved Reports');
+        console.log('  - 25 Leads + 30 Lead Activities');
         console.log('  - Document Versions & Comments');
+        console.log('  - 5 Roles + User Role Assignment');
+        console.log('  - 15 Conflict Parties');
+        console.log('  - 15 Conflict Checks');
+        console.log('  - 15 Trust Accounts');
+        console.log('  - 15 Trust Transactions');
+        console.log('  - 15 Document History Entries');
 
     } catch (error) {
         console.error('Error seeding database:', error);
