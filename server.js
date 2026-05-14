@@ -69,6 +69,7 @@ const citationFinderRoutes = require('./routes/citation-finder');
 const aiCommunicationsRoutes = require('./routes/ai-communications');
 const aiIntakeRoutes = require('./routes/ai-intake');
 const additionalFeaturesRoutes = require('./routes/additional-features');
+const { runPendingMigrations } = require('./lib/migrations');
 
 require('dotenv').config();
 
@@ -147,13 +148,54 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting - more permissive for development
+// Rate limiting - general limiter (permissive)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // limit each IP to 1000 requests per windowMs
   skip: (req) => req.path.startsWith('/css') || req.path.startsWith('/js') || req.path.startsWith('/images')
 });
 app.use(limiter);
+
+// Strict rate limiter for AI endpoints — 20 requests per 15 minutes per IP
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many AI requests. Please wait before trying again.',
+    retryAfter: '15 minutes'
+  },
+  keyGenerator: (req) => {
+    // Key by authenticated user ID when available, otherwise IP
+    return req.user ? `user:${req.user.id}` : req.ip;
+  }
+});
+
+// Apply AI rate limiter to all AI API endpoints
+// These routes are mounted at '/' so paths include /api/...
+app.use((req, res, next) => {
+  const aiPaths = [
+    '/api/ai-drafting/',
+    '/api/contract-analysis/',
+    '/api/citation-finder/',
+    '/api/document-summary/',
+    '/api/ai-billing/',
+    '/api/ai-conflicts/',
+    '/api/ai-predictions/',
+    '/api/voice-notes/',
+    '/api/portal-ai/',
+    '/api/ai-calendar/',
+    '/api/ai-communications/',
+    '/api/ai-intake/',
+    '/api/ocr/'
+  ];
+  const isAiRoute = aiPaths.some(p => req.path.startsWith(p));
+  if (isAiRoute) {
+    return aiLimiter(req, res, next);
+  }
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -243,6 +285,7 @@ app.use('/', aiCommunicationsRoutes);
 app.use('/', aiIntakeRoutes);
 app.use('/', stripeRoutes);
 app.use('/', additionalFeaturesRoutes);
+app.use('/api/ai/catalog', require('./routes/ai-catalog')); app.use('/api/ai/ediscovery', require('./routes/ai-ediscovery')); app.use('/api/ai/pacer', require('./routes/ai-pacer')); app.use('/api/ai/intake-builder', require('./routes/ai-intake-builder')); app.use('/api/ai/matter-outcome', require('./routes/ai-matter-outcome')); app.use('/api/ai/transcription', require('./routes/ai-transcription'));
 
 // Debug: Log registered routes
 console.log('Registered API routes:');
@@ -2696,11 +2739,33 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`Legal Forms Generator server running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT} to access the application`);
-  console.log('Real-time features enabled via Socket.io');
-});
+// Start server — run DB migrations first, then listen
+runPendingMigrations()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Legal Forms Generator server running on port ${PORT}`);
+      console.log(`Visit http://localhost:${PORT} to access the application`);
+      console.log('Real-time features enabled via Socket.io');
+    });
+  })
+  .catch((err) => {
+    console.error('Startup aborted: database migration failed.', err.message);
+    process.exit(1);
+  });
 
 module.exports = app;
+
+// === Batch 10 Gaps & Frontend Mounts === (mounts)
+app.use('/api/gap-ai-routes-exist-but-logic-depth', require('./routes/gap_ai_routes_exist_but_logic_depth'));
+app.use('/api/gap-no-deposition-discovery-summarizer', require('./routes/gap_no_deposition_discovery_summarizer'));
+app.use('/api/gap-no-e-discovery-vector-search', require('./routes/gap_no_e_discovery_vector_search'));
+app.use('/api/gap-no-fee-prediction-model-with-confidence', require('./routes/gap_no_fee_prediction_model_with_confidence'));
+app.use('/api/gap-no-matter-outcome-forecasting-with-explainability', require('./routes/gap_no_matter_outcome_forecasting_with_explainability'));
+app.use('/api/gap-no-real-time-courtroom-transcription-agent', require('./routes/gap_no_real_time_courtroom_transcription_agent'));
+app.use('/api/gap-ai-routes-intermingled-with-domain-routes', require('./routes/gap_ai_routes_intermingled_with_domain_routes'));
+app.use('/api/gap-no-e-discovery-review-workflow', require('./routes/gap_no_e_discovery_review_workflow'));
+app.use('/api/gap-no-pacer-state-court-filing-integration', require('./routes/gap_no_pacer_state_court_filing_integration'));
+app.use('/api/gap-no-structured-intake-forms-with-conditional', require('./routes/gap_no_structured_intake_forms_with_conditional'));
+app.use('/api/gap-no-multi-tenant-law-firm-isolation', require('./routes/gap_no_multi_tenant_law_firm_isolation'));
+app.use('/api/gap-no-webhooks-for-billing-e-signature', require('./routes/gap_no_webhooks_for_billing_e_signature'));
+app.use('/api/gap-no-audit-grade-matter-history-export', require('./routes/gap_no_audit_grade_matter_history_export'));

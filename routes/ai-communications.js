@@ -13,7 +13,7 @@ router.get('/communications/ai-drafts', requireAuth, async (req, res) => {
             SELECT md.*, CONCAT(c.first_name, ' ', c.last_name) as client_name
             FROM ai_message_drafts md
             LEFT JOIN clients c ON md.client_id = c.id
-            WHERE (md.user_id = $1 OR md.user_id IS NULL)
+            WHERE md.user_id = $1
             ORDER BY md.created_at DESC
             LIMIT 30
         `, [req.user.id]);
@@ -23,12 +23,12 @@ router.get('/communications/ai-drafts', requireAuth, async (req, res) => {
                 COUNT(*) as total_drafts,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
                 SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent_count
-            FROM ai_message_drafts WHERE (user_id = $1 OR user_id IS NULL)
+            FROM ai_message_drafts WHERE user_id = $1
         `, [req.user.id]);
 
         const clients = await db.query(`
             SELECT id, CONCAT(first_name, ' ', last_name) as name, email FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name
+            WHERE user_id = $1 ORDER BY last_name
         `, [req.user.id]);
 
         res.render('communications/ai-drafts', {
@@ -51,7 +51,7 @@ router.get('/api/ai-communications/suggestions', requireAuth, async (req, res) =
         // Get recent drafts
         const draftsResult = await db.query(`
             SELECT * FROM ai_communication_drafts
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -97,7 +97,7 @@ router.post('/api/ai-communications/draft-email', requireAuth, async (req, res) 
         if (client_id) {
             const client = await db.query(`
                 SELECT CONCAT(first_name, ' ', last_name) as name, email
-                FROM clients WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+                FROM clients WHERE id = $1 AND user_id = $2
             `, [client_id, req.user.id]);
             if (client.rows.length > 0) {
                 clientInfo = client.rows[0];
@@ -341,7 +341,7 @@ router.put('/api/ai-communications/draft/:id', requireAuth, async (req, res) => 
         await db.query(`
             UPDATE ai_message_drafts
             SET ai_draft = $1, subject_line = $2, updated_at = NOW()
-            WHERE id = $3 AND (user_id = $4 OR user_id IS NULL)
+            WHERE id = $3 AND user_id = $4
         `, [body, subject_line, req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -357,7 +357,7 @@ router.post('/api/ai-communications/draft/:id/send', requireAuth, async (req, re
         await db.query(`
             UPDATE ai_message_drafts
             SET status = 'sent', sent_at = NOW()
-            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -371,7 +371,7 @@ router.post('/api/ai-communications/draft/:id/send', requireAuth, async (req, re
 router.delete('/api/ai-communications/draft/:id', requireAuth, async (req, res) => {
     try {
         await db.query(`
-            DELETE FROM ai_message_drafts WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            DELETE FROM ai_message_drafts WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });

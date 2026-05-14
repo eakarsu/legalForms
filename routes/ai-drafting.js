@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { validateAiDraftGenerate } = require('../middleware/validation');
 const axios = require('axios');
 
 // OpenRouter configuration
@@ -22,7 +23,7 @@ router.get('/ai-drafting', requireAuth, async (req, res) => {
         // Get templates
         const templatesResult = await db.query(`
             SELECT * FROM ai_draft_templates
-            WHERE (user_id = $1 OR user_id IS NULL) OR is_public = true
+            WHERE user_id = $1 OR is_public = true
             ORDER BY usage_count DESC
             LIMIT 20
         `, [req.user.id]);
@@ -33,7 +34,7 @@ router.get('/ai-drafting', requireAuth, async (req, res) => {
             FROM ai_draft_sessions ads
             LEFT JOIN ai_draft_templates adt ON ads.template_id = adt.id
             LEFT JOIN clients c ON ads.client_id = c.id
-            WHERE (ads.user_id = $1 OR ads.user_id IS NULL)
+            WHERE ads.user_id = $1
             ORDER BY ads.updated_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -45,7 +46,7 @@ router.get('/ai-drafting', requireAuth, async (req, res) => {
                 COALESCE(SUM(total_tokens), 0) as total_tokens,
                 COALESCE(SUM(cost_estimate), 0) as total_cost
             FROM ai_usage_log
-            WHERE (user_id = $1 OR user_id IS NULL) AND feature = 'document_draft'
+            WHERE user_id = $1 AND feature = 'document_draft'
             AND created_at >= NOW() - INTERVAL '30 days'
         `, [req.user.id]);
 
@@ -67,17 +68,17 @@ router.get('/ai-drafting/new', requireAuth, async (req, res) => {
     try {
         const templatesResult = await db.query(`
             SELECT * FROM ai_draft_templates
-            WHERE (user_id = $1 OR user_id IS NULL) OR is_public = true
+            WHERE user_id = $1 OR is_public = true
             ORDER BY category, name
         `, [req.user.id]);
 
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name',
+            'SELECT id, first_name, last_name, company_name FROM clients WHERE user_id = $1 ORDER BY last_name',
             [req.user.id]
         );
 
         const casesResult = await db.query(
-            'SELECT id, case_number, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY created_at DESC',
+            'SELECT id, case_number, title FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
             [req.user.id]
         );
 
@@ -100,7 +101,7 @@ router.get('/ai-drafting/templates', requireAuth, async (req, res) => {
     try {
         const templatesResult = await db.query(`
             SELECT * FROM ai_draft_templates
-            WHERE (user_id = $1 OR user_id IS NULL) OR is_public = true
+            WHERE user_id = $1 OR is_public = true
             ORDER BY category, name
         `, [req.user.id]);
 
@@ -124,7 +125,7 @@ router.get('/ai-drafting/sessions', requireAuth, async (req, res) => {
             LEFT JOIN ai_draft_templates adt ON ads.template_id = adt.id
             LEFT JOIN clients c ON ads.client_id = c.id
             LEFT JOIN cases cs ON ads.case_id = cs.id
-            WHERE (ads.user_id = $1 OR ads.user_id IS NULL)
+            WHERE ads.user_id = $1
             ORDER BY ads.updated_at DESC
         `, [req.user.id]);
 
@@ -148,7 +149,7 @@ router.get('/ai-drafting/sessions/:id', requireAuth, async (req, res) => {
             LEFT JOIN ai_draft_templates adt ON ads.template_id = adt.id
             LEFT JOIN clients c ON ads.client_id = c.id
             LEFT JOIN cases cs ON ads.case_id = cs.id
-            WHERE ads.id = $1 AND (ads.user_id = $2 OR ads.user_id IS NULL)
+            WHERE ads.id = $1 AND ads.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (sessionResult.rows.length === 0) {
@@ -178,7 +179,7 @@ router.get('/ai-drafting/sessions/:id', requireAuth, async (req, res) => {
 // =====================================================
 
 // Generate AI draft
-router.post('/api/ai-drafting/generate', requireAuth, async (req, res) => {
+router.post('/api/ai-drafting/generate', requireAuth, ...validateAiDraftGenerate, async (req, res) => {
     console.log('AI Generate - Request received');
 
     try {
@@ -400,7 +401,7 @@ router.post('/api/ai-drafting/sessions/:id/revise', requireAuth, async (req, res
 
         // Get session and latest version
         const sessionResult = await db.query(`
-            SELECT * FROM ai_draft_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            SELECT * FROM ai_draft_sessions WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (sessionResult.rows.length === 0) {
@@ -529,7 +530,7 @@ router.get('/api/ai-drafting/usage', requireAuth, async (req, res) => {
                 COALESCE(SUM(total_tokens), 0) as tokens,
                 COALESCE(SUM(cost_estimate), 0) as cost
             FROM ai_usage_log
-            WHERE (user_id = $1 OR user_id IS NULL) AND created_at >= NOW() - INTERVAL '30 days'
+            WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days'
             GROUP BY DATE_TRUNC('day', created_at)
             ORDER BY date DESC
         `, [req.user.id]);
@@ -548,7 +549,7 @@ router.post('/api/ai-drafting/sessions/:id/save', requireAuth, async (req, res) 
 
         // Check session ownership
         const sessionResult = await db.query(
-            'SELECT * FROM ai_draft_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM ai_draft_sessions WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -586,7 +587,7 @@ router.post('/api/ai-drafting/sessions/:id/save', requireAuth, async (req, res) 
 router.post('/api/ai-drafting/sessions/:id/regenerate', requireAuth, async (req, res) => {
     try {
         const sessionResult = await db.query(`
-            SELECT * FROM ai_draft_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            SELECT * FROM ai_draft_sessions WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (sessionResult.rows.length === 0) {
@@ -657,7 +658,7 @@ router.post('/api/ai-drafting/sessions/:id/refine', requireAuth, async (req, res
 
     try {
         const sessionResult = await db.query(`
-            SELECT * FROM ai_draft_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            SELECT * FROM ai_draft_sessions WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (sessionResult.rows.length === 0) {
@@ -730,7 +731,7 @@ router.get('/api/ai-drafting/versions/:id', requireAuth, async (req, res) => {
             SELECT v.*, s.user_id
             FROM ai_draft_versions v
             JOIN ai_draft_sessions s ON v.session_id = s.id
-            WHERE v.id = $1 AND (s.user_id = $2 OR s.user_id IS NULL)
+            WHERE v.id = $1 AND s.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {

@@ -18,15 +18,15 @@ router.get('/reports', requireAuth, async (req, res) => {
         // Get key metrics
         const metricsResult = await db.query(`
             SELECT
-                (SELECT COALESCE(SUM(amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status = 'paid' AND paid_date >= DATE_TRUNC('year', CURRENT_DATE)) as totalRevenue,
-                (SELECT COALESCE(SUM(duration_minutes) / 60.0, 0) FROM time_entries WHERE (user_id = $1 OR user_id IS NULL) AND date >= DATE_TRUNC('year', CURRENT_DATE)) as totalHours,
-                (SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status = 'open') as activeCases,
-                (SELECT COALESCE(SUM(total - amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue')) as outstandingAR
+                (SELECT COALESCE(SUM(amount_paid), 0) FROM invoices WHERE user_id = $1 AND status = 'paid' AND paid_date >= DATE_TRUNC('year', CURRENT_DATE)) as totalRevenue,
+                (SELECT COALESCE(SUM(duration_minutes) / 60.0, 0) FROM time_entries WHERE user_id = $1 AND date >= DATE_TRUNC('year', CURRENT_DATE)) as totalHours,
+                (SELECT COUNT(*) FROM cases WHERE user_id = $1 AND status = 'open') as activeCases,
+                (SELECT COALESCE(SUM(total - amount_paid), 0) FROM invoices WHERE user_id = $1 AND status IN ('sent', 'overdue')) as outstandingAR
         `, [req.user.id]);
 
         // Get saved reports
         const savedReportsResult = await db.query(
-            'SELECT * FROM reports WHERE (user_id = $1 OR user_id IS NULL) ORDER BY is_favorite DESC, created_at DESC LIMIT 10',
+            'SELECT * FROM reports WHERE user_id = $1 ORDER BY is_favorite DESC, created_at DESC LIMIT 10',
             [req.user.id]
         );
 
@@ -62,7 +62,7 @@ router.get('/reports/revenue', requireAuth, async (req, res) => {
                 COALESCE(SUM(i.total), 0) as totalBilled,
                 COALESCE(SUM(CASE WHEN i.status IN ('sent', 'overdue') THEN i.total - i.amount_paid ELSE 0 END), 0) as totalOutstanding
             FROM invoices i
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+            WHERE i.user_id = $1 ${dateFilter}
         `, params);
 
         // Data grouped by month/client/case
@@ -76,7 +76,7 @@ router.get('/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
                 LEFT JOIN clients cl ON i.client_id = cl.id
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY cl.id, cl.company_name, cl.first_name, cl.last_name
                 HAVING SUM(i.total) > 0
                 ORDER BY billed DESC
@@ -90,7 +90,7 @@ router.get('/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
                 LEFT JOIN cases c ON i.case_id = c.id
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY c.id, c.title
                 HAVING SUM(i.total) > 0
                 ORDER BY billed DESC
@@ -103,7 +103,7 @@ router.get('/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.amount_paid), 0) as collected,
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY DATE_TRUNC('month', i.created_at)
                 ORDER BY DATE_TRUNC('month', i.created_at) DESC
                 LIMIT 12
@@ -148,7 +148,7 @@ router.get('/reports/productivity', requireAuth, async (req, res) => {
                     ELSE 0 END as utilizationRate,
                 COALESCE(SUM(te.amount), 0) as billableValue
             FROM time_entries te
-            WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+            WHERE te.user_id = $1 ${dateFilter}
         `, params);
 
         // Data by activity type or attorney
@@ -162,7 +162,7 @@ router.get('/reports/productivity', requireAuth, async (req, res) => {
                     COALESCE(SUM(CASE WHEN NOT te.is_billable THEN te.duration_minutes ELSE 0 END) / 60.0, 0) as nonBillableHours,
                     COALESCE(SUM(te.amount), 0) as value
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
                 GROUP BY te.activity_type
                 ORDER BY totalHours DESC
             `;
@@ -175,7 +175,7 @@ router.get('/reports/productivity', requireAuth, async (req, res) => {
                     COALESCE(SUM(CASE WHEN NOT te.is_billable THEN te.duration_minutes ELSE 0 END) / 60.0, 0) as nonBillableHours,
                     COALESCE(SUM(te.amount), 0) as value
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
             `;
         }
 
@@ -187,7 +187,7 @@ router.get('/reports/productivity', requireAuth, async (req, res) => {
                 COALESCE(te.activity_type, 'Other') as type,
                 COALESCE(SUM(te.duration_minutes) / 60.0, 0) as hours
             FROM time_entries te
-            WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+            WHERE te.user_id = $1 ${dateFilter}
             GROUP BY te.activity_type
             ORDER BY hours DESC
         `, params);
@@ -220,7 +220,7 @@ router.get('/reports/cases', requireAuth, async (req, res) => {
                 COALESCE(AVG(CASE WHEN date_closed IS NOT NULL THEN date_closed - date_opened END), 0) as avgDays,
                 COALESCE(AVG(retainer_amount), 0) as avgValue
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
         `, [req.user.id]);
 
         // Cases by type
@@ -233,7 +233,7 @@ router.get('/reports/cases', requireAuth, async (req, res) => {
                 COALESCE(AVG(CASE WHEN date_closed IS NOT NULL THEN date_closed - date_opened END), 0) as avgDays,
                 COALESCE(SUM(retainer_amount), 0) as totalValue
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             GROUP BY case_type
             ORDER BY count DESC
         `, [req.user.id]);
@@ -248,7 +248,7 @@ router.get('/reports/cases', requireAuth, async (req, res) => {
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
             LEFT JOIN time_entries te ON c.id = te.case_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL) AND c.status = 'closed'
+            WHERE c.user_id = $1 AND c.status = 'closed'
             GROUP BY c.id, cl.company_name, cl.first_name, cl.last_name
             ORDER BY c.date_closed DESC
             LIMIT 10
@@ -280,19 +280,19 @@ router.get('/reports/clients', requireAuth, async (req, res) => {
                     SELECT COALESCE(SUM(te.amount), 0) as client_total
                     FROM clients c
                     LEFT JOIN time_entries te ON c.id = te.client_id
-                    WHERE (c.user_id = $1 OR c.user_id IS NULL)
+                    WHERE c.user_id = $1
                     GROUP BY c.id
                     HAVING SUM(te.amount) > 0
                 ) sub), 0) as avgRevenue
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
         `, [req.user.id]);
 
         // Clients by type
         const byTypeResult = await db.query(`
             SELECT client_type, COUNT(*) as count
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             GROUP BY client_type
             ORDER BY count DESC
         `, [req.user.id]);
@@ -311,7 +311,7 @@ router.get('/reports/clients', requireAuth, async (req, res) => {
             LEFT JOIN cases cs ON c.id = cs.client_id
             LEFT JOIN time_entries te ON c.id = te.client_id
             LEFT JOIN invoices i ON c.id = i.client_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
             GROUP BY c.id
             ORDER BY total_revenue DESC
             LIMIT 10
@@ -321,7 +321,7 @@ router.get('/reports/clients', requireAuth, async (req, res) => {
         const recentClientsResult = await db.query(`
             SELECT id, first_name, last_name, company_name, client_type, email, status, created_at
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -332,7 +332,7 @@ router.get('/reports/clients', requireAuth, async (req, res) => {
                 TO_CHAR(DATE_TRUNC('month', created_at), 'Mon YYYY') as month,
                 COUNT(*) as count
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL) AND created_at >= CURRENT_DATE - INTERVAL '12 months'
+            WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '12 months'
             GROUP BY DATE_TRUNC('month', created_at)
             ORDER BY DATE_TRUNC('month', created_at)
         `, [req.user.id]);
@@ -373,7 +373,7 @@ router.get('/reports/revenue/export-csv', requireAuth, async (req, res) => {
                 COALESCE(SUM(i.total), 0) as totalBilled,
                 COALESCE(SUM(CASE WHEN i.status IN ('sent', 'overdue') THEN i.total - i.amount_paid ELSE 0 END), 0) as totalOutstanding
             FROM invoices i
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+            WHERE i.user_id = $1 ${dateFilter}
         `, params);
 
         // Data grouped by month/client/case
@@ -387,7 +387,7 @@ router.get('/reports/revenue/export-csv', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
                 LEFT JOIN clients cl ON i.client_id = cl.id
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY cl.id, cl.company_name, cl.first_name, cl.last_name
                 HAVING SUM(i.total) > 0
                 ORDER BY billed DESC
@@ -401,7 +401,7 @@ router.get('/reports/revenue/export-csv', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
                 LEFT JOIN cases c ON i.case_id = c.id
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY c.id, c.title
                 HAVING SUM(i.total) > 0
                 ORDER BY billed DESC
@@ -414,7 +414,7 @@ router.get('/reports/revenue/export-csv', requireAuth, async (req, res) => {
                     COALESCE(SUM(i.amount_paid), 0) as collected,
                     COALESCE(SUM(i.total - i.amount_paid), 0) as outstanding
                 FROM invoices i
-                WHERE (i.user_id = $1 OR i.user_id IS NULL) ${dateFilter}
+                WHERE i.user_id = $1 ${dateFilter}
                 GROUP BY DATE_TRUNC('month', i.created_at)
                 ORDER BY DATE_TRUNC('month', i.created_at) DESC
                 LIMIT 12
@@ -478,7 +478,7 @@ router.get('/reports/productivity/export-csv', requireAuth, async (req, res) => 
                     ELSE 0 END as utilizationRate,
                 COALESCE(SUM(te.amount), 0) as billableValue
             FROM time_entries te
-            WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+            WHERE te.user_id = $1 ${dateFilter}
         `, params);
 
         // Data by activity type or attorney
@@ -492,7 +492,7 @@ router.get('/reports/productivity/export-csv', requireAuth, async (req, res) => 
                     COALESCE(SUM(CASE WHEN NOT te.is_billable THEN te.duration_minutes ELSE 0 END) / 60.0, 0) as nonBillableHours,
                     COALESCE(SUM(te.amount), 0) as value
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
                 GROUP BY te.activity_type
                 ORDER BY totalHours DESC
             `;
@@ -505,7 +505,7 @@ router.get('/reports/productivity/export-csv', requireAuth, async (req, res) => 
                     COALESCE(SUM(CASE WHEN NOT te.is_billable THEN te.duration_minutes ELSE 0 END) / 60.0, 0) as nonBillableHours,
                     COALESCE(SUM(te.amount), 0) as value
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
             `;
         }
 
@@ -554,7 +554,7 @@ router.get('/reports/cases/export-csv', requireAuth, async (req, res) => {
                 COALESCE(AVG(CASE WHEN date_closed IS NOT NULL THEN date_closed - date_opened END), 0) as avgDays,
                 COALESCE(AVG(retainer_amount), 0) as avgValue
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
         `, [req.user.id]);
 
         // Cases by type
@@ -567,7 +567,7 @@ router.get('/reports/cases/export-csv', requireAuth, async (req, res) => {
                 COALESCE(AVG(CASE WHEN date_closed IS NOT NULL THEN date_closed - date_opened END), 0) as avgDays,
                 COALESCE(SUM(retainer_amount), 0) as totalValue
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             GROUP BY case_type
             ORDER BY count DESC
         `, [req.user.id]);
@@ -582,7 +582,7 @@ router.get('/reports/cases/export-csv', requireAuth, async (req, res) => {
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
             LEFT JOIN time_entries te ON c.id = te.case_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL) AND c.status = 'closed'
+            WHERE c.user_id = $1 AND c.status = 'closed'
             GROUP BY c.id, cl.company_name, cl.first_name, cl.last_name
             ORDER BY c.date_closed DESC
             LIMIT 10
@@ -636,7 +636,7 @@ router.get('/reports/clients/export-csv', requireAuth, async (req, res) => {
             LEFT JOIN cases cs ON c.id = cs.client_id
             LEFT JOIN time_entries te ON c.id = te.client_id
             LEFT JOIN invoices i ON c.id = i.client_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
             GROUP BY c.id, c.first_name, c.last_name, c.company_name, c.client_type
             ORDER BY total_revenue DESC
         `, [req.user.id]);
@@ -645,7 +645,7 @@ router.get('/reports/clients/export-csv', requireAuth, async (req, res) => {
         const recentClientsResult = await db.query(`
             SELECT first_name, last_name, company_name, client_type, email, status, created_at
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -685,12 +685,12 @@ router.get('/api/reports/summary', requireAuth, async (req, res) => {
         // Get key metrics matching the web dashboard
         const metricsResult = await db.query(`
             SELECT
-                (SELECT COALESCE(SUM(amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status = 'paid' AND paid_date >= DATE_TRUNC('year', CURRENT_DATE)) as total_revenue,
-                (SELECT COALESCE(SUM(duration_minutes) / 60.0, 0) FROM time_entries WHERE (user_id = $1 OR user_id IS NULL) AND date >= DATE_TRUNC('year', CURRENT_DATE)) as total_hours,
-                (SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL) AND status = 'open') as active_cases,
-                (SELECT COALESCE(SUM(total - amount_paid), 0) FROM invoices WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue')) as outstanding_ar,
-                (SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL)) as total_cases,
-                (SELECT COUNT(*) FROM clients WHERE (user_id = $1 OR user_id IS NULL)) as total_clients
+                (SELECT COALESCE(SUM(amount_paid), 0) FROM invoices WHERE user_id = $1 AND status = 'paid' AND paid_date >= DATE_TRUNC('year', CURRENT_DATE)) as total_revenue,
+                (SELECT COALESCE(SUM(duration_minutes) / 60.0, 0) FROM time_entries WHERE user_id = $1 AND date >= DATE_TRUNC('year', CURRENT_DATE)) as total_hours,
+                (SELECT COUNT(*) FROM cases WHERE user_id = $1 AND status = 'open') as active_cases,
+                (SELECT COALESCE(SUM(total - amount_paid), 0) FROM invoices WHERE user_id = $1 AND status IN ('sent', 'overdue')) as outstanding_ar,
+                (SELECT COUNT(*) FROM cases WHERE user_id = $1) as total_cases,
+                (SELECT COUNT(*) FROM clients WHERE user_id = $1) as total_clients
         `, [req.user.id]);
 
         const metrics = metricsResult.rows[0] || {};
@@ -751,8 +751,8 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                     COUNT(te.id) as entry_count
                 FROM clients cl
-                LEFT JOIN time_entries te ON cl.id = te.client_id AND (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
-                WHERE (cl.user_id = $1 OR cl.user_id IS NULL)
+                LEFT JOIN time_entries te ON cl.id = te.client_id AND te.user_id = $1 ${dateFilter}
+                WHERE cl.user_id = $1
                 GROUP BY cl.id
                 HAVING SUM(te.amount) > 0
                 ORDER BY total_amount DESC
@@ -767,8 +767,8 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                     COUNT(te.id) as entry_count
                 FROM cases c
-                LEFT JOIN time_entries te ON c.id = te.case_id AND (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
-                WHERE (c.user_id = $1 OR c.user_id IS NULL)
+                LEFT JOIN time_entries te ON c.id = te.case_id AND te.user_id = $1 ${dateFilter}
+                WHERE c.user_id = $1
                 GROUP BY c.id
                 HAVING SUM(te.amount) > 0
                 ORDER BY total_amount DESC
@@ -781,7 +781,7 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                     COUNT(te.id) as entry_count
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
                 GROUP BY DATE_TRUNC('month', te.date)
                 ORDER BY month DESC
             `;
@@ -793,7 +793,7 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
                     COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                     COUNT(te.id) as entry_count
                 FROM time_entries te
-                WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+                WHERE te.user_id = $1 ${dateFilter}
                 GROUP BY te.activity_type
                 ORDER BY total_amount DESC
             `;
@@ -808,7 +808,7 @@ router.get('/api/reports/revenue', requireAuth, async (req, res) => {
                 COALESCE(SUM(te.duration_minutes), 0) as total_minutes,
                 COUNT(*) as total_entries
             FROM time_entries te
-            WHERE (te.user_id = $1 OR te.user_id IS NULL) ${dateFilter}
+            WHERE te.user_id = $1 ${dateFilter}
         `, params);
 
         res.json({
@@ -852,7 +852,7 @@ router.get('/api/reports/productivity', requireAuth, async (req, res) => {
                 SUM(duration_minutes) as total_minutes,
                 COUNT(*) as entry_count
             FROM time_entries
-            WHERE (user_id = $1 OR user_id IS NULL) ${dateFilter}
+            WHERE user_id = $1 ${dateFilter}
             GROUP BY activity_type
             ORDER BY total_minutes DESC
         `, [req.user.id]);
@@ -865,7 +865,7 @@ router.get('/api/reports/productivity', requireAuth, async (req, res) => {
                 SUM(CASE WHEN is_billable THEN duration_minutes ELSE 0 END) as billable_minutes,
                 COUNT(*) as entry_count
             FROM time_entries
-            WHERE (user_id = $1 OR user_id IS NULL) ${dateFilter}
+            WHERE user_id = $1 ${dateFilter}
             GROUP BY date
             ORDER BY date DESC
             LIMIT 30
@@ -880,7 +880,7 @@ router.get('/api/reports/productivity', requireAuth, async (req, res) => {
                 COALESCE(AVG(hourly_rate), 0) as avg_rate,
                 COUNT(DISTINCT date) as days_worked
             FROM time_entries
-            WHERE (user_id = $1 OR user_id IS NULL) ${dateFilter}
+            WHERE user_id = $1 ${dateFilter}
         `, [req.user.id]);
 
         res.json({
@@ -902,21 +902,21 @@ router.get('/api/reports/cases', requireAuth, async (req, res) => {
         // Cases by status
         const byStatusResult = await db.query(`
             SELECT status, COUNT(*) as count
-            FROM cases WHERE (user_id = $1 OR user_id IS NULL)
+            FROM cases WHERE user_id = $1
             GROUP BY status
         `, [req.user.id]);
 
         // Cases by type
         const byTypeResult = await db.query(`
             SELECT case_type, COUNT(*) as count
-            FROM cases WHERE (user_id = $1 OR user_id IS NULL)
+            FROM cases WHERE user_id = $1
             GROUP BY case_type
         `, [req.user.id]);
 
         // Cases by priority
         const byPriorityResult = await db.query(`
             SELECT priority, COUNT(*) as count
-            FROM cases WHERE (user_id = $1 OR user_id IS NULL)
+            FROM cases WHERE user_id = $1
             GROUP BY priority
         `, [req.user.id]);
 
@@ -926,7 +926,7 @@ router.get('/api/reports/cases', requireAuth, async (req, res) => {
                 DATE_TRUNC('month', date_opened) as month,
                 COUNT(*) as opened_count
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL) AND date_opened >= CURRENT_DATE - INTERVAL '12 months'
+            WHERE user_id = $1 AND date_opened >= CURRENT_DATE - INTERVAL '12 months'
             GROUP BY DATE_TRUNC('month', date_opened)
             ORDER BY month
         `, [req.user.id]);
@@ -937,7 +937,7 @@ router.get('/api/reports/cases', requireAuth, async (req, res) => {
                 DATE_TRUNC('month', date_closed) as month,
                 COUNT(*) as closed_count
             FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL) AND date_closed >= CURRENT_DATE - INTERVAL '12 months'
+            WHERE user_id = $1 AND date_closed >= CURRENT_DATE - INTERVAL '12 months'
             GROUP BY DATE_TRUNC('month', date_closed)
             ORDER BY month
         `, [req.user.id]);
@@ -953,7 +953,7 @@ router.get('/api/reports/cases', requireAuth, async (req, res) => {
                 COALESCE(SUM(te.duration_minutes), 0) as total_minutes
             FROM cases c
             LEFT JOIN time_entries te ON c.id = te.case_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
             GROUP BY c.id
             ORDER BY total_revenue DESC
             LIMIT 10
@@ -980,14 +980,14 @@ router.get('/api/reports/clients', requireAuth, async (req, res) => {
         // Clients by type
         const byTypeResult = await db.query(`
             SELECT client_type, COUNT(*) as count
-            FROM clients WHERE (user_id = $1 OR user_id IS NULL)
+            FROM clients WHERE user_id = $1
             GROUP BY client_type
         `, [req.user.id]);
 
         // Clients by status
         const byStatusResult = await db.query(`
             SELECT status, COUNT(*) as count
-            FROM clients WHERE (user_id = $1 OR user_id IS NULL)
+            FROM clients WHERE user_id = $1
             GROUP BY status
         `, [req.user.id]);
 
@@ -997,7 +997,7 @@ router.get('/api/reports/clients', requireAuth, async (req, res) => {
                 DATE_TRUNC('month', created_at) as month,
                 COUNT(*) as new_clients
             FROM clients
-            WHERE (user_id = $1 OR user_id IS NULL) AND created_at >= CURRENT_DATE - INTERVAL '12 months'
+            WHERE user_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '12 months'
             GROUP BY DATE_TRUNC('month', created_at)
             ORDER BY month
         `, [req.user.id]);
@@ -1013,7 +1013,7 @@ router.get('/api/reports/clients', requireAuth, async (req, res) => {
             FROM clients c
             LEFT JOIN time_entries te ON c.id = te.client_id
             LEFT JOIN cases cs ON c.id = cs.client_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
             GROUP BY c.id
             ORDER BY total_revenue DESC
             LIMIT 10
@@ -1025,7 +1025,7 @@ router.get('/api/reports/clients', requireAuth, async (req, res) => {
                 COUNT(DISTINCT c.id) as active_clients
             FROM clients c
             JOIN cases cs ON c.id = cs.client_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL) AND cs.created_at >= CURRENT_DATE - INTERVAL '6 months'
+            WHERE c.user_id = $1 AND cs.created_at >= CURRENT_DATE - INTERVAL '6 months'
         `, [req.user.id]);
 
         res.json({
@@ -1064,7 +1064,7 @@ router.get('/api/reports/aging', requireAuth, async (req, res) => {
                 END as aging_bucket
             FROM invoices i
             LEFT JOIN clients cl ON i.client_id = cl.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND i.status IN ('sent', 'overdue') AND i.total > i.amount_paid
+            WHERE i.user_id = $1 AND i.status IN ('sent', 'overdue') AND i.total > i.amount_paid
             ORDER BY days_overdue DESC
         `, [req.user.id]);
 
@@ -1090,7 +1090,7 @@ router.get('/api/reports/aging', requireAuth, async (req, res) => {
                     COUNT(*) as invoice_count,
                     COALESCE(SUM(total - amount_paid), 0) as total_balance
                 FROM invoices
-                WHERE (user_id = $1 OR user_id IS NULL) AND status IN ('sent', 'overdue') AND total > amount_paid
+                WHERE user_id = $1 AND status IN ('sent', 'overdue') AND total > amount_paid
                 GROUP BY 1, 2
             ) sub
             ORDER BY sort_order
@@ -1115,7 +1115,7 @@ router.get('/api/reports/aging', requireAuth, async (req, res) => {
 router.get('/api/reports/saved', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM reports WHERE (user_id = $1 OR user_id IS NULL) ORDER BY is_favorite DESC, created_at DESC',
+            'SELECT * FROM reports WHERE user_id = $1 ORDER BY is_favorite DESC, created_at DESC',
             [req.user.id]
         );
 
@@ -1160,7 +1160,7 @@ router.put('/api/reports/saved/:id', requireAuth, async (req, res) => {
                 name = COALESCE($1, name),
                 filters = COALESCE($2, filters),
                 is_favorite = COALESCE($3, is_favorite)
-            WHERE id = $4 AND (user_id = $5 OR user_id IS NULL)
+            WHERE id = $4 AND user_id = $5
             RETURNING *
         `, [name, filters ? JSON.stringify(filters) : null, is_favorite, req.params.id, req.user.id]);
 
@@ -1182,7 +1182,7 @@ router.put('/api/reports/saved/:id', requireAuth, async (req, res) => {
 router.delete('/api/reports/saved/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM reports WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
+            'DELETE FROM reports WHERE id = $1 AND user_id = $2 RETURNING *',
             [req.params.id, req.user.id]
         );
 

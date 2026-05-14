@@ -38,7 +38,7 @@ router.get('/cases', requireAuth, async (req, res) => {
             LEFT JOIN clients cl ON c.client_id = cl.id
             LEFT JOIN case_notes cn ON c.id = cn.case_id
             LEFT JOIN time_entries te ON c.id = te.case_id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -73,7 +73,7 @@ router.get('/cases', requireAuth, async (req, res) => {
 
         // Get clients for dropdown filter
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -84,7 +84,7 @@ router.get('/cases', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
                 COUNT(*) FILTER (WHERE status = 'closed') as closed_count,
                 COUNT(*) as total_count
-            FROM cases WHERE (user_id = $1 OR user_id IS NULL)
+            FROM cases WHERE user_id = $1
         `, [req.user.id]);
 
         res.render('cases/index', {
@@ -105,7 +105,7 @@ router.get('/cases', requireAuth, async (req, res) => {
 router.get('/cases/new', requireAuth, async (req, res) => {
     try {
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) AND status = \'active\' ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 AND status = \'active\' ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -126,7 +126,7 @@ router.get('/cases/new', requireAuth, async (req, res) => {
 router.get('/cases/:id/edit', requireAuth, async (req, res) => {
     try {
         const caseResult = await db.query(
-            'SELECT * FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM cases WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -135,7 +135,7 @@ router.get('/cases/:id/edit', requireAuth, async (req, res) => {
         }
 
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY company_name, last_name',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1 ORDER BY company_name, last_name',
             [req.user.id]
         );
 
@@ -166,7 +166,7 @@ router.get('/cases/:id', requireAuth, async (req, res) => {
                    cl.phone as client_phone
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE c.id = $1 AND (c.user_id = $2 OR c.user_id IS NULL)
+            WHERE c.id = $1 AND c.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (caseResult.rows.length === 0) {
@@ -256,7 +256,7 @@ router.get('/api/cases', requireAuth, async (req, res) => {
                    cl.company_name as client_company, cl.client_type
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -308,7 +308,7 @@ router.get('/api/cases/:id', requireAuth, async (req, res) => {
                    cl.company_name as client_company
             FROM cases c
             LEFT JOIN clients cl ON c.client_id = cl.id
-            WHERE c.id = $1 AND (c.user_id = $2 OR c.user_id IS NULL)
+            WHERE c.id = $1 AND c.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -341,7 +341,7 @@ router.post('/api/cases', requireAuth, caseValidation, async (req, res) => {
 
         // Generate case number
         const countResult = await db.query(
-            'SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL)',
+            'SELECT COUNT(*) FROM cases WHERE user_id = $1',
             [req.user.id]
         );
         const caseNumber = `CASE-${new Date().getFullYear()}-${String(parseInt(countResult.rows[0].count) + 1).padStart(4, '0')}`;
@@ -378,7 +378,7 @@ router.post('/cases', requireAuth, caseValidation, async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             const clientsResult = await db.query(
-                'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL)',
+                'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1',
                 [req.user.id]
             );
             return res.render('cases/form', {
@@ -398,7 +398,7 @@ router.post('/cases', requireAuth, caseValidation, async (req, res) => {
 
         // Generate case number
         const countResult = await db.query(
-            'SELECT COUNT(*) FROM cases WHERE (user_id = $1 OR user_id IS NULL)',
+            'SELECT COUNT(*) FROM cases WHERE user_id = $1',
             [req.user.id]
         );
         const caseNumber = `CASE-${new Date().getFullYear()}-${String(parseInt(countResult.rows[0].count) + 1).padStart(4, '0')}`;
@@ -423,7 +423,7 @@ router.post('/cases', requireAuth, caseValidation, async (req, res) => {
     } catch (error) {
         console.error('Error creating case:', error);
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE (user_id = $1 OR user_id IS NULL)',
+            'SELECT id, first_name, last_name, company_name, client_type FROM clients WHERE user_id = $1',
             [req.user.id]
         );
         res.render('cases/form', {
@@ -518,7 +518,7 @@ router.delete('/api/cases/:id', requireAuth, async (req, res) => {
     try {
         // Verify case ownership first
         const caseCheck = await db.query(
-            'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -534,7 +534,7 @@ router.delete('/api/cases/:id', requireAuth, async (req, res) => {
         await db.query('DELETE FROM calendar_events WHERE case_id = $1', [req.params.id]);
 
         // Now delete the case
-        await db.query('DELETE FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [req.params.id, req.user.id]);
+        await db.query('DELETE FROM cases WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
 
         res.json({
             success: true,
@@ -561,7 +561,7 @@ router.post('/api/cases/bulk-delete', requireAuth, async (req, res) => {
         let deleted = 0;
         for (const id of ids) {
             const check = await db.query(
-                'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+                'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
                 [id, req.user.id]
             );
             if (check.rows.length === 0) continue;
@@ -571,7 +571,7 @@ router.post('/api/cases/bulk-delete', requireAuth, async (req, res) => {
             await db.query('DELETE FROM time_entries WHERE case_id = $1', [id]);
             await db.query('DELETE FROM deadlines WHERE case_id = $1', [id]);
             await db.query('DELETE FROM calendar_events WHERE case_id = $1', [id]);
-            await db.query('DELETE FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [id, req.user.id]);
+            await db.query('DELETE FROM cases WHERE id = $1 AND user_id = $2', [id, req.user.id]);
             deleted++;
         }
 
@@ -600,7 +600,7 @@ router.post('/api/cases/bulk-update', requireAuth, async (req, res) => {
 
         const result = await db.query(
             `UPDATE cases SET status = $1, updated_at = CURRENT_TIMESTAMP
-             WHERE id = ANY($2::uuid[]) AND (user_id = $3 OR user_id IS NULL)`,
+             WHERE id = ANY($2::uuid[]) AND user_id = $3`,
             [updates.status, ids, req.user.id]
         );
 
@@ -627,7 +627,7 @@ router.get('/api/notes', requireAuth, async (req, res) => {
             FROM case_notes n
             LEFT JOIN cases c ON n.case_id = c.id
             LEFT JOIN users u ON n.user_id = u.id
-            WHERE n.user_id = $1 OR n.user_id IS NULL
+            WHERE n.user_id = $1
             ORDER BY n.created_at DESC
             LIMIT $2
         `, [req.user.id, limit]);
@@ -670,7 +670,7 @@ router.post('/api/cases/:id/notes', requireAuth, async (req, res) => {
 
         // Verify case ownership
         const caseCheck = await db.query(
-            'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -705,7 +705,7 @@ router.post('/api/cases/:id/documents', requireAuth, async (req, res) => {
 
         // Verify case ownership
         const caseCheck = await db.query(
-            'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -735,7 +735,7 @@ router.delete('/api/cases/:caseId/documents/:docId', requireAuth, async (req, re
     try {
         // Verify case ownership
         const caseCheck = await db.query(
-            'SELECT id FROM cases WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM cases WHERE id = $1 AND user_id = $2',
             [req.params.caseId, req.user.id]
         );
 

@@ -15,7 +15,7 @@ const getDocuSignClient = async (userId = null, useUserConfig = false) => {
         // Try to get user's DocuSign configuration first if requested
         if (useUserConfig && userId) {
             const userConfigResult = await db.query(
-                'SELECT * FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true',
+                'SELECT * FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
                 [userId]
             );
             
@@ -147,7 +147,7 @@ const checkPlatformUsageLimits = async (userId) => {
     
     // Get current usage
     const usageResult = await db.query(
-        'SELECT * FROM platform_usage WHERE (user_id = $1 OR user_id IS NULL) AND month_year = $2',
+        'SELECT * FROM platform_usage WHERE user_id = $1 AND month_year = $2',
         [userId, currentMonth]
     );
     
@@ -267,7 +267,7 @@ router.post('/send', requireAuth, async (req, res) => {
         
         // Get document details
         const docResult = await db.query(
-            'SELECT * FROM document_history WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM document_history WHERE id = $1 AND user_id = $2',
             [documentId, req.user.id]
         );
         
@@ -306,7 +306,7 @@ router.post('/send', requireAuth, async (req, res) => {
                 try {
                     // Check if user has their own DocuSign config
                     const hasUserConfig = await db.query(
-                        'SELECT id FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true',
+                        'SELECT id FROM user_docusign_configs WHERE user_id = $1 AND is_active = true',
                         [req.user.id]
                     );
                     
@@ -422,7 +422,7 @@ router.get('/status/:esignatureId', requireAuth, async (req, res) => {
             SELECT es.*, dh.title as document_title
             FROM esignature_requests es
             JOIN document_history dh ON es.document_id = dh.id
-            WHERE es.id = $1 AND (es.user_id = $2 OR es.user_id IS NULL)
+            WHERE es.id = $1 AND es.user_id = $2
         `, [esignatureId, req.user.id]);
         
         if (result.rows.length === 0) {
@@ -483,7 +483,7 @@ router.get('/list', requireAuth, async (req, res) => {
             SELECT es.*, dh.title as document_title
             FROM esignature_requests es
             JOIN document_history dh ON es.document_id = dh.id
-            WHERE (es.user_id = $1 OR es.user_id IS NULL)
+            WHERE es.user_id = $1
             ORDER BY es.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -635,7 +635,7 @@ router.get('/test-auth', async (req, res) => {
 router.get('/config', requireAuth, async (req, res) => {
     try {
         const userConfigResult = await db.query(
-            'SELECT id, integration_key, user_guid, account_id, base_path, is_active, created_at FROM user_docusign_configs WHERE (user_id = $1 OR user_id IS NULL)',
+            'SELECT id, integration_key, user_guid, account_id, base_path, is_active, created_at FROM user_docusign_configs WHERE user_id = $1',
             [req.user.id]
         );
         
@@ -718,7 +718,7 @@ router.post('/config', requireAuth, async (req, res) => {
 router.delete('/config', requireAuth, async (req, res) => {
     try {
         await db.query(
-            'UPDATE user_docusign_configs SET is_active = false WHERE (user_id = $1 OR user_id IS NULL)',
+            'UPDATE user_docusign_configs SET is_active = false WHERE user_id = $1',
             [req.user.id]
         );
         
@@ -812,7 +812,7 @@ router.get('/api/esignature/documents', requireAuth, async (req, res) => {
         const result = await db.query(`
             SELECT es.*
             FROM esignature_requests es
-            WHERE (es.user_id = $1 OR es.user_id IS NULL)
+            WHERE es.user_id = $1
             ORDER BY es.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -824,6 +824,180 @@ router.get('/api/esignature/documents', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('E-signature documents error:', error);
         res.status(500).json({ error: 'Failed to get e-signature documents' });
+    }
+});
+
+// =============================================
+// POST /api/documents/:id/sign
+// DocuSign Embedded Signing flow
+//
+// Creates a DocuSign envelope and returns a client-side signing URL
+// (embedded signing ceremony) so the signer can sign in-browser.
+//
+// Required env vars:
+//   DOCUSIGN_CLIENT_ID      — Integration Key (OAuth app key)
+//   DOCUSIGN_CLIENT_SECRET  — (not used for JWT but kept for reference)
+//   DOCUSIGN_ACCOUNT_ID     — DocuSign account UUID
+//   DOCUSIGN_USER_ID        — Impersonated user GUID
+//   DOCUSIGN_RSA_PRIVATE_KEY or DOCUSIGN_RSA_PRIVATE_KEY_PATH
+//   DOCUSIGN_BASE_PATH      — defaults to https://demo.docusign.net/restapi
+//   BASE_URL                — your app's base URL (for the return_url redirect)
+// =============================================
+router.post('/api/documents/:id/sign', requireAuth, async (req, res) => {
+    try {
+        const { id: documentId } = req.params;
+        const { signer_name, signer_email, return_url } = req.body;
+
+        if (!signer_name || !signer_email) {
+            return res.status(400).json({ error: 'signer_name and signer_email are required' });
+        }
+
+        // Validate email format
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRe.test(signer_email)) {
+            return res.status(400).json({ error: 'signer_email is not a valid email address' });
+        }
+
+        // Load document
+        const docResult = await db.query(
+            'SELECT * FROM document_history WHERE id = $1 AND user_id = $2',
+            [documentId, req.user.id]
+        );
+
+        if (docResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        const document = docResult.rows[0];
+
+        // Resolve file path
+        let documentPath;
+        if (document.file_path) {
+            documentPath = path.isAbsolute(document.file_path)
+                ? document.file_path
+                : path.join(__dirname, '../uploads', document.file_path);
+        } else {
+            documentPath = path.join(__dirname, '../uploads', `${document.title}.pdf`);
+        }
+
+        try {
+            await fs.access(documentPath);
+        } catch {
+            return res.status(404).json({
+                error: 'Document file not found on disk. Please regenerate the document first.'
+            });
+        }
+
+        // Authenticate with DocuSign JWT
+        const { apiClient, config } = await getDocuSignClient(req.user.id, true);
+        const envelopesApi = new docusign.EnvelopesApi(apiClient);
+
+        // Read and base64-encode document
+        const documentBytes = await fs.readFile(documentPath);
+        const documentBase64 = documentBytes.toString('base64');
+        const fileExt = path.extname(documentPath).substring(1) || 'pdf';
+
+        // Build envelope with embedded signing
+        const signerRecipientId = '1';
+        const signerClientUserId = req.user.id; // links to embedded signing
+
+        const signHere = new docusign.SignHere();
+        signHere.documentId = '1';
+        signHere.pageNumber = '1';
+        signHere.recipientId = signerRecipientId;
+        signHere.tabLabel = 'SignHereTab';
+        signHere.xPosition = '100';
+        signHere.yPosition = '150';
+
+        const tabs = new docusign.Tabs();
+        tabs.signHereTabs = [signHere];
+
+        const signer = new docusign.Signer();
+        signer.email = signer_email;
+        signer.name = signer_name;
+        signer.recipientId = signerRecipientId;
+        signer.routingOrder = '1';
+        signer.clientUserId = signerClientUserId; // required for embedded signing
+        signer.tabs = tabs;
+
+        const recipients = new docusign.Recipients();
+        recipients.signers = [signer];
+
+        const doc = new docusign.Document();
+        doc.documentBase64 = documentBase64;
+        doc.name = document.title || 'Legal Document';
+        doc.fileExtension = fileExt;
+        doc.documentId = '1';
+
+        const envelopeDefinition = new docusign.EnvelopeDefinition();
+        envelopeDefinition.emailSubject = `Please sign: ${document.title || 'Legal Document'}`;
+        envelopeDefinition.documents = [doc];
+        envelopeDefinition.recipients = recipients;
+        envelopeDefinition.status = 'sent';
+
+        // Create envelope
+        const envelopeResult = await envelopesApi.createEnvelope(config.accountId, {
+            envelopeDefinition
+        });
+
+        const envelopeId = envelopeResult.envelopeId;
+
+        // Generate embedded signing URL (Recipient View)
+        const viewRequest = new docusign.RecipientViewRequest();
+        viewRequest.returnUrl = return_url ||
+            `${process.env.BASE_URL || 'http://localhost:3000'}/esignature/complete?envelopeId=${envelopeId}`;
+        viewRequest.authenticationMethod = 'none';
+        viewRequest.email = signer_email;
+        viewRequest.userName = signer_name;
+        viewRequest.clientUserId = signerClientUserId;
+        viewRequest.recipientId = signerRecipientId;
+
+        const viewResult = await envelopesApi.createRecipientView(
+            config.accountId,
+            envelopeId,
+            { recipientViewRequest: viewRequest }
+        );
+
+        const signingUrl = viewResult.url;
+
+        // Persist envelope record
+        const esignResult = await db.query(`
+            INSERT INTO esignature_requests
+                (document_id, user_id, provider, provider_envelope_id, signing_url, status, signers, expires_at)
+            VALUES ($1, $2, 'docusign', $3, $4, 'sent', $5, $6)
+            RETURNING id
+        `, [
+            documentId,
+            req.user.id,
+            envelopeId,
+            signingUrl,
+            JSON.stringify([{ name: signer_name, email: signer_email }]),
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+        ]);
+
+        return res.json({
+            success: true,
+            esignatureId: esignResult.rows[0].id,
+            envelopeId,
+            signingUrl,
+            message: 'DocuSign embedded signing URL created. Redirect the signer to signingUrl.'
+        });
+
+    } catch (error) {
+        console.error('DocuSign embedded sign error:', error.message);
+
+        // Surface consent URL if needed
+        if (error.message && error.message.includes('User consent required')) {
+            return res.status(503).json({
+                error: 'DocuSign consent required',
+                details: error.message
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to create DocuSign signing session',
+            details: error.message
+        });
     }
 });
 

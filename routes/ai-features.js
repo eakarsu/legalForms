@@ -21,7 +21,7 @@ router.get('/api/ai-communications/suggestions', requireAuth, async (req, res) =
         const recentComms = await db.query(`
             SELECT subject, content, message_type, created_at
             FROM messages
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ${client_id ? 'AND client_id = $2' : ''}
             ORDER BY created_at DESC
             LIMIT 10
@@ -77,7 +77,7 @@ router.get('/api/ai-predictions/case', requireAuth, async (req, res) => {
                 AVG(CASE WHEN c.date_closed IS NOT NULL THEN c.date_closed - c.date_opened ELSE NULL END) as avg_duration,
                 COUNT(*) FILTER (WHERE c.status = 'closed' AND c.outcome = 'favorable') as favorable_outcomes
             FROM cases c
-            WHERE (c.user_id = $1 OR c.user_id IS NULL)
+            WHERE c.user_id = $1
             ${case_id ? 'AND c.case_type = (SELECT case_type FROM cases WHERE id = $2)' : ''}
             GROUP BY c.case_type
         `, case_id ? [req.user.id, case_id] : [req.user.id]);
@@ -169,7 +169,7 @@ router.get('/api/voice-notes', requireAuth, async (req, res) => {
             FROM voice_notes vn
             LEFT JOIN clients c ON vn.client_id = c.id
             LEFT JOIN cases cs ON vn.case_id = cs.id
-            WHERE (vn.user_id = $1 OR vn.user_id IS NULL)
+            WHERE vn.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -208,7 +208,7 @@ router.get('/api/document-summary/recent', requireAuth, async (req, res) => {
             FROM document_summaries ds
             LEFT JOIN documents d ON ds.document_id = d.id
             LEFT JOIN clients c ON d.client_id = c.id
-            WHERE (ds.user_id = $1 OR ds.user_id IS NULL)
+            WHERE ds.user_id = $1
             ORDER BY ds.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -235,7 +235,7 @@ router.get('/api/contract-analysis/recent', requireAuth, async (req, res) => {
             FROM contract_analyses ca
             LEFT JOIN documents d ON ca.document_id = d.id
             LEFT JOIN clients c ON d.client_id = c.id
-            WHERE (ca.user_id = $1 OR ca.user_id IS NULL)
+            WHERE ca.user_id = $1
             ORDER BY ca.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -262,7 +262,7 @@ router.get('/api/nlp/research', requireAuth, async (req, res) => {
         // Get saved research
         const savedResult = await db.query(`
             SELECT * FROM legal_research
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 10
         `, [req.user.id]);
@@ -307,7 +307,7 @@ router.get('/api/ai-billing/suggestions', requireAuth, async (req, res) => {
             FROM time_entries te
             LEFT JOIN clients c ON te.client_id = c.id
             LEFT JOIN cases cs ON te.case_id = cs.id
-            WHERE (te.user_id = $1 OR te.user_id IS NULL)
+            WHERE te.user_id = $1
             AND te.invoice_id IS NULL
             AND te.is_billable = true
             ORDER BY te.date DESC

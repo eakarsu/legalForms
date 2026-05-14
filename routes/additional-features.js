@@ -19,7 +19,7 @@ router.get('/api/esignature/documents', requireAuth, async (req, res) => {
         const result = await db.query(`
             SELECT es.*
             FROM esignature_requests es
-            WHERE (es.user_id = $1 OR es.user_id IS NULL)
+            WHERE es.user_id = $1
             ORDER BY es.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -44,7 +44,7 @@ router.get('/api/ocr/documents', requireAuth, async (req, res) => {
         const result = await db.query(`
             SELECT od.*
             FROM ocr_documents od
-            WHERE (od.user_id = $1 OR od.user_id IS NULL)
+            WHERE od.user_id = $1
             ORDER BY od.created_at DESC
             LIMIT 50
         `, [req.user.id]);
@@ -72,7 +72,7 @@ router.get('/api/discovery', requireAuth, async (req, res) => {
             SELECT di.*, cs.title as case_title, cs.case_number
             FROM discovery_items di
             LEFT JOIN cases cs ON di.case_id = cs.id
-            WHERE (di.user_id = $1 OR di.user_id IS NULL)
+            WHERE di.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -111,7 +111,7 @@ router.get('/api/evidence', requireAuth, async (req, res) => {
         let query = `
             SELECT ev.*
             FROM evidence_items ev
-            WHERE (ev.user_id = $1 OR ev.user_id IS NULL)
+            WHERE ev.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -153,7 +153,7 @@ router.get('/api/service-of-process', requireAuth, async (req, res) => {
             FROM service_of_process sop
             LEFT JOIN cases cs ON sop.case_id = cs.id
             LEFT JOIN clients c ON sop.served_party_id = c.id
-            WHERE (sop.user_id = $1 OR sop.user_id IS NULL)
+            WHERE sop.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -194,7 +194,7 @@ router.get('/api/workflows', requireAuth, async (req, res) => {
                    (SELECT COUNT(*) FROM workflow_steps WHERE workflow_id = w.id) as step_count,
                    (SELECT COUNT(*) FROM workflow_steps WHERE workflow_id = w.id AND status = 'completed') as completed_steps
             FROM workflows w
-            WHERE (w.user_id = $1 OR w.user_id IS NULL)
+            WHERE w.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -235,7 +235,7 @@ router.get('/api/calls', requireAuth, async (req, res) => {
             FROM call_log cl
             LEFT JOIN clients c ON cl.client_id = c.id
             LEFT JOIN cases cs ON cl.case_id = cs.id
-            WHERE (cl.user_id = $1 OR cl.user_id IS NULL)
+            WHERE cl.user_id = $1
         `;
         const params = [req.user.id];
 
@@ -427,7 +427,7 @@ router.get('/api/documents/generate', requireAuth, async (req, res) => {
         const templatesResult = await db.query(`
             SELECT id, name, category, description, created_at
             FROM templates
-            WHERE (user_id = $1 OR user_id IS NULL) AND is_active = true
+            WHERE user_id = $1 AND is_active = true
             ORDER BY category, name
             LIMIT 50
         `, [req.user.id]);
@@ -436,7 +436,7 @@ router.get('/api/documents/generate', requireAuth, async (req, res) => {
         const recentResult = await db.query(`
             SELECT id, title, category, created_at
             FROM documents
-            WHERE user_id = $1 OR user_id IS NULL
+            WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 10
         `, [req.user.id]);

@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { validateContractAnalyze } = require('../middleware/validation');
 const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
@@ -56,7 +57,7 @@ router.get('/contract-analysis', requireAuth, async (req, res) => {
             FROM contract_analysis ca
             LEFT JOIN clients c ON ca.client_id = c.id
             LEFT JOIN cases cs ON ca.case_id = cs.id
-            WHERE (ca.user_id = $1 OR ca.user_id IS NULL)
+            WHERE ca.user_id = $1
             ORDER BY ca.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -69,7 +70,7 @@ router.get('/contract-analysis', requireAuth, async (req, res) => {
                 COUNT(CASE WHEN status = 'pending' OR status = 'analyzing' THEN 1 END) as pending_count,
                 AVG(overall_risk_score) as avg_risk_score
             FROM contract_analysis
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
         `, [req.user.id]);
 
         res.render('contract-analysis/dashboard', {
@@ -88,12 +89,12 @@ router.get('/contract-analysis', requireAuth, async (req, res) => {
 router.get('/contract-analysis/new', requireAuth, async (req, res) => {
     try {
         const clientsResult = await db.query(
-            'SELECT id, first_name, last_name, company_name FROM clients WHERE (user_id = $1 OR user_id IS NULL) ORDER BY last_name',
+            'SELECT id, first_name, last_name, company_name FROM clients WHERE user_id = $1 ORDER BY last_name',
             [req.user.id]
         );
 
         const casesResult = await db.query(
-            'SELECT id, case_number, title FROM cases WHERE (user_id = $1 OR user_id IS NULL) ORDER BY created_at DESC',
+            'SELECT id, case_number, title FROM cases WHERE user_id = $1 ORDER BY created_at DESC',
             [req.user.id]
         );
 
@@ -117,7 +118,7 @@ router.get('/contract-analysis/:id', requireAuth, async (req, res) => {
             FROM contract_analysis ca
             LEFT JOIN clients c ON ca.client_id = c.id
             LEFT JOIN cases cs ON ca.case_id = cs.id
-            WHERE ca.id = $1 AND (ca.user_id = $2 OR ca.user_id IS NULL)
+            WHERE ca.id = $1 AND ca.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (analysisResult.rows.length === 0) {
@@ -154,7 +155,7 @@ router.get('/contract-analysis/:id', requireAuth, async (req, res) => {
 // =====================================================
 
 // Start contract analysis
-router.post('/api/contract-analysis/analyze', requireAuth, async (req, res) => {
+router.post('/api/contract-analysis/analyze', requireAuth, ...validateContractAnalyze, async (req, res) => {
     try {
         const { client_id, case_id, document_name, document_type, document_text, ocr_job_id } = req.body;
 
@@ -396,7 +397,7 @@ Be thorough but focus on the most significant clauses and terms.`;
 router.get('/api/contract-analysis/:id/status', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT id, status, overall_risk_score, risk_level FROM contract_analysis WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id, status, overall_risk_score, risk_level FROM contract_analysis WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -416,7 +417,7 @@ router.get('/api/contract-analysis/:id/clauses', requireAuth, async (req, res) =
     try {
         // Verify ownership
         const analysisCheck = await db.query(
-            'SELECT id FROM contract_analysis WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM contract_analysis WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -441,7 +442,7 @@ router.get('/api/contract-analysis/:id/terms', requireAuth, async (req, res) => 
     try {
         // Verify ownership
         const analysisCheck = await db.query(
-            'SELECT id FROM contract_analysis WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM contract_analysis WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -469,7 +470,7 @@ router.post('/api/contract-analysis/:id/review', requireAuth, async (req, res) =
         const result = await db.query(`
             UPDATE contract_analysis
             SET status = 'reviewed', reviewed_by = $1, reviewed_at = CURRENT_TIMESTAMP, review_notes = $2, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3 AND (user_id = $4 OR user_id IS NULL)
+            WHERE id = $3 AND user_id = $4
             RETURNING *
         `, [req.user.id, review_notes, req.params.id, req.user.id]);
 
@@ -491,7 +492,7 @@ router.post('/api/contract-analysis/:id/flag-clause', requireAuth, async (req, r
 
         // Verify ownership
         const analysisCheck = await db.query(
-            'SELECT id FROM contract_analysis WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT id FROM contract_analysis WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -520,7 +521,7 @@ router.delete('/api/contract-analysis/:id', requireAuth, async (req, res) => {
         await db.query('DELETE FROM contract_key_terms WHERE analysis_id = $1', [req.params.id]);
 
         const result = await db.query(
-            'DELETE FROM contract_analysis WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING id',
+            'DELETE FROM contract_analysis WHERE id = $1 AND user_id = $2 RETURNING id',
             [req.params.id, req.user.id]
         );
 
@@ -545,7 +546,7 @@ router.get('/api/contract-analysis', requireAuth, async (req, res) => {
             FROM contract_analysis ca
             LEFT JOIN clients c ON ca.client_id = c.id
             LEFT JOIN cases cs ON ca.case_id = cs.id
-            WHERE (ca.user_id = $1 OR ca.user_id IS NULL)
+            WHERE ca.user_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -593,7 +594,7 @@ router.get('/api/contract-analysis/recent', requireAuth, async (req, res) => {
             FROM contract_analyses ca
             LEFT JOIN clients c ON ca.client_id = c.id
             LEFT JOIN cases cs ON ca.case_id = cs.id
-            WHERE (ca.user_id = $1 OR ca.user_id IS NULL)
+            WHERE ca.user_id = $1
             ORDER BY ca.created_at DESC
             LIMIT 20
         `, [req.user.id]);

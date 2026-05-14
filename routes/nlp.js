@@ -235,7 +235,7 @@ router.get('/research', requireAuth, async (req, res) => {
         // Get saved research
         const savedResult = await db.query(`
             SELECT * FROM legal_research
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 10
         `, [req.user.id]);

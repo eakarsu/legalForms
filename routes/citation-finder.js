@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const axios = require('axios');
 const { requireAuth } = require('../middleware/auth');
+const { validateCitationSearch } = require('../middleware/validation');
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -13,7 +14,7 @@ router.get('/citation-finder', requireAuth, async (req, res) => {
             SELECT cs.*,
                    (SELECT COUNT(*) FROM legal_citations lc WHERE lc.search_id = cs.id) as citation_count
             FROM citation_searches cs
-            WHERE (cs.user_id = $1 OR cs.user_id IS NULL)
+            WHERE cs.user_id = $1
             ORDER BY cs.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -23,10 +24,10 @@ router.get('/citation-finder', requireAuth, async (req, res) => {
                 COUNT(*) as total_searches,
                 (SELECT COUNT(*) FROM legal_citations lc
                  JOIN citation_searches cs ON lc.search_id = cs.id
-                 WHERE (cs.user_id = $1 OR cs.user_id IS NULL)) as total_citations,
+                 WHERE cs.user_id = $1) as total_citations,
                 (SELECT COUNT(*) FROM citation_searches
-                 WHERE (user_id = $1 OR user_id IS NULL) AND created_at > NOW() - INTERVAL '7 days') as recent_searches
-            FROM citation_searches WHERE (user_id = $1 OR user_id IS NULL)
+                 WHERE user_id = $1 AND created_at > NOW() - INTERVAL '7 days') as recent_searches
+            FROM citation_searches WHERE user_id = $1
         `, [req.user.id]);
 
         res.render('citation-finder/dashboard', {
@@ -45,7 +46,7 @@ router.get('/citation-finder/search', requireAuth, async (req, res) => {
     try {
         const cases = await db.query(`
             SELECT id, case_number, title FROM cases
-            WHERE (user_id = $1 OR user_id IS NULL) AND status != 'closed'
+            WHERE user_id = $1 AND status != 'closed'
             ORDER BY created_at DESC
         `, [req.user.id]);
 
@@ -65,7 +66,7 @@ router.get('/citation-finder/search', requireAuth, async (req, res) => {
 router.get('/citation-finder/results/:id', requireAuth, async (req, res) => {
     try {
         const search = await db.query(`
-            SELECT * FROM citation_searches WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            SELECT * FROM citation_searches WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (search.rows.length === 0) {
@@ -89,49 +90,95 @@ router.get('/citation-finder/results/:id', requireAuth, async (req, res) => {
     }
 });
 
-// API: Get Citation Search (GET version for mobile)
+// API: Get persisted citations for the current user (GET — mobile/client friendly)
+//
+// Returns the user's past citation searches with their saved citations.
+// Optional filters: ?search_id=UUID (get citations for one search)
+//                   ?jurisdiction=Federal&practice_area=Contract+Law
+//                   ?q=search term (fuzzy filter on legal_issue)
 router.get('/api/citation-finder/search', requireAuth, async (req, res) => {
     try {
-        const { query, jurisdiction, practice_area } = req.query;
+        const { search_id, jurisdiction, practice_area, q, limit = 20 } = req.query;
 
-        // Get recent searches
-        const recentResult = await db.query(`
-            SELECT * FROM citation_searches
-            WHERE (user_id = $1 OR user_id IS NULL)
-            ORDER BY created_at DESC
-            LIMIT 10
-        `, [req.user.id]);
+        // If a specific search is requested, return its saved citations
+        if (search_id) {
+            const searchResult = await db.query(
+                'SELECT * FROM citation_searches WHERE id = $1 AND user_id = $2',
+                [search_id, req.user.id]
+            );
 
-        // Sample citations
-        const citations = [
-            {
-                citation: 'Miranda v. Arizona, 384 U.S. 436 (1966)',
-                title: 'Miranda Rights',
-                relevance: 0.95,
-                jurisdiction: 'Federal'
-            },
-            {
-                citation: 'Brown v. Board of Education, 347 U.S. 483 (1954)',
-                title: 'Equal Protection',
-                relevance: 0.85,
-                jurisdiction: 'Federal'
+            if (searchResult.rows.length === 0) {
+                return res.status(404).json({ success: false, error: 'Citation search not found' });
             }
-        ];
+
+            const citationsResult = await db.query(`
+                SELECT * FROM legal_citations
+                WHERE search_id = $1
+                ORDER BY relevance_score DESC
+            `, [search_id]);
+
+            return res.json({
+                success: true,
+                search: searchResult.rows[0],
+                citations: citationsResult.rows
+            });
+        }
+
+        // Otherwise return recent searches with optional filters
+        let searchQuery = `
+            SELECT cs.*,
+                   (SELECT COUNT(*) FROM legal_citations lc WHERE lc.search_id = cs.id) as citation_count
+            FROM citation_searches cs
+            WHERE cs.user_id = $1
+        `;
+        const params = [req.user.id];
+
+        if (jurisdiction) {
+            params.push(jurisdiction);
+            searchQuery += ` AND cs.jurisdiction = $${params.length}`;
+        }
+        if (practice_area) {
+            params.push(practice_area);
+            searchQuery += ` AND cs.practice_area = $${params.length}`;
+        }
+        if (q) {
+            params.push(`%${q}%`);
+            searchQuery += ` AND cs.legal_issue ILIKE $${params.length}`;
+        }
+
+        const safeLimit = Math.min(parseInt(limit, 10) || 20, 100);
+        params.push(safeLimit);
+        searchQuery += ` ORDER BY cs.created_at DESC LIMIT $${params.length}`;
+
+        const recentResult = await db.query(searchQuery, params);
+
+        // Also fetch the citations for the most recent search for convenience
+        let latestCitations = [];
+        if (recentResult.rows.length > 0) {
+            const latestSearch = recentResult.rows[0];
+            const latestCitResult = await db.query(`
+                SELECT * FROM legal_citations
+                WHERE search_id = $1
+                ORDER BY relevance_score DESC
+                LIMIT 10
+            `, [latestSearch.id]);
+            latestCitations = latestCitResult.rows;
+        }
 
         res.json({
             success: true,
-            citations: citations,
             recentSearches: recentResult.rows,
-            query: query || ''
+            citations: latestCitations,
+            query: q || ''
         });
     } catch (error) {
-        console.error('Citation search error:', error);
-        res.status(500).json({ error: 'Failed to search citations' });
+        console.error('Citation search GET error:', error);
+        res.status(500).json({ error: 'Failed to retrieve citations' });
     }
 });
 
 // API: Find Citations
-router.post('/api/citation-finder/search', requireAuth, async (req, res) => {
+router.post('/api/citation-finder/search', requireAuth, ...validateCitationSearch, async (req, res) => {
     const startTime = Date.now();
     try {
         const { legal_issue, jurisdiction, practice_area, case_id, search_type = 'general' } = req.body;
@@ -309,7 +356,7 @@ router.get('/api/citation-finder/citation/:id', requireAuth, async (req, res) =>
             SELECT lc.*, cs.legal_issue, cs.jurisdiction
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
-            WHERE lc.id = $1 AND (cs.user_id = $2 OR cs.user_id IS NULL)
+            WHERE lc.id = $1 AND cs.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
@@ -332,7 +379,7 @@ router.post('/api/citation-finder/citation/:id/save-to-case', requireAuth, async
             SELECT lc.*, cs.user_id
             FROM legal_citations lc
             JOIN citation_searches cs ON lc.search_id = cs.id
-            WHERE lc.id = $1 AND (cs.user_id = $2 OR cs.user_id IS NULL)
+            WHERE lc.id = $1 AND cs.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (citation.rows.length === 0) {
@@ -369,13 +416,92 @@ router.delete('/api/citation-finder/search/:id', requireAuth, async (req, res) =
         `, [req.params.id]);
 
         await db.query(`
-            DELETE FROM citation_searches WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            DELETE FROM citation_searches WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
     } catch (error) {
         console.error('Delete search error:', error);
         res.status(500).json({ success: false, error: 'Failed to delete search' });
+    }
+});
+
+// =============================================
+// GET /api/citation-finder/document/:documentId/citations
+//
+// Returns all persisted citations linked to a specific document.
+// Citations are linked via legal_citations.document_id (set when a
+// citation is saved to a document) or via the citation_searches.case_id
+// when the search was run in the context of a document's case.
+// =============================================
+router.get('/api/citation-finder/document/:documentId/citations', requireAuth, async (req, res) => {
+    try {
+        const { documentId } = req.params;
+
+        // Direct document link (citations explicitly saved to this document)
+        const directResult = await db.query(`
+            SELECT lc.*, cs.legal_issue, cs.jurisdiction, cs.practice_area, cs.created_at as search_date
+            FROM legal_citations lc
+            JOIN citation_searches cs ON lc.search_id = cs.id
+            WHERE lc.document_id = $1 AND cs.user_id = $2
+            ORDER BY lc.relevance_score DESC
+        `, [documentId, req.user.id]);
+
+        res.json({
+            success: true,
+            documentId,
+            citations: directResult.rows,
+            count: directResult.rows.length
+        });
+    } catch (error) {
+        console.error('Get document citations error:', error);
+        res.status(500).json({ success: false, error: 'Failed to retrieve document citations' });
+    }
+});
+
+// =============================================
+// POST /api/citation-finder/citation/:id/save-to-document
+//
+// Links a saved citation to a specific document for future retrieval.
+// =============================================
+router.post('/api/citation-finder/citation/:id/save-to-document', requireAuth, async (req, res) => {
+    try {
+        const { document_id } = req.body;
+
+        if (!document_id) {
+            return res.status(400).json({ success: false, error: 'document_id is required' });
+        }
+
+        // Verify citation belongs to this user
+        const citation = await db.query(`
+            SELECT lc.id FROM legal_citations lc
+            JOIN citation_searches cs ON lc.search_id = cs.id
+            WHERE lc.id = $1 AND cs.user_id = $2
+        `, [req.params.id, req.user.id]);
+
+        if (citation.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Citation not found' });
+        }
+
+        // Verify document belongs to this user
+        const doc = await db.query(
+            'SELECT id FROM document_history WHERE id = $1 AND user_id = $2',
+            [document_id, req.user.id]
+        );
+
+        if (doc.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+
+        await db.query(
+            'UPDATE legal_citations SET document_id = $1 WHERE id = $2',
+            [document_id, req.params.id]
+        );
+
+        res.json({ success: true, message: 'Citation linked to document' });
+    } catch (error) {
+        console.error('Save citation to document error:', error);
+        res.status(500).json({ success: false, error: 'Failed to link citation to document' });
     }
 });
 

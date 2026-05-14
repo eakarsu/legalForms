@@ -22,7 +22,7 @@ router.get('/calendar/ai-assistant', requireAuth, async (req, res) => {
             SELECT acs.*, c.title as case_title
             FROM ai_calendar_suggestions acs
             LEFT JOIN cases c ON acs.case_id = c.id
-            WHERE (acs.user_id = $1 OR acs.user_id IS NULL)
+            WHERE acs.user_id = $1
             ORDER BY acs.created_at DESC
             LIMIT 30
         `, [req.user.id]);
@@ -33,7 +33,7 @@ router.get('/calendar/ai-assistant', requireAuth, async (req, res) => {
                 COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
                 COUNT(CASE WHEN is_critical = true THEN 1 END) as critical_count
             FROM ai_calendar_suggestions
-            WHERE (user_id = $1 OR user_id IS NULL)
+            WHERE user_id = $1
         `, [req.user.id]);
 
         const solResult = await db.query(`
@@ -355,7 +355,7 @@ Provide a comprehensive analysis in JSON format:
 router.post('/api/ai-calendar/suggestions/:id/accept', requireAuth, async (req, res) => {
     try {
         const suggestionResult = await db.query(
-            'SELECT * FROM ai_calendar_suggestions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM ai_calendar_suggestions WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -426,7 +426,7 @@ router.post('/api/ai-calendar/suggestions/:id/reject', requireAuth, async (req, 
         await db.query(`
             UPDATE ai_calendar_suggestions
             SET status = 'rejected'
-            WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)
+            WHERE id = $1 AND user_id = $2
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -472,7 +472,7 @@ router.get('/api/ai-calendar/suggestions', requireAuth, async (req, res) => {
             SELECT acs.*, c.title as case_title
             FROM ai_calendar_suggestions acs
             LEFT JOIN cases c ON acs.case_id = c.id
-            WHERE (acs.user_id = $1 OR acs.user_id IS NULL) AND acs.status = 'pending'
+            WHERE acs.user_id = $1 AND acs.status = 'pending'
             ORDER BY acs.is_critical DESC, acs.suggested_date ASC
         `, [req.user.id]);
 

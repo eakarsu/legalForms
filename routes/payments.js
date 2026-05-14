@@ -209,7 +209,7 @@ router.get('/payments', requireAuth, async (req, res) => {
             FROM online_payments op
             JOIN invoices i ON op.invoice_id = i.id
             JOIN clients c ON op.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            WHERE i.user_id = $1
             ORDER BY op.created_at DESC
             LIMIT 20
         `, [req.user.id]);
@@ -223,7 +223,7 @@ router.get('/payments', requireAuth, async (req, res) => {
                 COUNT(*) FILTER (WHERE op.status = 'failed') as failed_count
             FROM online_payments op
             JOIN invoices i ON op.invoice_id = i.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND op.created_at >= NOW() - INTERVAL '30 days'
+            WHERE i.user_id = $1 AND op.created_at >= NOW() - INTERVAL '30 days'
         `, [req.user.id]);
 
         // Active payment links
@@ -232,7 +232,7 @@ router.get('/payments', requireAuth, async (req, res) => {
             FROM payment_links pl
             JOIN invoices i ON pl.invoice_id = i.id
             JOIN clients c ON i.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND pl.is_active = true
+            WHERE i.user_id = $1 AND pl.is_active = true
             ORDER BY pl.created_at DESC
         `, [req.user.id]);
 
@@ -257,7 +257,7 @@ router.get('/payments/links', requireAuth, async (req, res) => {
             FROM payment_links pl
             JOIN invoices i ON pl.invoice_id = i.id
             JOIN clients c ON i.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            WHERE i.user_id = $1
             ORDER BY pl.created_at DESC
         `, [req.user.id]);
 
@@ -279,7 +279,7 @@ router.get('/payments/links/new', requireAuth, async (req, res) => {
             SELECT i.*, c.first_name, c.last_name, c.company_name
             FROM invoices i
             JOIN clients c ON i.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND i.status != 'paid'
+            WHERE i.user_id = $1 AND i.status != 'paid'
             ORDER BY i.created_at DESC
         `, [req.user.id]);
 
@@ -302,7 +302,7 @@ router.get('/payments/transactions', requireAuth, async (req, res) => {
             FROM online_payments op
             JOIN invoices i ON op.invoice_id = i.id
             JOIN clients c ON op.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            WHERE i.user_id = $1
             ORDER BY op.created_at DESC
         `, [req.user.id]);
 
@@ -341,7 +341,7 @@ router.get('/api/payments', requireAuth, async (req, res) => {
             FROM online_payments op
             JOIN invoices i ON op.invoice_id = i.id
             JOIN clients c ON op.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            WHERE i.user_id = $1
         `;
         const params = [req.user.id];
         let paramIndex = 2;
@@ -391,7 +391,7 @@ router.post('/api/invoices/:id/payment-link', requireAuth, async (req, res) => {
     try {
         // Verify invoice belongs to user
         const invoiceResult = await db.query(
-            'SELECT * FROM invoices WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM invoices WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -443,7 +443,7 @@ router.delete('/api/payment-links/:id', requireAuth, async (req, res) => {
     try {
         await db.query(`
             UPDATE payment_links SET is_active = false
-            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE (user_id = $2 OR user_id IS NULL))
+            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE user_id = $2)
         `, [req.params.id, req.user.id]);
 
         res.json({ success: true });
@@ -459,7 +459,7 @@ router.post('/api/payments/links/:id/toggle', requireAuth, async (req, res) => {
         const result = await db.query(`
             UPDATE payment_links
             SET is_active = NOT is_active
-            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE (user_id = $2 OR user_id IS NULL))
+            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE user_id = $2)
             RETURNING *
         `, [req.params.id, req.user.id]);
 
@@ -479,7 +479,7 @@ router.delete('/api/payments/links/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
             DELETE FROM payment_links
-            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE (user_id = $2 OR user_id IS NULL))
+            WHERE id = $1 AND invoice_id IN (SELECT id FROM invoices WHERE user_id = $2)
             RETURNING id
         `, [req.params.id, req.user.id]);
 
@@ -500,7 +500,7 @@ router.get('/api/clients/:id/payment-methods', requireAuth, async (req, res) => 
         const result = await db.query(`
             SELECT pm.* FROM payment_methods pm
             JOIN clients c ON pm.client_id = c.id
-            WHERE c.id = $1 AND (c.user_id = $2 OR c.user_id IS NULL)
+            WHERE c.id = $1 AND c.user_id = $2
             ORDER BY pm.is_default DESC, pm.created_at DESC
         `, [req.params.id, req.user.id]);
 
@@ -624,7 +624,7 @@ router.get('/api/payments/online', requireAuth, async (req, res) => {
             FROM online_payments op
             LEFT JOIN invoices i ON op.invoice_id = i.id
             LEFT JOIN clients c ON op.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL)
+            WHERE i.user_id = $1
             ORDER BY op.created_at DESC
             LIMIT 100
         `, [req.user.id]);
@@ -647,7 +647,7 @@ router.get('/api/payments/refunds', requireAuth, async (req, res) => {
             FROM online_payments op
             LEFT JOIN invoices i ON op.invoice_id = i.id
             LEFT JOIN clients c ON op.client_id = c.id
-            WHERE (i.user_id = $1 OR i.user_id IS NULL) AND op.status = 'refunded'
+            WHERE i.user_id = $1 AND op.status = 'refunded'
             ORDER BY op.updated_at DESC
             LIMIT 100
         `, [req.user.id]);
@@ -672,7 +672,7 @@ router.post('/api/payments/refunds', requireAuth, async (req, res) => {
             SELECT op.*, i.user_id
             FROM online_payments op
             JOIN invoices i ON op.invoice_id = i.id
-            WHERE op.id = $1 AND (i.user_id = $2 OR i.user_id IS NULL)
+            WHERE op.id = $1 AND i.user_id = $2
         `, [payment_id, req.user.id]);
 
         if (paymentResult.rows.length === 0) {
@@ -732,7 +732,7 @@ router.get('/api/payment-plans', requireAuth, async (req, res) => {
             SELECT pp.*, c.first_name, c.last_name, c.company_name
             FROM payment_plans pp
             LEFT JOIN clients c ON pp.client_id = c.id
-            WHERE (pp.user_id = $1 OR pp.user_id IS NULL)
+            WHERE pp.user_id = $1
             ORDER BY pp.created_at DESC
         `, [req.user.id]);
 
@@ -772,7 +772,7 @@ router.get('/api/payment-plans/:id', requireAuth, async (req, res) => {
             SELECT pp.*, c.first_name, c.last_name, c.company_name
             FROM payment_plans pp
             LEFT JOIN clients c ON pp.client_id = c.id
-            WHERE pp.id = $1 AND (pp.user_id = $2 OR pp.user_id IS NULL)
+            WHERE pp.id = $1 AND pp.user_id = $2
         `, [req.params.id, req.user.id]);
 
         if (result.rows.length === 0) {
@@ -833,7 +833,7 @@ router.post('/api/payment-plans/:id/payment', requireAuth, async (req, res) => {
 
         // Get current plan
         const planResult = await db.query(
-            'SELECT * FROM payment_plans WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+            'SELECT * FROM payment_plans WHERE id = $1 AND user_id = $2',
             [req.params.id, req.user.id]
         );
 
@@ -885,7 +885,7 @@ router.post('/api/payment-plans/:id/payment', requireAuth, async (req, res) => {
 router.delete('/api/payment-plans/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(
-            'DELETE FROM payment_plans WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING id',
+            'DELETE FROM payment_plans WHERE id = $1 AND user_id = $2 RETURNING id',
             [req.params.id, req.user.id]
         );
 

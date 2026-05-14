@@ -49,7 +49,7 @@ router.get('/payment-methods', requireAuth, async (req, res) => {
 
         // Get subscription info
         const subResult = await db.query(
-            'SELECT * FROM subscriptions WHERE (user_id = $1 OR user_id IS NULL) AND status = $2 ORDER BY created_at DESC LIMIT 1',
+            'SELECT * FROM subscriptions WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT 1',
             [req.user.id, 'active']
         );
         subscription = subResult.rows[0];
@@ -99,7 +99,7 @@ router.get('/subscription', requireAuth, async (req, res) => {
 
         // Get current subscription
         const subResult = await db.query(
-            'SELECT * FROM subscriptions WHERE (user_id = $1 OR user_id IS NULL) AND status = $2 ORDER BY created_at DESC LIMIT 1',
+            'SELECT * FROM subscriptions WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT 1',
             [req.user.id, 'active']
         );
 
@@ -283,7 +283,7 @@ router.post('/api/stripe/subscribe', requireAuth, async (req, res) => {
 
         // Cancel any existing active subscriptions first
         await db.query(
-            "UPDATE subscriptions SET status = 'cancelled' WHERE (user_id = $1 OR user_id IS NULL) AND status = 'active'",
+            "UPDATE subscriptions SET status = 'cancelled' WHERE user_id = $1 AND status = 'active'",
             [req.user.id]
         );
 
@@ -339,7 +339,7 @@ router.post('/api/stripe/activate-subscription', requireAuth, async (req, res) =
 
         // Update subscription status to active
         await db.query(
-            "UPDATE subscriptions SET status = 'active' WHERE stripe_subscription_id = $1 AND (user_id = $2 OR user_id IS NULL)",
+            "UPDATE subscriptions SET status = 'active' WHERE stripe_subscription_id = $1 AND user_id = $2",
             [subscriptionId, req.user.id]
         );
 
@@ -363,7 +363,7 @@ router.post('/api/stripe/cancel-subscription', requireAuth, async (req, res) => 
 
         // Get subscription from database
         const subResult = await db.query(
-            "SELECT stripe_subscription_id FROM subscriptions WHERE (user_id = $1 OR user_id IS NULL) AND status = 'active' ORDER BY created_at DESC LIMIT 1",
+            "SELECT stripe_subscription_id FROM subscriptions WHERE user_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT 1",
             [req.user.id]
         );
 
