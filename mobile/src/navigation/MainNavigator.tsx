@@ -21,6 +21,7 @@ import DocumentDetailScreen from '../screens/main/DocumentDetailScreen';
 import DocumentFormScreen from '../screens/main/DocumentFormScreen';
 import ClientDetailScreen from '../screens/main/ClientDetailScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
+import RetainerTrustScreen from '../screens/main/RetainerTrustScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -37,6 +38,7 @@ export type MainStackParamList = {
   ClientDetail: {clientId: string};
   Settings: undefined;
   CreateDocument: undefined;
+  RetainerTrust: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -159,6 +161,11 @@ const MainNavigator: React.FC = () => {
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}
+        options={{animation: 'slide_from_right'}}
+      />
+      <Stack.Screen
+        name="RetainerTrust"
+        component={RetainerTrustScreen}
         options={{animation: 'slide_from_right'}}
       />
       <Stack.Screen

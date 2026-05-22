@@ -36,6 +36,7 @@ const quickActions: QuickAction[] = [
   {icon: 'home', label: 'Real Estate', color: '#10b981', category: 'real_estate'},
   {icon: 'users', label: 'Family Law', color: '#f59e0b', category: 'family_law'},
   {icon: 'scroll', label: 'Estate', color: '#8b5cf6', category: 'estate_planning'},
+  {icon: 'balance-scale', label: 'Trust', color: '#0f766e', category: 'retainer_trust'},
 ];
 
 const HomeScreen: React.FC = () => {
@@ -124,9 +125,13 @@ const HomeScreen: React.FC = () => {
               <TouchableOpacity
                 key={index}
                 style={styles.quickActionItem}
-                onPress={() =>
-                  navigation.navigate('DocumentForm', {category: action.category})
-                }>
+                onPress={() => {
+                  if (action.category === 'retainer_trust') {
+                    navigation.navigate('RetainerTrust');
+                    return;
+                  }
+                  navigation.navigate('DocumentForm', {category: action.category});
+                }}>
                 <View
                   style={[
                     styles.quickActionIcon,

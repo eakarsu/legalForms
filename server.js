@@ -286,6 +286,7 @@ app.use('/', aiIntakeRoutes);
 app.use('/', stripeRoutes);
 app.use('/', additionalFeaturesRoutes);
 app.use('/api/ai/catalog', require('./routes/ai-catalog')); app.use('/api/ai/ediscovery', require('./routes/ai-ediscovery')); app.use('/api/ai/pacer', require('./routes/ai-pacer')); app.use('/api/ai/intake-builder', require('./routes/ai-intake-builder')); app.use('/api/ai/matter-outcome', require('./routes/ai-matter-outcome')); app.use('/api/ai/transcription', require('./routes/ai-transcription'));
+app.use('/api/retainer-trust-reconciliation', require('./routes/retainerTrustReconciliation'));
 
 // Debug: Log registered routes
 console.log('Registered API routes:');
