@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: legalforms
+      POSTGRES_USER: legalforms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legalforms -d legalforms"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - legalforms-postgres:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+
+  migrate:
+    build: .
+    command: ["node", "scripts/migrate.js"]
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: legalforms
+      DB_USER: legalforms
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SSL_MODE: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build: .
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: legalforms
+      DB_USER: legalforms
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SSL_MODE: disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      GOVERNED_SOURCE_HOSTS: ${GOVERNED_SOURCE_HOSTS:?set GOVERNED_SOURCE_HOSTS}
+      GOVERNED_MIN_RETENTION_DAYS: ${GOVERNED_MIN_RETENTION_DAYS:-30}
+      GOVERNED_STORAGE_URL: ${GOVERNED_STORAGE_URL:-}
+      GOVERNED_STORAGE_TOKEN: ${GOVERNED_STORAGE_TOKEN:-}
+      GOVERNED_OCR_URL: ${GOVERNED_OCR_URL:-}
+      GOVERNED_OCR_TOKEN: ${GOVERNED_OCR_TOKEN:-}
+      GOVERNED_ESIGN_URL: ${GOVERNED_ESIGN_URL:-}
+      GOVERNED_ESIGN_TOKEN: ${GOVERNED_ESIGN_TOKEN:-}
+      GOVERNED_FILING_URL: ${GOVERNED_FILING_URL:-}
+      GOVERNED_FILING_TOKEN: ${GOVERNED_FILING_TOKEN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  legalforms-postgres:

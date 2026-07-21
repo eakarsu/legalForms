@@ -45,10 +45,8 @@ Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# Local database files
-*.sql
-# Keep seed files for Docker - they're needed for initial data population
-# database/seed*.js
+# Legacy database and seed files are not part of the governed runtime.
+database
 
 # Temporary files
 tmp

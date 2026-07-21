@@ -2,11 +2,14 @@
   "name": "legal-forms-generator",
   "version": "1.0.0",
   "description": "A comprehensive web application for generating professional legal documents using AI-powered templates",
-  "main": "server.js",
+  "main": "governed-server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node governed-server.js",
+    "start:legacy": "node server.js",
     "dev": "nodemon server.js",
+    "migrate": "node scripts/migrate.js",
     "test": "jest",
+    "test:governed": "jest tests/governedDocumentWorkflow.test.js --runInBand",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:headed": "npx playwright test --headed",
@@ -66,6 +69,6 @@
     "nodemon": "^3.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

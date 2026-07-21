@@ -19,9 +19,18 @@ console.log('========================================\n');
 console.log('1. Checking JavaScript syntax...\n');
 
 const jsFiles = [
+    'governed-server.js',
     'server.js',
     'config/database.js',
+    'config/governed.js',
+    'config/security.js',
+    'lib/governedApp.js',
+    'lib/governedAuth.js',
+    'lib/governedDocumentWorkflow.js',
+    'lib/governedProviders.js',
+    'lib/migrations.js',
     'middleware/auth.js',
+    'routes/governed-documents.js',
     'routes/clients.js',
     'routes/cases.js',
     'routes/billing.js',

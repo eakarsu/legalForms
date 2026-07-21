@@ -507,14 +507,21 @@ router.get('/api/auth/callback/azure-ad',
 // MOBILE API ENDPOINTS (JWT-based)
 // ===========================================
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-change-in-production';
+const { jwtConfig } = require('../config/security');
+const JWT_CONFIG = jwtConfig();
 
 // Helper to generate JWT token
 function generateToken(user) {
     return jwt.sign(
-        { id: user.id, email: user.email },
-        JWT_SECRET,
-        { expiresIn: '30d' }
+        { email: user.email },
+        JWT_CONFIG.secret,
+        {
+            subject: String(user.id),
+            algorithm: JWT_CONFIG.algorithm,
+            issuer: JWT_CONFIG.issuer,
+            audience: JWT_CONFIG.audience,
+            expiresIn: JWT_CONFIG.expiresIn
+        }
     );
 }
 
@@ -641,12 +648,17 @@ router.get('/api/auth/verify', async (req, res) => {
         const token = authHeader.substring(7);
 
         // Verify token
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_CONFIG.secret, {
+            algorithms: [JWT_CONFIG.algorithm],
+            issuer: JWT_CONFIG.issuer,
+            audience: JWT_CONFIG.audience,
+            maxAge: JWT_CONFIG.expiresIn
+        });
 
         // Get user from database
         const userResult = await db.query(
             'SELECT id, email, first_name, last_name, created_at FROM users WHERE id = $1',
-            [decoded.id]
+            [decoded.sub]
         );
 
         if (userResult.rows.length === 0) {
@@ -841,4 +853,3 @@ router.post('/api/auth/social', async (req, res) => {
 });
 
 module.exports = router;
-

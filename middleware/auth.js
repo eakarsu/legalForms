@@ -2,8 +2,9 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const { jwtConfig } = require('../config/security');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-change-in-production';
+const JWT_CONFIG = jwtConfig();
 
 // Authentication middleware (supports both session and JWT)
 const requireAuth = async (req, res, next) => {
@@ -12,24 +13,20 @@ const requireAuth = async (req, res, next) => {
 
         // Check for JWT token in Authorization header (for mobile/API)
         const authHeader = req.headers.authorization;
-        console.log('DEBUG requireAuth: path =', req.path);
-        console.log('DEBUG requireAuth: authHeader =', authHeader ? authHeader.substring(0, 30) + '...' : 'none');
-        console.log('DEBUG requireAuth: authHeader full length =', authHeader ? authHeader.length : 0);
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
-            console.log('DEBUG requireAuth: token length =', token.length);
-            console.log('DEBUG requireAuth: JWT_SECRET =', JWT_SECRET.substring(0, 10) + '...');
             try {
-                const decoded = jwt.verify(token, JWT_SECRET);
-                userId = decoded.id;
-                console.log('DEBUG requireAuth: JWT verified, userId =', userId);
-            } catch (jwtError) {
+                const decoded = jwt.verify(token, JWT_CONFIG.secret, {
+                    algorithms: [JWT_CONFIG.algorithm],
+                    issuer: JWT_CONFIG.issuer,
+                    audience: JWT_CONFIG.audience,
+                    maxAge: JWT_CONFIG.expiresIn
+                });
+                userId = decoded.sub;
+            } catch (_) {
                 // Token invalid, continue to check session
-                console.log('DEBUG requireAuth: JWT error =', jwtError.message);
             }
-        } else {
-            console.log('DEBUG requireAuth: No Bearer token found');
         }
 
         // Fall back to session-based auth (for web)
@@ -150,4 +147,3 @@ module.exports = {
     verifyPassword,
     requireRole
 };
-

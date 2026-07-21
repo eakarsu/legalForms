@@ -70,6 +70,7 @@ const aiCommunicationsRoutes = require('./routes/ai-communications');
 const aiIntakeRoutes = require('./routes/ai-intake');
 const additionalFeaturesRoutes = require('./routes/additional-features');
 const { runPendingMigrations } = require('./lib/migrations');
+const { sessionSecret } = require('./config/security');
 
 require('dotenv').config();
 
@@ -224,7 +225,7 @@ app.use(session({
         pool: db,
         tableName: 'user_sessions'
     }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    secret: sessionSecret(),
     resave: false,
     saveUninitialized: false,
     cookie: {

@@ -1,5 +1,20 @@
 #  Legal Forms Generator
 
+## Governed production workflow
+
+The supported production surface is now a bounded, matter-scoped legal-document review API. It provides explicit author/reviewer/records roles, immutable provenance and version evidence, independent human legal approval, jurisdiction/effective-date checks, idempotent storage/OCR/e-signature/filing operations, signer failure and retry handling, access revocation, legal holds, verified retention disposition receipts, and a verifiable hash-chained audit export.
+
+Run it with:
+
+```bash
+npm ci
+npm run migrate
+npm run test:governed
+npm start
+```
+
+Production uses the minimal dependency manifest in `governed-runtime/` and the non-root multi-stage `Dockerfile`. See `docs/GOVERNED_DOCUMENT_WORKFLOW.md`, `docs/OPERATIONS.md`, and `SECURITY.md` before deployment. The broad legacy UI/server remains available through `npm run start:legacy`, but it is demo/compatibility code and is not copied into the production image.
+
 A comprehensive web application for generating professional legal documents using AI-powered templates. This application covers all major areas of legal practice including business formation, real estate, family law, estate planning, civil litigation, employment contracts, and general contracts.
 
 ## Features
@@ -183,6 +198,6 @@ For support, please contact [your-email@example.com] or create an issue in the r
 - [ ] Implement user authentication
 - [ ] Add document versioning
 - [ ] Create mobile app
-- [ ] Add e-signature integration
+- [x] Add governed e-signature integration with failure evidence and retry
 - [ ] Implement document collaboration features
 - [ ] Add multi-language support

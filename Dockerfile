@@ -1,69 +1,26 @@
-FROM node:20-slim
+FROM node:20-bookworm-slim AS dependencies
 
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
-
 WORKDIR /app
+COPY governed-runtime/package.json governed-runtime/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-# Install system dependencies (PostgreSQL, Chromium for Puppeteer, and utilities)
-RUN apt-get update && apt-get install -y \
-    openssl \
-    bash \
-    postgresql \
-    postgresql-contrib \
-    chromium \
-    libglib2.0-0 \
-    libgbm1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    ca-certificates \
-    fonts-liberation \
-    procps \
-    --no-install-recommends && \
-    rm -rf /var/lib/apt/lists/*
+FROM node:20-bookworm-slim AS runtime
 
-# Setup PostgreSQL data directory
-RUN mkdir -p /var/lib/postgresql/data /run/postgresql && \
-    chown -R postgres:postgres /var/lib/postgresql /run/postgresql && \
-    su postgres -c "/usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data"
+ENV NODE_ENV=production \
+    PORT=3000
+WORKDIR /app
+COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node governed-runtime/package.json ./package.json
+COPY --chown=node:node governed-server.js ./
+COPY --chown=node:node config/database.js config/governed.js config/security.js ./config/
+COPY --chown=node:node lib/governedApp.js lib/governedAuth.js lib/governedDocumentWorkflow.js lib/governedProviders.js lib/migrations.js ./lib/
+COPY --chown=node:node routes/governed-documents.js ./routes/
+COPY --chown=node:node scripts/migrate.js ./scripts/
+COPY --chown=node:node migrations ./migrations
 
-# Copy package files first for better caching
-COPY package.json package-lock.json* ./
-
-# Install dependencies
-RUN npm ci --only=production || npm install --only=production
-
-# Copy application code
-COPY . .
-
-# Set environment variable for Puppeteer
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Make start.sh executable
-RUN chmod +x /app/start.sh
-
+USER node
 EXPOSE 3000
-
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-ENV DB_HOST=localhost
-ENV DB_PORT=5432
-ENV DB_NAME=legalforms
-
-# Start PostgreSQL, create database, and run start.sh
-CMD ["bash", "-c", "su postgres -c '/usr/lib/postgresql/15/bin/pg_ctl start -D /var/lib/postgresql/data -l /var/lib/postgresql/logfile' && sleep 2 && su postgres -c '/usr/lib/postgresql/15/bin/createdb legalforms' 2>/dev/null; /app/start.sh"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "governed-server.js"]
