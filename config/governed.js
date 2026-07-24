@@ -10,7 +10,7 @@ function providerService(env, name, production) {
     const prefix = `GOVERNED_${name.toUpperCase()}`;
     const url = String(env[`${prefix}_URL`] || '').trim();
     const token = String(env[`${prefix}_TOKEN`] || '').trim();
-    if (!url && !token && !production) return null;
+    if ((!url || !token) && !production) return null;
     if (!url || !token) throw new Error(`${prefix}_URL and ${prefix}_TOKEN must both be configured`);
     let parsed;
     try {
