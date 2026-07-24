@@ -17,6 +17,12 @@ const pool = new Pool({
 });
 
 // Helper to generate random date within range
+function requireDemoPassword() {
+  const password = process.env.DEMO_PASSWORD || process.env.SEED_DEMO_PASSWORD || process.env.DEMO_SEED_PASSWORD || '';
+  if (password.length < 12 || password.length > 1024) throw new Error('DEMO_PASSWORD must contain 12-1024 characters');
+  return password;
+}
+
 function randomDate(start, end) {
     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
@@ -63,14 +69,14 @@ async function seedDatabase() {
 
         if (userCheck.rows.length === 0) {
             const bcrypt = require('bcrypt');
-            const hashedPassword = await bcrypt.hash('Demo123!', 12);
+            const hashedPassword = await bcrypt.hash(requireDemoPassword(), 12);
             const userResult = await client.query(`
                 INSERT INTO users (email, password_hash, first_name, last_name, phone, email_verified)
                 VALUES ('demo@legalforms.ai', $1, 'John', 'Attorney', '555-123-4567', true)
                 RETURNING id
             `, [hashedPassword]);
             userId = userResult.rows[0].id;
-            console.log('Created demo user: demo@legalforms.ai / Demo123!');
+            console.log('Demo login users provisioned from the local environment.');
         } else {
             userId = userCheck.rows[0].id;
             console.log('Using existing demo user.');
@@ -1224,7 +1230,7 @@ async function seedDatabase() {
         console.log('========================================');
         console.log('\nDemo User Credentials:');
         console.log('  Email: demo@legalforms.ai');
-        console.log('  Password: Demo123!');
+        console.log('Demo login users provisioned from the local environment.');
         console.log('\nSummary:');
         console.log('  - 20 Clients (15 individuals + 5 businesses)');
         console.log('  - 15 Client Contacts');

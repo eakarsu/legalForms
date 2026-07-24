@@ -16,6 +16,12 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432
 });
 
+function requireDemoPassword() {
+  const password = process.env.DEMO_PASSWORD || process.env.SEED_DEMO_PASSWORD || process.env.DEMO_SEED_PASSWORD || '';
+  if (password.length < 12 || password.length > 1024) throw new Error('DEMO_PASSWORD must contain 12-1024 characters');
+  return password;
+}
+
 async function seed() {
     const client = await pool.connect();
 
@@ -426,7 +432,7 @@ async function seed() {
 
         // Client portal access
         for (let i = 0; i < Math.min(15, clientIds.length); i++) {
-            const passwordHash = await bcrypt.hash('ClientPortal123!', 10);
+            const passwordHash = await bcrypt.hash(requireDemoPassword(), 10);
             await client.query(`
                 INSERT INTO client_portal_access (client_id, email, password_hash, is_active, portal_token)
                 VALUES ($1, $2, $3, $4, $5)
