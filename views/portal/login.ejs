@@ -149,10 +149,22 @@
                         <label class="form-check-label" for="remember">Remember this device</label>
                     </div>
                 </div>
+                <button type="button" id="fill-demo-credentials" class="btn btn-outline-secondary w-100 mb-2">
+                    Auto Fill Demo Credentials
+                </button>
                 <button type="submit" class="btn btn-login">
                     <i class="fas fa-sign-in-alt me-2"></i>Sign In
                 </button>
             </form>
+            <script>
+                document.getElementById('fill-demo-credentials').addEventListener('click', async () => {
+                    const response = await fetch('/api/auth/demo-credentials', { cache: 'no-store' });
+                    const credentials = await response.json();
+                    if (!response.ok) return window.alert(credentials.error || 'Demo credentials are unavailable');
+                    document.querySelector('input[name="email"]').value = credentials.email || '';
+                    document.querySelector('input[name="password"]').value = credentials.password || '';
+                });
+            </script>
 
             <div class="text-center mt-4">
                 <a href="/portal/forgot-password" class="text-muted">Forgot your password?</a>
