@@ -19,6 +19,30 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Demo credentials for the login page ("Auto Fill Demo Credentials").
+// Disabled in production; returns 503 when no demo account is configured.
+router.get('/api/auth/demo-credentials', async (req, res) => {
+    if (process.env.NODE_ENV === 'production') return res.status(404).json({ error: 'Not found' });
+    const candidates = [
+        ...['DEMO_PASSWORD', 'SEED_DEMO_PASSWORD', 'DEMO_SEED_PASSWORD'].map(key => ({ email: 'demo@legalforms.ai', password: process.env[key] })),
+        { email: process.env.PROVISION_ADMIN_EMAIL, password: process.env.PROVISION_ADMIN_PASSWORD },
+        { email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD }
+    ];
+    try {
+        for (const { email, password } of candidates) {
+            if (!email || !password) continue;
+            const user = await db.query('SELECT password_hash FROM users WHERE lower(email) = lower($1)', [email]);
+            if (user.rows[0] && await verifyPassword(password, user.rows[0].password_hash)) {
+                res.set('Cache-Control', 'no-store');
+                return res.json({ email, password });
+            }
+        }
+        return res.status(503).json({ error: 'Configured demo credentials do not match an existing account' });
+    } catch (error) {
+        return res.status(503).json({ error: 'Demo credentials could not be verified' });
+    }
+});
+
 // Registration page with demo data
 router.get('/register', (req, res) => {
     // Pre-fill with demo data for new users to see example format

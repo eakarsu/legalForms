@@ -177,12 +177,14 @@ router.get('/leads/forms/:id/preview', requireAuth, async (req, res) => {
 router.get('/leads', requireAuth, async (req, res) => {
     try {
         const { status, practice_area, source } = req.query;
+        const formsTable = await db.query("SELECT to_regclass('public.intake_form_templates') IS NOT NULL AS available");
+        const hasForms = formsTable.rows[0].available;
 
         let query = `
-            SELECT l.*, ift.name as form_name,
+            SELECT l.*, ${hasForms ? 'ift.name' : 'NULL::text'} as form_name,
                    (SELECT COUNT(*) FROM lead_activities WHERE lead_id = l.id) as activity_count
             FROM leads l
-            LEFT JOIN intake_form_templates ift ON l.form_id = ift.id
+            ${hasForms ? 'LEFT JOIN intake_form_templates ift ON l.form_id = ift.id' : ''}
             WHERE l.user_id = $1
         `;
         const params = [req.user.id];

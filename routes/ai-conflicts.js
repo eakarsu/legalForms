@@ -29,8 +29,8 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
         const statsResult = await db.query(`
             SELECT
                 COUNT(*) as total_analyses,
-                COUNT(CASE WHEN reviewed = false THEN 1 END) as pending_review,
-                COUNT(CASE WHEN potential_conflicts IS NOT NULL AND jsonb_array_length(potential_conflicts) > 0 THEN 1 END) as conflicts_found
+                NULL::integer as pending_review,
+                COUNT(*) FILTER (WHERE risk_level IN ('medium', 'high', 'critical')) as conflicts_found
             FROM ai_conflict_analyses
             WHERE user_id = $1
         `, [req.user.id]);
@@ -39,9 +39,18 @@ router.get('/ai-conflicts/dashboard', requireAuth, async (req, res) => {
             title: 'AI Conflict Analysis',
             analyses: analysesResult.rows,
             stats: statsResult.rows[0],
-            active: 'conflicts'
+            active: 'conflicts',
+            dataNotice: 'Review status is unavailable in this database schema; risk counts use stored risk levels.'
         });
     } catch (error) {
+        if (error.code === '42P01') {
+            return res.render('ai/conflicts-dashboard', {
+                title: 'AI Conflict Analysis', analyses: [],
+                stats: { total_analyses: 0, pending_review: 0, conflicts_found: 0 },
+                active: 'conflicts',
+                dataNotice: 'AI conflict history is unavailable until the application schema is installed.'
+            });
+        }
         console.error('AI conflicts dashboard error:', error);
         res.status(500).render('error', { message: 'Error loading AI conflicts' });
     }

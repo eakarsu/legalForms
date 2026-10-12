@@ -50,6 +50,14 @@ router.get('/calendar/ai-assistant', requireAuth, async (req, res) => {
             req
         });
     } catch (error) {
+        if (error.code === '42P01') {
+            return res.render('calendar/ai-assistant', {
+                title: 'AI Calendar Assistant', suggestions: [],
+                stats: { total_suggestions: 0, pending_count: 0, critical_count: 0 },
+                jurisdictions: [], req,
+                dataNotice: 'AI calendar records are unavailable until the application schema is installed.'
+            });
+        }
         console.error('AI calendar error:', error);
         res.status(500).render('error', { message: 'Error loading AI calendar' });
     }
@@ -460,6 +468,7 @@ router.get('/api/ai-calendar/sol-database', requireAuth, async (req, res) => {
 
         res.json({ success: true, statutes: result.rows });
     } catch (error) {
+        if (error.code === '42P01') return res.json({ success: true, statutes: [], notice: 'Statute data is unavailable until the application schema is installed.' });
         console.error('Get SOL database error:', error);
         res.status(500).json({ error: 'Failed to get SOL data' });
     }
@@ -478,6 +487,7 @@ router.get('/api/ai-calendar/suggestions', requireAuth, async (req, res) => {
 
         res.json({ success: true, suggestions: result.rows });
     } catch (error) {
+        if (error.code === '42P01') return res.json({ success: true, suggestions: [], notice: 'AI calendar records are unavailable until the application schema is installed.' });
         console.error('Get suggestions error:', error);
         res.status(500).json({ error: 'Failed to get suggestions' });
     }

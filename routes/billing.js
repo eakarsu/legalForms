@@ -253,7 +253,7 @@ router.get('/billing/expenses', requireAuth, async (req, res) => {
         const { case_id, category, is_billed } = req.query;
 
         let query = `
-            SELECT e.*, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
+            SELECT e.*, e.date AS expense_date, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
@@ -279,7 +279,7 @@ router.get('/billing/expenses', requireAuth, async (req, res) => {
             params.push(is_billed === 'true');
         }
 
-        query += ' ORDER BY e.expense_date DESC';
+        query += ' ORDER BY e.date DESC';
 
         const expensesResult = await db.query(query, params);
 
@@ -744,7 +744,7 @@ router.get('/api/expenses', requireAuth, async (req, res) => {
         const { case_id, category, is_billed, limit = 100 } = req.query;
 
         let query = `
-            SELECT e.*, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
+            SELECT e.*, e.date AS expense_date, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id
@@ -771,7 +771,7 @@ router.get('/api/expenses', requireAuth, async (req, res) => {
             paramIndex++;
         }
 
-        query += ` ORDER BY e.expense_date DESC LIMIT $${paramIndex}`;
+        query += ` ORDER BY e.date DESC LIMIT $${paramIndex}`;
         params.push(limit);
 
         const result = await db.query(query, params);
@@ -862,7 +862,7 @@ router.put('/api/expenses/:id', requireAuth, async (req, res) => {
 router.get('/api/expenses/:id', requireAuth, async (req, res) => {
     try {
         const result = await db.query(`
-            SELECT e.*, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
+            SELECT e.*, e.date AS expense_date, c.title as case_title, cl.first_name, cl.last_name, cl.company_name
             FROM expenses e
             LEFT JOIN cases c ON e.case_id = c.id
             LEFT JOIN clients cl ON e.client_id = cl.id

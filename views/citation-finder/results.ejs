@@ -192,12 +192,17 @@ document.querySelectorAll('.save-btn').forEach(btn => {
 
         // Load cases
         try {
-            const res = await fetch('/api/cases/list');
+            const res = await fetch('/api/cases');
+            if (!res.ok) throw new Error('Could not load cases');
             const data = await res.json();
             const select = document.getElementById('saveCaseId');
             select.innerHTML = '<option value="">Select a case...</option>';
-            data.cases.forEach(c => {
-                select.innerHTML += `<option value="${c.id}">${c.case_number} - ${c.title}</option>`;
+            const cases = Array.isArray(data.cases) ? data.cases : [];
+            cases.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = `${c.case_number} - ${c.title}`;
+                select.append(option);
             });
         } catch (e) {
             console.error('Failed to load cases');

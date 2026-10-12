@@ -1,0 +1,25 @@
+<% if (value === null || value === undefined) { %>
+    <span class="text-muted">Not supplied</span>
+<% } else if (Array.isArray(value)) { %>
+    <% if (value.length === 0) { %><p class="text-muted">No items returned.</p>
+    <% } else if (value.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.values(item).every(cell => cell === null || typeof cell !== 'object'))) { %>
+        <% const columns = [...new Set(value.flatMap(item => Object.keys(item)))]; %>
+        <div class="table-responsive"><table class="table table-striped table-sm"><thead><tr>
+            <% columns.forEach(column => { %><th scope="col"><%= column.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ') %></th><% }) %>
+        </tr></thead><tbody>
+            <% value.forEach(item => { %><tr><% columns.forEach(column => { %><td><%- include('structured-result', { value: item[column] }) %></td><% }) %></tr><% }) %>
+        </tbody></table></div>
+    <% } else { %>
+        <ul class="list-group list-group-flush"><% value.forEach(item => { %><li class="list-group-item"><%- include('structured-result', { value: item }) %></li><% }) %></ul>
+    <% } %>
+<% } else if (typeof value === 'object') { %>
+    <% Object.entries(value).forEach(([key, item]) => { %>
+        <section class="mb-3"><h6 class="text-primary mb-1"><%= key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ') %></h6>
+            <%- include('structured-result', { value: item }) %>
+        </section>
+    <% }) %>
+<% } else if (value === '') { %>
+    <em>Empty string</em>
+<% } else { %>
+    <span style="white-space: pre-wrap;"><%= value %></span>
+<% } %>

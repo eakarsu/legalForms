@@ -21,6 +21,10 @@
                 <a href="/cases/<%= caseData.id %>/edit" class="btn btn-outline-primary me-2">
                     <i class="fas fa-edit me-1"></i>Edit
                 </a>
+                <button class="btn btn-outline-danger me-2" id="btn-delete-case" data-id="<%= caseData.id %>" title="Delete this case">
+                    <i class="fas fa-trash me-1"></i>Delete
+                </button>
+                <a href="/cases" class="btn btn-outline-secondary me-2">Cancel</a>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTimeModal">
                     <i class="fas fa-stopwatch me-1"></i>Log Time
                 </button>
@@ -426,6 +430,18 @@
                 console.error(err);
             });
         }
+    </script>
+    <script>
+        document.getElementById('btn-delete-case')?.addEventListener('click', async function () {
+            if (!window.confirm('Delete this case? This action cannot be undone.')) return;
+            try {
+                const response = await fetch('/api/cases/<%= caseData.id %>', { method: 'DELETE' });
+                if (response.ok) { window.location.href = '/cases'; return; }
+                window.alert('The case could not be deleted.');
+            } catch (error) {
+                window.alert('The case could not be deleted.');
+            }
+        });
     </script>
 <%- include('../partials/footer') %>
 </body>
